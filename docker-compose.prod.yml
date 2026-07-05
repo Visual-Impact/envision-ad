@@ -109,6 +109,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /home/ec2-user/envision-ad:/home/ec2-user/envision-ad:ro # Maps project root for Certbot webroot SSL verification
+      - /var/www/docs:/var/www/docs:ro # Static Docusaurus build for docs.envision-ad.ca
       # TLS certificates are provided by Let's Encrypt via Certbot on the EC2 host.
       # Before running this compose file in production, install Certbot on the host
       # and obtain certificates for your domain, for example (adjusting plugins/flags
