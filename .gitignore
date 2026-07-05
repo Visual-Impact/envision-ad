@@ -46,3 +46,6 @@ out/
 
 ### Environment Variables ###
 .env
+
+### Secrets for developer documentation auth ###
+nginx/.htpasswd
