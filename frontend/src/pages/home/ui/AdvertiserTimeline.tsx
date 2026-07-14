@@ -38,7 +38,7 @@ export function AdvertiserTimeline({ bookMeetingUrl, onBookMeetingClick }: Adver
 
     return (
         <Box component="section" className={classes.section}>
-            <Container size={1480} className={classes.container}>
+            <Container size={1650} className={classes.container}>
                 <Title order={2} className={`${classes.title} ${classes.heading}`}>
                     {t("titlePart1")} <span className={classes.titleGradient}>{t("titlePart2")}</span>
                 </Title>
