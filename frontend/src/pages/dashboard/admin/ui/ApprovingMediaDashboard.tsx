@@ -46,7 +46,9 @@ export default function ApprovingMediaDashboard() {
   }, [pendingRows, activePage]);
 
   React.useEffect(() => {
-    if (activePage > totalPages) setActivePage(1);
+    (() => {
+      if (activePage > totalPages) setActivePage(1);
+    })();
   }, [activePage, totalPages]);
 
   return (

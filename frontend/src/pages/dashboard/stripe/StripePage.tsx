@@ -64,9 +64,31 @@ export default function StripePage() {
         }
     }, [searchParams, t, fetchStatus]);
 
+    // Initial load is inlined (rather than calling `fetchStatus`) so the
+    // effect's own state updates stay local to the effect, with proper
+    // unmount cancellation. `fetchStatus` remains for the onboarding-success
+    // re-check above, which runs from a timer callback, not directly.
     useEffect(() => {
-        void fetchStatus();
-    }, [fetchStatus]);
+        if (!organization) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsLoading(true);
+            try {
+                const stripeStatus = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStatus(stripeStatus);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+                if (!cancelled) setError(e instanceof Error ? e.message : t('errors.fetchFailed'));
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization, t]);
 
     const handleConnect = async () => {
         if (!organization) return;

@@ -66,13 +66,15 @@ export default function MediaOwnerMetricsDashboard() {
 
     // Initialise to the first N media once data loads; runs only once
     useEffect(() => {
-        if (selectedMediaNames.length === 0 && overviewMetricsData.revenueByMediaLocation.length > 0) {
-            setSelectedMediaNames(
-                overviewMetricsData.revenueByMediaLocation
-                    .slice(0, DEFAULT_SELECTED_MEDIA_COUNT)
-                    .map((m) => m.locationName)
-            );
-        }
+        (() => {
+            if (selectedMediaNames.length === 0 && overviewMetricsData.revenueByMediaLocation.length > 0) {
+                setSelectedMediaNames(
+                    overviewMetricsData.revenueByMediaLocation
+                        .slice(0, DEFAULT_SELECTED_MEDIA_COUNT)
+                        .map((m) => m.locationName)
+                );
+            }
+        })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [overviewMetricsData.revenueByMediaLocation]);
 
@@ -103,10 +105,12 @@ export default function MediaOwnerMetricsDashboard() {
 
     // Initialise to all rows on first load, and re-sync whenever the location rows change
     useEffect(() => {
-        if (mediaScreensTimelineData.rows.length > 0) {
-            setSelectedTimelineMediaIds(mediaScreensTimelineData.rows.map((r) => r.mediaId));
-            setTimelineLegendPage(1);
-        }
+        (() => {
+            if (mediaScreensTimelineData.rows.length > 0) {
+                setSelectedTimelineMediaIds(mediaScreensTimelineData.rows.map((r) => r.mediaId));
+                setTimelineLegendPage(1);
+            }
+        })();
     }, [mediaScreensTimelineData.rows]);
 
     const filteredTimelineData = {

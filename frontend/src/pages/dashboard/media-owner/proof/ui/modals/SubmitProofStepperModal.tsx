@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
     Modal,
     Stepper,
@@ -49,7 +49,13 @@ export default function SubmitProofStepperModal({
     const t = useTranslations("proofOfDisplay");
 
 
-    useEffect(() => {
+    // Reset once the modal transitions to closed. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (!opened) {
             setActive(0);
             setSelectedCampaignId(null);
@@ -57,7 +63,7 @@ export default function SubmitProofStepperModal({
             setError(null);
             setSubmitting(false);
         }
-    }, [opened, setSelectedCampaignId]);
+    }
 
     const widgetOptions = {
         sources: ["local", "url"] as ("local" | "url")[],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Carousel } from "@mantine/carousel";
 import type { EmblaCarouselType } from "embla-carousel";
 import AutoScroll from "embla-carousel-auto-scroll";
@@ -34,7 +34,8 @@ export function DisplayGallery({ images }: DisplayGalleryProps) {
 
     // Stable plugin instance (embla plugins must not be recreated every render).
     // Slow continuous drift; pauses while the admin/visitor drags, then resumes.
-    const autoScroll = useRef(AutoScroll({ speed: 0.6, stopOnInteraction: false, stopOnMouseEnter: true }));
+    // Lazy useState initializer (not a ref) so it's safe to read during render.
+    const [autoScroll] = useState(() => AutoScroll({ speed: 0.6, stopOnInteraction: false, stopOnMouseEnter: true }));
 
     return (
         <Box component="section" className={classes.section}>
@@ -49,13 +50,12 @@ export function DisplayGallery({ images }: DisplayGalleryProps) {
                     slideSize={{ base: "78%", xs: "42%", sm: "32%", md: "25%" }}
                     slideGap="md"
                     emblaOptions={{ align: "start", dragFree: true, loop: true }}
-                    plugins={[autoScroll.current]}
+                    plugins={[autoScroll]}
                     getEmblaApi={setEmbla}
                 >
                     {slides.map((src, index) => (
                         <Carousel.Slide key={`${src}-${index}`}>
                             <div className={classes.card}>
-                                    without next/image remote-domain config, like MediaCard. */}
                                 <Image
                                     src={src}
                                     alt={t("imageAlt", { index: index + 1 })}
@@ -73,7 +73,7 @@ export function DisplayGallery({ images }: DisplayGalleryProps) {
                         size={48}
                         className={classes.control}
                         onClick={() => {
-                            autoScroll.current.stop();
+                            autoScroll.stop();
                             embla?.scrollPrev();
                         }}
                         aria-label={t("previous")}
@@ -86,7 +86,7 @@ export function DisplayGallery({ images }: DisplayGalleryProps) {
                         size={48}
                         className={classes.control}
                         onClick={() => {
-                            autoScroll.current.stop();
+                            autoScroll.stop();
                             embla?.scrollNext();
                         }}
                         aria-label={t("next")}

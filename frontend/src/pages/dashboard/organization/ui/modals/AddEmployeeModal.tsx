@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useEffect, useState} from "react";
+import React, {useState} from "react";
 import {Alert, Button, Group, Modal, Stack, TextInput} from "@mantine/core";
 import {useTranslations} from "next-intl";
 import {createInviteEmployeeToOrganization} from "@/features/organization-management/api";
@@ -30,11 +30,17 @@ export function AddEmployeeModal({
     const [invalidInputWarning, setInvalidInputWarning] = useState<string | null>(null);
     const [email, setEmail] = useState("");
 
-    useEffect(() => {
+    // Reset once the modal transitions to open. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (opened) {
             setInvalidInputWarning(null);
         }
-    }, [opened]);
+    }
 
     const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Center, Stack, Title, Text, Button, Group, Loader,
     ThemeIcon, Badge, Divider, Paper, Box, Alert, SimpleGrid,
@@ -71,22 +71,26 @@ export default function OnboardingPage() {
         }
     }, [isAdmin, router]);
 
-    const fetchStripeStatus = useCallback(async () => {
-        if (!organization || !isMediaOwner) return;
-        try {
-            setIsStripeLoading(true);
-            const status = await getStripeAccountStatus(organization.businessId);
-            setStripeStatus(status);
-        } catch (e) {
-            console.error("Failed to fetch Stripe status", e);
-        } finally {
-            setIsStripeLoading(false);
-        }
-    }, [organization, isMediaOwner]);
-
     useEffect(() => {
-        void fetchStripeStatus();
-    }, [fetchStripeStatus]);
+        if (!organization || !isMediaOwner) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsStripeLoading(true);
+            try {
+                const status = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStripeStatus(status);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+            } finally {
+                if (!cancelled) setIsStripeLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization, isMediaOwner]);
 
     const handleStripeConnect = async () => {
         if (!organization) return;

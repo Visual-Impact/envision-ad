@@ -1,7 +1,7 @@
 import { Modal, TextInput, Button, Group, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { updateUser } from "@/features/auth";
 import { Employee } from "@/entities/organization";
 import { useRouter } from "next/navigation";
@@ -31,21 +31,21 @@ export function EditProfileModal({ opened, onClose, user }: EditProfileModalProp
         },
     });
 
-    // Track previous open state to detect when modal opens
+    // Reset form when the modal transitions to open. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
     const [prevOpened, setPrevOpened] = useState(false);
-
-    // Reset form when modal opens
-    useEffect(() => {
-        // Only run when opened changes from false to true
-        if (opened && !prevOpened) {
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
+        if (opened) {
             form.setValues({
                 given_name: user.given_name || "",
                 family_name: user.family_name || "",
                 nickname: user.nickname || user.name || ""
             });
         }
-        setPrevOpened(opened);
-    }, [opened, user, prevOpened, form]);
+    }
 
     const handleSubmit = async (values: typeof form.values) => {
         setLoading(true);

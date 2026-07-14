@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
     Modal,
     Stack,
@@ -58,13 +58,19 @@ export function PaymentModal({
 
     const missingKey = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-    useEffect(() => {
+    // Reset once the modal transitions to closed. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (!opened) {
             setStep("review");
             setClientSecret(null);
             setLoading(false);
         }
-    }, [opened]);
+    }
 
     const handleProceedToPayment = async () => {
         if (!reservation) return;
