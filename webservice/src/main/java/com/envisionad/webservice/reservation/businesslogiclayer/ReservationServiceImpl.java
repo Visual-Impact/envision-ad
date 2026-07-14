@@ -309,23 +309,32 @@ public class ReservationServiceImpl implements ReservationService {
     @Override
     public List<ReservationResponseModel> getAllReservationByAdvertiserBusinessId(Jwt jwt, String businessId) {
         jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
-        List<ReservationResponseModel> reservations = reservationRepository.findAll().stream().filter(reservation -> adCampaignRepository.findByCampaignId_CampaignId(reservation.getCampaignId()).getBusinessId().getBusinessId().equals(businessId)).map(reservationResponseMapper::entityToResponseModel).toList();
 
-        List<String> campaignIds = reservations.stream()
-                .map(ReservationResponseModel::getCampaignId)
+        List<Reservation> allReservations = reservationRepository.findAll();
+
+        List<String> allCampaignIds = allReservations.stream()
+                .map(Reservation::getCampaignId)
                 .filter(id -> id != null && !id.isBlank())
                 .distinct()
                 .toList();
 
-        var campaigns = adCampaignRepository.findAllByCampaignId_CampaignIdIn(campaignIds);
+        Map<String, AdCampaign> campaignById = allCampaignIds.isEmpty()
+                ? new HashMap<>()
+                : adCampaignRepository.findAllByCampaignId_CampaignIdIn(allCampaignIds).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                c -> c.getCampaignId().getCampaignId(),
+                                c -> c
+                        ));
 
-        var campaignNameById = campaigns.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        c -> c.getCampaignId().getCampaignId(),
-                        AdCampaign::getName
-                ));
+        List<ReservationResponseModel> reservations = allReservations.stream()
+                .filter(reservation -> {
+                    AdCampaign campaign = campaignById.get(reservation.getCampaignId());
+                    return campaign != null && campaign.getBusinessId().getBusinessId().equals(businessId);
+                })
+                .map(reservationResponseMapper::entityToResponseModel)
+                .toList();
 
-        reservations.forEach(r -> r.setCampaignName(campaignNameById.get(r.getCampaignId())));
+        reservations.forEach(r -> r.setCampaignName(campaignById.get(r.getCampaignId()).getName()));
 
         return reservations;
     }
