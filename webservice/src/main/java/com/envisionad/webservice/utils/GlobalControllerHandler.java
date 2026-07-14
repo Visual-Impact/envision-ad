@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.proofofdisplay.exceptions.AdvertiserEmailNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import static org.springframework.http.HttpStatus.*;
 import org.slf4j.Logger;
@@ -202,6 +203,13 @@ public class GlobalControllerHandler {
     @ExceptionHandler(ReservationConflictException.class)
     public HttpErrorInfo handleReservationConflictException(ReservationConflictException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public HttpErrorInfo handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation", ex);
+        return new HttpErrorInfo(CONFLICT, "The request could not be completed due to a conflicting database state.");
     }
 
     private HttpErrorInfo createHttpErrorInfo(HttpStatus httpStatus, Exception ex) {
