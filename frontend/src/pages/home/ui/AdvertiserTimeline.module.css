@@ -1,5 +1,5 @@
 .section {
-  padding: 72px 0 88px;
+  padding: 0 0 88px;
   background: #ffffff;
   overflow: hidden;
 }
@@ -230,7 +230,7 @@ a.iconCircle:hover {
 /* ---- Tablet ---- */
 @media (max-width: 62em) {
   .section {
-    padding: 56px 0 64px;
+    padding: 0 0 64px;
   }
 
   .title {

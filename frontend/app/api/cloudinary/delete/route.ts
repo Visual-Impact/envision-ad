@@ -1,8 +1,11 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
 import { auth0 } from "@/shared/api/auth0/auth0";
+import { jwtDecode } from "jwt-decode";
+import { Token } from "@/entities/auth";
 
 const GALLERY_KEY = 'homepage-gallery';
+const REQUIRED_PERMISSION = 'manage:settings';
 
 function backendBaseUrl(): string | undefined {
     return process.env.DOCKER === "true"
@@ -27,10 +30,27 @@ function galleryPublicIds(value: unknown): string[] {
 }
 
 export async function POST(request: Request) {
-    // Authorization guard — mirror the sign-upload route (must be logged in).
+    // Authorization guard — must be logged in.
     const session = await auth0.getSession();
     if (!session || !session.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Authorization boundary: only callers with manage:settings (the same
+    // authority the backend requires for PUT /settings/{key}) may destroy
+    // homepage gallery assets. Without this, any authenticated user could
+    // delete a Cloudinary asset by POSTing a publicId currently referenced by
+    // the setting — the membership check alone does not verify permission.
+    let permissions: string[];
+    try {
+        const { token } = await auth0.getAccessToken();
+        permissions = jwtDecode<Token>(token).permissions ?? [];
+    } catch (err) {
+        console.error("[gallery-delete] could not read access token permissions:", err);
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!permissions.includes(REQUIRED_PERMISSION)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     let publicId: string;

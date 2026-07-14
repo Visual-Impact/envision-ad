@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Carousel } from "@mantine/carousel";
 import type { EmblaCarouselType } from "embla-carousel";
 import AutoScroll from "embla-carousel-auto-scroll";
-import { Box, Container, Stack, Title, ActionIcon, Group, Image } from "@mantine/core";
+import { Box, Container, Title, ActionIcon, Group, Image } from "@mantine/core";
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import classes from "./DisplayGallery.module.css";
@@ -39,16 +39,9 @@ export function DisplayGallery({ images }: DisplayGalleryProps) {
     return (
         <Box component="section" className={classes.section}>
             <Container size={1480} className={classes.container}>
-                <Group justify="space-between" align="flex-end" wrap="nowrap" className={classes.header}>
-                    <Stack gap={4} className={classes.heading}>
-                        <Title order={2} className={classes.title}>
-                            {t("titlePart1")}
-                        </Title>
-                        <Title order={2} className={`${classes.title} ${classes.titleGradient}`}>
-                            {t("titlePart2")}
-                        </Title>
-                    </Stack>
-                </Group>
+                <Title order={2} className={`${classes.title} ${classes.heading}`}>
+                    {t("titlePart1")} <span className={classes.titleGradient}>{t("titlePart2")}</span>
+                </Title>
 
                 <Carousel
                     classNames={{ root: classes.carousel, viewport: classes.viewport, container: classes.slides }}
