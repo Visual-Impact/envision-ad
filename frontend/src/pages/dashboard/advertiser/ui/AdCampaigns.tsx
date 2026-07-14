@@ -37,6 +37,8 @@ export default function AdCampaigns() {
     const [confirmDeleteCampaignOpen, setConfirmDeleteCampaignOpen] = useState(false);
     const [adToDelete, setAdToDelete] = useState<{ campaignId: string; adId: string } | null>(null);
     const [campaignIdToDelete, setCampaignIdToDelete] = useState<string | null>(null);
+    const [isDeletingAd, setIsDeletingAd] = useState(false);
+    const [isDeletingCampaign, setIsDeletingCampaign] = useState(false);
 
     const refreshCampaigns = useCallback(() => {
         setRefreshCount(c => c + 1);
@@ -120,8 +122,9 @@ export default function AdCampaigns() {
     };
 
     const confirmDeleteAd = async () => {
-        if (!adToDelete) return;
+        if (!adToDelete || isDeletingAd) return;
 
+        setIsDeletingAd(true);
         try {
             await deleteAdFromCampaign(adToDelete.campaignId, adToDelete.adId);
             notifications.show({
@@ -151,12 +154,15 @@ export default function AdCampaigns() {
                 message: messageToShow,
                 color: 'red'
             });
+        } finally {
+            setIsDeletingAd(false);
         }
     };
 
     const confirmDeleteCampaign = async () => {
-        if (!campaignIdToDelete || !organization) return;
+        if (!campaignIdToDelete || !organization || isDeletingCampaign) return;
 
+        setIsDeletingCampaign(true);
         try {
             await deleteAdCampaign(organization.businessId, campaignIdToDelete);
             notifications.show({
@@ -187,6 +193,8 @@ export default function AdCampaigns() {
                 message: messageToShow,
                 color: 'red'
             });
+        } finally {
+            setIsDeletingCampaign(false);
         }
     };
 
@@ -270,6 +278,7 @@ export default function AdCampaigns() {
                 confirmLabel={t('confirmations.delete.confirm')}
                 cancelLabel={t('confirmations.delete.cancel')}
                 confirmColor="red"
+                loading={isDeletingAd}
                 onConfirm={confirmDeleteAd}
                 onCancel={() => setConfirmDeleteAdOpen(false)}
             />
@@ -280,6 +289,7 @@ export default function AdCampaigns() {
                 confirmLabel={t('confirmations.delete.confirm')}
                 cancelLabel={t('confirmations.delete.cancel')}
                 confirmColor="red"
+                loading={isDeletingCampaign}
                 onConfirm={confirmDeleteCampaign}
                 onCancel={() => setConfirmDeleteCampaignOpen(false)}
             />

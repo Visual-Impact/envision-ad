@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.proofofdisplay.exceptions.AdvertiserEmailNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import static org.springframework.http.HttpStatus.*;
 import org.slf4j.Logger;
@@ -210,6 +211,16 @@ public class GlobalControllerHandler {
     public HttpErrorInfo handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation", ex);
         return new HttpErrorInfo(CONFLICT, "The request could not be completed due to a conflicting database state.");
+    }
+
+    // Thrown when a row targeted for update/delete was already modified or removed by a concurrent
+    // request (e.g. a duplicate delete from a double-clicked button). The row is genuinely gone by
+    // the time this request runs, so treat it as not found rather than leaking the Hibernate message.
+    @ResponseStatus(NOT_FOUND)
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public HttpErrorInfo handleOptimisticLockingFailureException(OptimisticLockingFailureException ex) {
+        log.warn("Optimistic locking failure", ex);
+        return new HttpErrorInfo(NOT_FOUND, "This item was already modified or deleted by another request.");
     }
 
     private HttpErrorInfo createHttpErrorInfo(HttpStatus httpStatus, Exception ex) {

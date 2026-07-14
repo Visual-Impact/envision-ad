@@ -10,6 +10,7 @@ interface ConfirmationModalProps {
     confirmLabel?: string;
     cancelLabel?: string;
     confirmColor?: string;
+    loading?: boolean;
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -21,6 +22,7 @@ export function ConfirmationModal({
     confirmLabel,
     cancelLabel,
     confirmColor,
+    loading = false,
     onConfirm,
     onCancel,
 }: ConfirmationModalProps) {
@@ -33,6 +35,9 @@ export function ConfirmationModal({
             padding="lg"
             radius="lg"
             shadow="lg"
+            closeOnClickOutside={!loading}
+            closeOnEscape={!loading}
+            withCloseButton={!loading}
             overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
             classNames={{ content: styles.modalContent }}
         >
@@ -41,11 +46,11 @@ export function ConfirmationModal({
             </Text>
 
             <Group justify="flex-end" mt="lg">
-                <Button variant="default" radius="md" className={styles.cancelButton} onClick={onCancel}>
+                <Button variant="default" radius="md" className={styles.cancelButton} onClick={onCancel} disabled={loading}>
                     {cancelLabel}
                 </Button>
 
-                <Button color={confirmColor} radius="md" className={styles.confirmButton} onClick={onConfirm}>
+                <Button color={confirmColor} radius="md" className={styles.confirmButton} onClick={onConfirm} loading={loading}>
                     {confirmLabel}
                 </Button>
             </Group>
