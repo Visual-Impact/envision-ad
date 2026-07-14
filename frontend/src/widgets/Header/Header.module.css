@@ -1,0 +1,24 @@
+/* Registers --gradient-angle as an animatable CSS custom property */
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes rotateGradient {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+.bookButton {
+  --gradient-angle: 0deg;
+  background: conic-gradient(
+    from var(--gradient-angle),
+    #00bfff 0%,
+    #a855f7 30%,
+    #ec4899 60%,
+    #00bfff 100%
+  );
+  animation: rotateGradient 3s linear infinite;
+}

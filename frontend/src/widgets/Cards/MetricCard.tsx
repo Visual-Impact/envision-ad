@@ -1,48 +1,39 @@
-import { Card, Group, Stack, Text, Title } from "@mantine/core";
+import { Card, Group, Text, ThemeIcon } from "@mantine/core";
+import styles from "./MetricCard.module.css";
 
 type MetricCardProps = {
     label: string;
     value: string;
     description?: string;
     icon?: React.ReactNode;
+    /** Mantine color key driving the label text and icon chip. @default "blue" */
+    color?: string;
 };
 
-export function MetricCard({ label, value, description, icon }: MetricCardProps) {
+export function MetricCard({ label, value, description, icon, color = "blue" }: MetricCardProps) {
     return (
-        <Card withBorder radius="md" p="md">
-            <Group justify="space-between" align="flex-start" wrap="nowrap">
-                <Stack gap={6} style={{ minWidth: 0 }}>
-                    <Text c="dimmed" size="sm">
-                        {label}
-                    </Text>
-
-                    <Title order={2} style={{ lineHeight: 1.1 }}>
-                        {value}
-                    </Title>
-
-                    {description ? (
-                        <Text c="dimmed" size="xs">
-                            {description}
-                        </Text>
-                    ) : null}
-                </Stack>
+        <Card shadow="sm" radius="lg" p="xl" className={styles.card} style={{ height: "100%" }}>
+            <Group justify="space-between" wrap="nowrap" align="flex-start">
+                <Text size="sm" c={color} fw={700} tt="uppercase" style={{ minWidth: 0 }}>
+                    {label}
+                </Text>
 
                 {icon ? (
-                    <Card
-                        aria-hidden="true"
-                        radius="md"
-                        p="xs"
-                        style={{
-                            background: "var(--mantine-color-blue-light)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
+                    <ThemeIcon color={color} variant="light" size={38} radius="md" style={{ flexShrink: 0 }}>
                         {icon}
-                    </Card>
+                    </ThemeIcon>
                 ) : null}
             </Group>
+
+            <Text fw={800} size="2rem" lh={1.15} mt={20}>
+                {value}
+            </Text>
+
+            {description ? (
+                <Text c="dimmed" size="xs" mt={6}>
+                    {description}
+                </Text>
+            ) : null}
         </Card>
     );
 }

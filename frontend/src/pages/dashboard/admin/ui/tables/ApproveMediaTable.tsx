@@ -28,7 +28,7 @@ export function ApproveMediaTable({ rows }: ApproveMediaTableProps) {
     const base = `/${locale}/dashboard/admin/media/pending`;
 
     return (
-        <Paper shadow="sm" radius="md" withBorder>
+        <Paper shadow="sm" radius="lg">
             <ScrollArea>
                 <Table
                     striped

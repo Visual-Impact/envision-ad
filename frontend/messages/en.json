@@ -240,63 +240,68 @@
     }
   },
   "homepage": {
-    "heroTitlePart1": "Affordable ads.",
-    "heroTitlePart2": "Unforgettable impact.",
-    "heroDescription": "Discover affordable, high-impact advertising opportunities in your city. Connect with local audiences through unique ad spaces and make your brand unforgettable. Our platform makes it easy to browse, book, and manage ad placements that fit your budget and goals.",
-    "ctaTitle": "Find Ad Spaces Now",
-    "ctaBrowse": "Browse",
-    "images": {
-      "backgroundImage": {
-        "alt": "Eye background image, representing visual impact"
+    "networkBadge": "ADVERTISEMENT SCREEN NETWORK",
+    "heroTitlePart1": "Your ads everywhere in",
+    "heroTitlePart2": "Greater Montreal",
+    "heroDescription": "Broadcast your message across {count} digital screens strategically placed throughout the South Shore and the Island of Montreal — every 2 to 3 minutes.",
+    "ctaMeeting": "Book a Meeting",
+    "ctaPackages": "View Packages",
+    "stats": {
+      "screens": "ACTIVE SCREENS",
+      "cities": "CITIES COVERED",
+      "venueTypes": "VENUE TYPES",
+      "broadcasts": "BROADCASTS / MONTH"
+    },
+    "screens": {
+      "stand": "STAND",
+      "suspended": "SUSPENDED",
+      "kiosk": "KIOSK",
+      "cta": "ADVERTISE HERE",
+      "clusterLabel": "Preview of the network screens: floor stand, suspended screen and kiosk"
+    },
+    "gallery": {
+      "titlePart1": "See our screens",
+      "titlePart2": "out in the wild",
+      "previous": "Previous displays",
+      "next": "Next displays",
+      "imageAlt": "Envision Ad screen displaying an advertisement in a real venue ({index})"
+    },
+    "timeline": {
+      "titlePart1": "How It",
+      "titlePart2": "Works",
+      "subtitle": "From first meeting to going live on screen, in 5 simple steps.",
+      "steps": {
+        "step1": {
+          "title": "Book a Meeting",
+          "description": "Schedule a quick call so we can understand your goals and recommend the right screens."
+        },
+        "step2": {
+          "title": "Choose & Submit",
+          "description": "Pick the subscription that fits your budget and upload your ad creative."
+        },
+        "step3": {
+          "title": "Secure Checkout",
+          "description": "Review your order and pay securely — no back-and-forth, no hidden fees."
+        },
+        "step4": {
+          "title": "Track Your Campaign",
+          "description": "Watch impressions and results roll in live from your dashboard."
+        },
+        "step5": {
+          "title": "Renew or Scale",
+          "description": "Extend, tweak, or scale up your campaign whenever you're ready — flexible terms, fast go-live."
+        }
       }
     }
   },
-  "partners": {
-    "title": "Partners",
-    "visualImpact": {
-      "name": "Visual Impact",
-      "alt": "Visual Impact Logo"
-    },
-    "champlainCollege": {
-      "name": "Champlain College Saint-Lambert",
-      "alt": "Champlain College Logo"
-    },
-    "salonLola": {
-      "name": "Salon Lola",
-      "alt": "Salon Lola Logo"
-    },
-    "bazGym": {
-      "name": "Baz Gym",
-      "alt": "Baz Gym Logo"
-    },
-    "entrepotEnFolie": {
-      "name": "Entrepôt En Folie",
-      "alt": "Entrepot en Folie Logo"
-    },
-    "infiniteBarbershop": {
-      "name": "Infinite Barbershop",
-      "alt": "Infinite Barbershop Logo"
-    },
-    "liquidationMarie": {
-      "name": "Liquidation Marie",
-      "alt": "Liquidation Marie Logo"
-    },
-    "pingMo": {
-      "name": "Ping Mo",
-      "alt": "Ping Mo Logo"
-    }
-  },
   "footer": {
+    "tagline": "Digital ads on real screens across Greater Montreal.",
+    "quickLinks": "Quick Links",
     "contactUs": "Contact Us",
     "email": "Email: mlhamidi@visualsimpact.com",
-    "phone": "Phone: +1 (450) 626-0540",
     "followUs": "Follow Us",
-    "twitter": "Twitter",
-    "facebook": "Facebook",
     "linkedin": "LinkedIn",
     "instagram": "Instagram",
-    "legal": "Legal",
-    "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "copyright": "© {year} Envision AD. All rights reserved."
   },
@@ -709,7 +714,26 @@
       "months": "Months",
       "schedule": "Days & Times",
       "start": "Start",
-      "end": "End"
+      "end": "End",
+      "quickFill": "Set the same hours for every open day",
+      "applyToAll": "Apply to all open days",
+      "selectAll": "Select all",
+      "clearAll": "Clear all",
+      "closed": "Closed",
+      "open": "Open",
+      "presets": "Quick presets",
+      "preset24h": "Open 24 hours",
+      "presetBusiness": "9 to 5",
+      "presetWeekdays": "Weekdays only",
+      "timeFormatInvalid": "Please pick a valid time"
+    },
+    "steps": {
+      "details": "Details",
+      "detailsDescription": "Name, type & pricing",
+      "image": "Image",
+      "imageDescription": "Upload & set corners",
+      "schedule": "Schedule",
+      "scheduleDescription": "Months, days & times"
     },
     "labels": {
       "mediaName": "Media Name",
@@ -770,7 +794,9 @@
       "cancel": "Cancel",
       "save": "Save",
       "uploadFile": "Upload File",
-      "changeFile": "Change File"
+      "changeFile": "Change File",
+      "next": "Next",
+      "back": "Back"
     },
     "calendar": {
       "months": {
@@ -1006,6 +1032,12 @@
       "createButton": "Create Campaign",
       "noCampaigns": "No campaigns found. Create your first campaign!"
     },
+    "stats": {
+      "totalCampaigns": "Total Campaigns",
+      "totalAds": "Total Ads",
+      "imageAds": "Image Ads",
+      "videoAds": "Video Ads"
+    },
     "createCampaignModal": {
       "title": "Create Campaign",
       "labels": {
@@ -1229,6 +1261,21 @@
       "notifications": {
         "saved": "Setting saved successfully.",
         "saveFailed": "Failed to save setting."
+      },
+      "gallery": {
+        "title": "Homepage Gallery",
+        "description": "Photos shown in the scrolling gallery on the homepage, in order. Changes go live immediately.",
+        "addImage": "Add image",
+        "remove": "Remove image",
+        "removed": "Image removed.",
+        "added": "Image added.",
+        "moveLeft": "Move earlier",
+        "moveRight": "Move later",
+        "imageAlt": "Homepage gallery image {index}",
+        "emptyDefaults": "No custom images yet — the homepage is showing the built-in default photos. Upload images here to replace them.",
+        "loadFailed": "Failed to load gallery images.",
+        "saveFailed": "Failed to save gallery. Please try again.",
+        "removeFailed": "Could not delete the image. Please try again."
       }
     }
   },
@@ -1600,5 +1647,9 @@
       "updateFailed": "Failed to update venue tag.",
       "deleteFailed": "Failed to delete venue tag."
     }
+  },
+  "privacyPage": {
+    "title": "Privacy Policy",
+    "placeholder": "Our privacy policy is being finalized and will be published here soon. In the meantime, if you have any questions about how we handle your data, please contact us."
   }
 }

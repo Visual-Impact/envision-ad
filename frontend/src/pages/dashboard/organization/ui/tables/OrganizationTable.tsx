@@ -16,7 +16,7 @@ export function OrganizationDetail({organization, onEdit}: OrganizationDetailPro
     if (!organization) return <Text>No organization data found</Text>;
 
     return (
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
+        <Card shadow="sm" padding="lg" radius="lg">
             <Stack gap="sm">
                 <Group justify="space-between">
                     <Group gap="xs">

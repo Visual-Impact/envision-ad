@@ -65,6 +65,8 @@ export function DenyReservationModal({
             title={t("title")}
             centered
             padding="lg"
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 <Text size="sm">

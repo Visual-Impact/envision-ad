@@ -1,0 +1,356 @@
+.section {
+  padding: 0 0 88px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.container {
+  width: 100%;
+}
+
+.heading {
+  text-align: center;
+}
+
+.title {
+  font-size: 42px !important;
+  line-height: 1.08 !important;
+  color: var(--mantine-color-gray-9);
+  font-weight: 800 !important;
+}
+
+.titleGradient {
+  background: linear-gradient(95deg, #0795ed 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.subtitle {
+  text-align: center;
+  max-width: 520px;
+  margin: 12px auto 0;
+}
+
+/* ---- Rail ---- */
+
+/* Fixed geometry so the horizontal line lands exactly at the icon's vertical
+   center regardless of which side holds the bubble for a given step:
+   topSlot height (160px) + half of iconCircle (36px) = 196px. Keep these
+   three numbers in sync if any of them changes. */
+.rail {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  margin-top: 64px;
+}
+
+.railTrack,
+.railComet {
+  position: absolute;
+  top: 196px;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+}
+
+.railTrack {
+  border-radius: 2px;
+  background: var(--mantine-color-gray-2);
+}
+
+.railComet {
+  overflow: hidden;
+}
+
+/* Continuously sweeps left -> right, looping forever: the "flow" from step 1
+   through step 5. Duration must match .numeral's animation-duration (5s) and
+   per-step delay (1s * (step-1)) so the bright numerals light up in sync
+   with the comet passing their column. */
+.railCometBar {
+  position: absolute;
+  top: 50%;
+  left: -18%;
+  width: 18%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #0795ed 35%, #a855f7 65%, transparent);
+  animation: cometTravel 5s linear infinite;
+}
+
+@keyframes cometTravel {
+  0% {
+    left: -18%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.node {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.topSlot,
+.bottomSlot {
+  height: 160px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.topSlot {
+  justify-content: flex-end;
+}
+
+.bottomSlot {
+  justify-content: flex-start;
+}
+
+.stem {
+  width: 2px;
+  height: 14px;
+  background: var(--mantine-color-gray-3);
+}
+
+.iconCell {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconCircle {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #6d28d9 0%, #0795ed 100%);
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(109, 40, 217, 0.22);
+}
+
+a.iconCircle {
+  cursor: pointer;
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+
+a.iconCircle:hover {
+  box-shadow: 0 12px 28px rgba(109, 40, 217, 0.32);
+  transform: translateY(-1px);
+}
+
+/* ---- Opposite-side big number: dims, then briefly pulses bright as the
+   comet passes its column, on an infinite loop. ---- */
+.slotNumeral {
+  overflow: visible;
+}
+
+.numeral {
+  display: inline-block;
+  font-size: 92px;
+  font-weight: 900;
+  line-height: 1;
+  font-family: var(--font-josefin), "Josefin Sans", sans-serif;
+  background: linear-gradient(95deg, #0795ed 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  opacity: 0.22;
+  transform: scale(1);
+  user-select: none;
+  animation: numeralPulse 5s ease-in-out infinite;
+  animation-delay: calc((var(--step) - 1) * 1s);
+}
+
+@keyframes numeralPulse {
+  0% {
+    opacity: 0.22;
+    transform: scale(1);
+  }
+  6% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  18% {
+    opacity: 0.22;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.22;
+    transform: scale(1);
+  }
+}
+
+.bubble {
+  width: 100%;
+  max-width: 270px;
+  text-align: center;
+}
+
+.stepTitle {
+  font-size: 19px !important;
+  font-weight: 700 !important;
+  color: var(--mantine-color-gray-9);
+  line-height: 1.3 !important;
+}
+
+.stepDescription {
+  font-size: 15px !important;
+  color: var(--mantine-color-gray-6);
+  line-height: 1.5 !important;
+  margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .railCometBar {
+    display: none;
+  }
+
+  .numeral {
+    animation: none;
+    opacity: 0.4;
+    transform: none;
+  }
+}
+
+/* ---- Tablet ---- */
+@media (max-width: 62em) {
+  .section {
+    padding: 0 0 64px;
+  }
+
+  .title {
+    font-size: 32px !important;
+  }
+
+  .numeral {
+    font-size: 68px;
+  }
+
+  .iconCircle {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* ---- Mobile: vertical rail ---- */
+@media (max-width: 48em) {
+  .title {
+    font-size: 26px !important;
+  }
+
+  .rail {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 32px;
+    margin-top: 40px;
+  }
+
+  .railTrack,
+  .railComet {
+    top: 0;
+    bottom: 0;
+    left: 32px;
+    right: auto;
+    width: 3px;
+    height: auto;
+  }
+
+  .railCometBar {
+    top: -18%;
+    left: 50%;
+    width: 3px;
+    height: 18%;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, transparent, #0795ed 35%, #a855f7 65%, transparent);
+    animation: cometTravelVertical 5s linear infinite;
+  }
+
+  @keyframes cometTravelVertical {
+    0% {
+      top: -18%;
+    }
+    100% {
+      top: 100%;
+    }
+  }
+
+  .node {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+  }
+
+  /* On mobile the layout is [big number] [icon] [text] — the number moves
+     to the opposite end of the row from the text, same idea as desktop's
+     opposite top/bottom slot, just adapted to a single-column row. */
+  .topSlot,
+  .bottomSlot {
+    display: none;
+  }
+
+  .slotBubble,
+  .slotNumeral {
+    display: flex;
+    height: auto;
+    width: auto;
+  }
+
+  .slotBubble {
+    flex: 1 1 auto;
+    justify-content: center;
+    align-items: flex-start;
+    order: 2;
+  }
+
+  .slotNumeral {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    order: -2;
+    width: 40px;
+    margin-right: 12px;
+  }
+
+  .stem {
+    display: none;
+  }
+
+  /* Icon must always render between the number and the text so it lines up
+     with the vertical rail regardless of which slot the markup order puts
+     first for a given step. 64px here matches the tablet .iconCircle
+     override above, which is still in effect at this width. The tighter
+     shadow keeps the icon's glow from bleeding into the number beside it. */
+  .iconCell {
+    order: -1;
+    flex: 0 0 64px;
+  }
+
+  .iconCircle {
+    box-shadow: 0 4px 10px rgba(109, 40, 217, 0.18);
+  }
+
+  .numeral {
+    font-size: 34px;
+  }
+
+  .bubble {
+    max-width: none;
+    text-align: left;
+    margin: 0 0 0 16px;
+  }
+}

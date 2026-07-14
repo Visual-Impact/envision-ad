@@ -1,6 +1,6 @@
 "use client";
 
-import React, {useState, useEffect} from "react";
+import React, {useState} from "react";
 import {Alert, Button, Group, Modal, Stack} from "@mantine/core";
 import {useTranslations} from "next-intl";
 import {OrganizationDetailsForm} from "./OrganizationDetailsForm";
@@ -31,11 +31,17 @@ export function OrganizationModal({
     const [saving, setSaving] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
 
-    useEffect(() => {
+    // Reset once the modal transitions to open. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (opened) {
             setValidationError(null);
         }
-    }, [opened]);
+    }
 
     const validateForm = (): boolean => {
         if (!formState.name || formState.name.trim() === '') {
@@ -103,6 +109,8 @@ export function OrganizationModal({
             title={editingId ? t("editTitle") : t("createTitle")}
             size="lg"
             centered
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 {validationError && (
@@ -125,7 +133,7 @@ export function OrganizationModal({
                     <Button variant="default" onClick={onClose} disabled={saving}>
                         {t("cancel")}
                     </Button>
-                    <Button onClick={handleSave} loading={saving}>
+                    <Button variant="gradient" onClick={handleSave} loading={saving}>
                         {editingId ? t("update") : t("create")}
                     </Button>
                 </Group>

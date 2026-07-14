@@ -55,11 +55,42 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         }
     }, [fetchPermissions, user]);
 
+    // Initial load is inlined (rather than calling `fetchPermissions`) so
+    // the effect's own state updates stay local to the effect, with proper
+    // unmount cancellation. `fetchPermissions` remains for
+    // `refreshPermissions` above, which isn't run from an effect.
     useEffect(() => {
-        if (!isLoading) {
-            fetchPermissions();
-        }
-    }, [isLoading, fetchPermissions]);
+        if (isLoading) return;
+
+        let cancelled = false;
+
+        (async () => {
+            if (!user) {
+                setPermissions([]);
+                setLoading(false);
+                return;
+            }
+            try {
+                const response = await fetch('/api/auth0/token');
+                if (response.ok) {
+                    const { accessToken } = await response.json();
+                    if (accessToken && !cancelled) {
+                        const decodedPermissions = jwtDecode<Token>(accessToken).permissions;
+                        setPermissions(decodedPermissions);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to fetch permissions:', error);
+                if (!cancelled) setPermissions([]);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isLoading, user]);
 
     return (
         <PermissionsContext.Provider value={{ permissions, refreshPermissions, loading: loading || isLoading }}>

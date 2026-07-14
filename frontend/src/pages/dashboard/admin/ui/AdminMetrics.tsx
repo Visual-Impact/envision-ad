@@ -37,24 +37,27 @@ export default function AdminMetricsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await getAdminOverview();
-      setData(res);
-    } catch (e) {
-      console.error(e);
-      setError(t("errors.loadFailed"));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
-
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getAdminOverview();
+        if (!cancelled) setData(res);
+      } catch (e) {
+        console.error(e);
+        if (!cancelled) setError(t("errors.loadFailed"));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
 
   const totalRoles = useMemo(() => {
     if (!data) return 0;
@@ -163,7 +166,7 @@ export default function AdminMetricsPage() {
           />
         </SimpleGrid>
 
-        <Card withBorder radius="md" p="md">
+        <Card shadow="sm" radius="lg" p="md">
           <Title order={2} mb="xs">
             {t("chart.title")}
           </Title>

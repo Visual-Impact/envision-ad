@@ -15,6 +15,42 @@ interface OrganizationContextType {
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
+type OrganizationFetchResult =
+    | { kind: "skip" }
+    | { kind: "found"; organization: OrganizationResponseDTO | null }
+    | { kind: "not-found" }
+    | { kind: "error" };
+
+// Pure data fetch — no setState here. Both the mount effect and
+// `refreshOrganization` call this and apply the result themselves, since an
+// effect isn't allowed to trigger setState indirectly through a shared
+// named callback (see the two call sites below).
+async function loadOrganization(
+    userSub: string | undefined,
+    permissions: string[],
+    permissionsLoading: boolean,
+): Promise<OrganizationFetchResult> {
+    if (!userSub || permissionsLoading || (
+        permissions.includes('patch:media_status') &&
+        permissions.includes('readAll:verification') &&
+        permissions.includes('update:verification'))
+    ) {
+        return { kind: "skip" };
+    }
+
+    try {
+        const business = await getEmployeeOrganization(userSub);
+        return { kind: "found", organization: business };
+    } catch (error) {
+        const status = (error as { response?: { status?: number } })?.response?.status;
+        if (status === 404) {
+            return { kind: "not-found" };
+        }
+        console.error('Failed to fetch organization:', error);
+        return { kind: "error" };
+    }
+}
+
 export function OrganizationProvider({ children }: { children: ReactNode }) {
     const [organization, setOrganization] = useState<OrganizationResponseDTO | null>(null);
     const [loading, setLoading] = useState(true);
@@ -28,23 +64,43 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         hasRedirected.current = false;
     }, [user?.sub]);
 
-    const fetchOrganization = useCallback(async () => {
-        if (!user || permissionsLoading || (
-            permissions.includes('patch:media_status') &&
-            permissions.includes('readAll:verification') &&
-            permissions.includes('update:verification'))
-        ) {
+    const applyOrganizationResult = useCallback((result: OrganizationFetchResult) => {
+        if (result.kind === "found") {
+            setOrganization(result.organization);
+        } else if (result.kind === "not-found") {
             setOrganization(null);
-            setLoading(false);
-            return;
+            if (!hasRedirected.current) {
+                if (!pathname.endsWith('/invite')) {
+                    router.push('/dashboard');
+                }
+                hasRedirected.current = true;
+            }
+        } else {
+            setOrganization(null);
         }
+        setLoading(false);
+    }, [pathname, router]);
 
-        try {
-            const business = await getEmployeeOrganization(user.sub);
-            setOrganization(business);
-        } catch (error) {
-            const status = (error as { response?: { status?: number } })?.response?.status;
-            if (status === 404) {
+    const refreshOrganization = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        const result = await loadOrganization(user.sub, permissions, permissionsLoading);
+        applyOrganizationResult(result);
+    }, [user, permissions, permissionsLoading, applyOrganizationResult]);
+
+    // Initial load is inlined (rather than calling `refreshOrganization`) so
+    // the effect's own state updates stay local to the effect, with proper
+    // unmount cancellation.
+    useEffect(() => {
+        if (isLoading || permissionsLoading) return;
+        let cancelled = false;
+
+        (async () => {
+            const result = await loadOrganization(user?.sub, permissions, permissionsLoading);
+            if (cancelled) return;
+            if (result.kind === "found") {
+                setOrganization(result.organization);
+            } else if (result.kind === "not-found") {
                 setOrganization(null);
                 if (!hasRedirected.current) {
                     if (!pathname.endsWith('/invite')) {
@@ -53,25 +109,15 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
                     hasRedirected.current = true;
                 }
             } else {
-                console.error('Failed to fetch organization:', error);
                 setOrganization(null);
             }
-        } finally {
             setLoading(false);
-        }
-    }, [user, permissions, permissionsLoading, router, pathname]);
+        })();
 
-    const refreshOrganization = useCallback(async () => {
-        if (!user) return;
-        setLoading(true);
-        await fetchOrganization();
-    }, [fetchOrganization, user]);
-
-    useEffect(() => {
-        if (!isLoading && !permissionsLoading) {
-            void fetchOrganization();
-        }
-    }, [isLoading, permissionsLoading, fetchOrganization]);
+        return () => {
+            cancelled = true;
+        };
+    }, [isLoading, permissionsLoading, user?.sub, permissions, pathname, router]);
 
     return (
         <OrganizationContext.Provider value={{ organization, refreshOrganization, loading: loading || isLoading }}>

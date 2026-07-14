@@ -7,7 +7,7 @@ import {
     Text,
     Group,
     Stack,
-    Select,
+    SegmentedControl,
     ThemeIcon,
     Title,
     Box,
@@ -23,6 +23,7 @@ import { AreaChart } from "@mantine/charts";
 import { useTranslations } from "next-intl";
 
 import { jwtDecode } from "jwt-decode";
+import { MetricCard } from "@/widgets/Cards/MetricCard";
 
 
 const getDateKey = (date: Date, timeRange: string | null): string => {
@@ -61,7 +62,7 @@ interface TooltipPayload {
 
 export function AdvertiserOverview() {
     const t = useTranslations("advertiserMetrics");
-    const [timeRange, setTimeRange] = useState<string | null>("Weekly");
+    const [timeRange, setTimeRange] = useState<string>("Weekly");
     const [mounted, setMounted] = useState(false);
     const [activeCampaignCount, setActiveCampaignCount] = useState<number | null>(null);
     const [totalSpend, setTotalSpend] = useState<number>(0);
@@ -176,168 +177,121 @@ export function AdvertiserOverview() {
         fetchData();
     }, [timeRange]);
 
-    const getComparisonLabel = () => {
-        switch (timeRange) {
-            case "Weekly":
-                return t("graphs.comparedToLastWeek");
-            case "Monthly":
-                return t("graphs.comparedToLastMonth");
-            case "Yearly":
-                return t("graphs.comparedToLastYear");
-            default:
-                return t("graphs.comparedToLastMonth");
-        }
-    };
-
     // Stats
     const stats = [
         {
             title: t("graphs.totalAdSpend"),
             value: `C$${(totalSpend).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            diff: 0, // No diff logic for now
-            period: getComparisonLabel(),
             icon: IconCoin,
+            color: "blue",
         },
         {
             title: t("graphs.activeCampaigns"),
             value: activeCampaignCount !== null ? activeCampaignCount.toString() : "-",
-            diff: 0,
-            period: getComparisonLabel(),
             icon: IconSpeakerphone,
+            color: "orange",
         },
         {
             title: t("graphs.estimatedImpressions"),
             value: estimatedImpressions.toLocaleString(),
-            diff: 0,
-            period: getComparisonLabel(),
             icon: IconEye,
+            color: "teal",
         },
         {
             title: t("graphs.averageCPM"),
             value: `C$${averageCPM.toFixed(2)}`,
-            diff: 0,
-            period: getComparisonLabel(),
             icon: IconChartBar,
+            color: "grape",
         },
     ];
 
     // Helper to render stats cards
-    const items = stats.map((stat) => {
-
-        return (
-            <Grid.Col span={{ base: 12, sm: 6, md: 3 }} key={stat.title}>
-                <Paper withBorder p="xl" radius="md" style={{ height: "100%" }}>
-                    <Group justify="space-between" wrap="nowrap">
-                        <Text size="md" c="blue" fw={700} tt="uppercase">
-                            {stat.title}
-                        </Text>
-                        <ThemeIcon color="blue" variant="light" size={38} radius="md">
-                            <stat.icon size="1.8rem" stroke={1.5} />
-                        </ThemeIcon>
-                    </Group>
-
-                    <Group align="flex-end" gap="xs" mt={25}>
-                        <Text className="text-4xl font-bold">{stat.value}</Text>
-
-                    </Group>
-
-                    {/* <Text size="xs" c="dimmed" mt={7}>
-                        {stat.period}
-                    </Text> */}
-                </Paper>
-            </Grid.Col>
-        );
-    });
+    const items = stats.map((stat) => (
+        <Grid.Col span={{ base: 12, sm: 6, md: 3 }} key={stat.title}>
+            <MetricCard
+                label={stat.title}
+                value={stat.value}
+                color={stat.color}
+                icon={<stat.icon size="1.4rem" stroke={1.5} />}
+            />
+        </Grid.Col>
+    ));
 
     return (
         <Stack gap="lg" p="xl">
             <Group justify="space-between" align="center">
                 <Title order={1}>{t("title")}</Title>
-                <Group>
-                    <Select
-                        aria-label={t("timeRangeSelect")}
-                        value={timeRange}
-                        onChange={setTimeRange}
-                        data={[
-                            { value: "Weekly", label: t("timeRanges.weekly") },
-                            { value: "Monthly", label: t("timeRanges.monthly") },
-                            { value: "Yearly", label: t("timeRanges.yearly") },
-                        ]}
-                        w={150}
-                        allowDeselect={false}
-                    />
-
-                </Group>
+                <SegmentedControl
+                    aria-label={t("timeRangeSelect")}
+                    value={timeRange}
+                    onChange={setTimeRange}
+                    data={[
+                        { value: "Weekly", label: t("timeRanges.weekly") },
+                        { value: "Monthly", label: t("timeRanges.monthly") },
+                        { value: "Yearly", label: t("timeRanges.yearly") },
+                    ]}
+                />
             </Group>
 
             <Grid gutter="xl">{items}</Grid>
 
-            <Grid gutter="xl">
-                <Grid.Col span={{ base: 12, md: 8 }}>
-                    <Paper withBorder p="xl" radius="md">
-                        <Group justify="space-between" mb="md">
-                            <Text size="lg" fw={600}>
-                                {t("graphs.campaignPerformance")}
-                            </Text>
-                            <Group gap="md">
-
-                                <Group gap="xs">
-                                    <ThemeIcon variant="filled" color="cyan.6" size={10} radius="xl" />
-                                    <Text size="sm" fw={600} c="dimmed">
-                                        {t("graphs.spent")}
-                                    </Text>
-                                </Group>
-                            </Group>
-                        </Group>
-                        <Box w="100%" h={370} style={{ minWidth: 0 }}>
-                            {mounted ? (
-                                <AreaChart
-                                    h={350}
-                                    data={chartData}
-                                    dataKey="date"
-                                    series={[
-                                        // Always show Spend series
-                                        { name: "Spend", label: t("graphs.spent"), color: "cyan.6" },
-                                    ]}
-                                    curveType="monotone"
-                                    gridAxis="xy"
-                                    tickLine="y"
-                                    withLegend={false}
-                                    withDots={false}
-                                    withPointLabels={false}
-                                    areaProps={{ label: false }}
-                                    tooltipProps={{
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        content: ({ payload, label }: any) => {
-                                            if (!payload) return null;
-                                            return (
-                                                <Paper px="md" py="xs" withBorder shadow="md" radius="md">
-                                                    <Text fw={500} mb={5}>{label}</Text>
-                                                    {payload.map((item: TooltipPayload) => (
-                                                        <Group key={item.name} gap="xs" justify="space-between">
-                                                            <Group gap={5}>
-                                                                <ThemeIcon color={item.color} variant="filled" size={8} radius="xl" />
-                                                                <Text size="sm" c="dimmed">{item.name === "Spend" ? t("graphs.spent") : t("graphs.impressions")}</Text>
-                                                            </Group>
-                                                            <Text size="sm" fw={500}>
-                                                                {item.name === "Spend" ? `C$${item.value}` : item.value}
-                                                            </Text>
-                                                        </Group>
-                                                    ))}
-                                                </Paper>
-                                            );
-                                        }
-                                    }}
-                                />
-                            ) : (
-                                <Skeleton height={350} radius="md" />
-                            )}
-                        </Box>
-                    </Paper>
-                </Grid.Col>
-
-
-            </Grid>
+            <Paper shadow="sm" p="xl" radius="lg">
+                <Group justify="space-between" mb="md">
+                    <Text size="lg" fw={600}>
+                        {t("graphs.campaignPerformance")}
+                    </Text>
+                    <Group gap="xs">
+                        <ThemeIcon variant="filled" color="cyan.6" size={10} radius="xl" />
+                        <Text size="sm" fw={600} c="dimmed">
+                            {t("graphs.spent")}
+                        </Text>
+                    </Group>
+                </Group>
+                <Box w="100%" h={370} style={{ minWidth: 0 }}>
+                    {mounted ? (
+                        <AreaChart
+                            h={350}
+                            data={chartData}
+                            dataKey="date"
+                            series={[
+                                // Always show Spend series
+                                { name: "Spend", label: t("graphs.spent"), color: "cyan.6" },
+                            ]}
+                            curveType="monotone"
+                            gridAxis="xy"
+                            tickLine="y"
+                            withLegend={false}
+                            withDots={false}
+                            withPointLabels={false}
+                            areaProps={{ label: false }}
+                            tooltipProps={{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                content: ({ payload, label }: any) => {
+                                    if (!payload) return null;
+                                    return (
+                                        <Paper px="md" py="xs" withBorder shadow="md" radius="md">
+                                            <Text fw={500} mb={5}>{label}</Text>
+                                            {payload.map((item: TooltipPayload) => (
+                                                <Group key={item.name} gap="xs" justify="space-between">
+                                                    <Group gap={5}>
+                                                        <ThemeIcon color={item.color} variant="filled" size={8} radius="xl" />
+                                                        <Text size="sm" c="dimmed">{item.name === "Spend" ? t("graphs.spent") : t("graphs.impressions")}</Text>
+                                                    </Group>
+                                                    <Text size="sm" fw={500}>
+                                                        {item.name === "Spend" ? `C$${item.value}` : item.value}
+                                                    </Text>
+                                                </Group>
+                                            ))}
+                                        </Paper>
+                                    );
+                                }
+                            }}
+                        />
+                    ) : (
+                        <Skeleton height={350} radius="md" />
+                    )}
+                </Box>
+            </Paper>
         </Stack>
     );
 }

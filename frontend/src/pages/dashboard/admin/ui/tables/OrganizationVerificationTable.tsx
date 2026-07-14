@@ -23,7 +23,7 @@ export function OrganizationVerificationTable({
     const loadedRows = rows.filter(row => !isLoading(row.businessId));
 
     return (
-        <Paper shadow="sm" radius="md" withBorder>
+        <Paper shadow="sm" radius="lg">
             <ScrollArea>
                 <Table
                     striped

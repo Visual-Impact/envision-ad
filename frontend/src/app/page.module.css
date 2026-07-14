@@ -10,31 +10,173 @@
 .heroContainer {
   position: relative;
   z-index: 1;
-  margin-left: 20px;
+  width: 100%;
   padding-top: 40px;
   padding-bottom: 40px;
-  padding-right: 30px;
 }
 
+/* Two-column hero layout: text/CTAs/stats left, device screens right. */
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.heroLeft {
+  min-width: 0;
+}
+
+/* Radial white wash behind the left text — sits above the canvas (z-index -1
+   within the z-index:1 container) but behind the content, protecting text
+   contrast against the animated grid / pointer spotlight. */
+.heroWash {
+  position: absolute;
+  z-index: -1;
+  top: -8%;
+  bottom: -8%;
+  left: -12%;
+  width: 78%;
+  pointer-events: none;
+  background: radial-gradient(
+    62% 60% at 32% 46%,
+    rgba(255, 255, 255, 0.92) 0%,
+    rgba(255, 255, 255, 0.7) 44%,
+    rgba(255, 255, 255, 0) 78%
+  );
+}
+
+.heroRight {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Network badge pill */
+.networkBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1.5px solid var(--mantine-color-blue-6);
+  border-radius: 9999px;
+  color: var(--mantine-color-blue-6);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  width: fit-content;
+}
+
+.badgeDot {
+  font-size: 8px;
+  line-height: 1;
+}
+
+/* Hero headline */
 .heroTitle {
-  line-height: 1.2;
+  font-size: 68px !important;
+  line-height: 1.05 !important;
   color: var(--mantine-color-gray-9);
 }
 
+.heroTitleGradient {
+  background: linear-gradient(95deg, #0795ED 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Description */
 .heroDescription {
   line-height: 1.8;
-  max-width: 600px;
+  max-width: 540px;
 }
 
-.ctaSection {
-  padding-top: 20px;
-  border-top: 2px solid var(--mantine-color-gray-3);
+/* CTA buttons */
+.ctaGroup {
+  flex-wrap: wrap;
 }
 
-.ctaButton {
-  min-width: 150px;
+.ctaPrimary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 28px;
+  height: 52px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #6d28d9 0%, #0795ED 100%);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-lato), Lato, sans-serif;
+  transition: opacity 0.15s ease;
 }
 
+.ctaPrimary:hover {
+  opacity: 0.88;
+}
+
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 28px;
+  height: 52px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--mantine-color-gray-4);
+  color: var(--mantine-color-gray-8);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  background: white;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-lato), Lato, sans-serif;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ctaSecondary:hover {
+  border-color: var(--mantine-color-gray-6);
+  color: var(--mantine-color-gray-9);
+}
+
+/* Stats row */
+.statsRow {
+  width: 100%;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 30px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  background: linear-gradient(95deg, #0795ED 0%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent !important;
+  font-family: var(--font-josefin), 'Josefin Sans', sans-serif !important;
+}
+
+.statLabel {
+  font-size: 11px !important;
+  color: var(--mantine-color-gray-5) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* Unused legacy classes kept for safety */
 .imageWrapper {
   position: relative;
   width: 100%;
@@ -57,22 +199,26 @@
   .heroContainer {
     padding-top: 60px;
     padding-bottom: 60px;
-    padding-right: 700px;
   }
 }
 
 @media (min-width: 62em) {
   .heroContainer {
-    margin-left: 60px;
     padding-top: 80px;
     padding-bottom: 80px;
-    padding-right: 600px;
+  }
+
+  /* Left ~38% text / right ~62% for the larger device illustration. */
+  .heroGrid {
+    grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+    gap: 24px;
   }
 }
 
-@media (min-width: 75em) {
-  .heroContainer {
-    margin-left: 80px;
+/* Stacked (mobile/tablet): show the device illustration above the headline. */
+@media (max-width: 61.99em) {
+  .heroRight {
+    order: -1;
   }
 }
 
@@ -83,20 +229,18 @@
   }
 
   .heroTitle {
-    font-size: 40px !important;
+    font-size: 48px !important;
   }
 
-  .heroDescription {
-    font-size: 16px;
-  }
-
-  .imageWrapper {
-    margin-top: 40px;
-  }
 }
+
 
 @media (max-width: 48em) {
   .heroTitle {
-    font-size: 32px !important;
+    font-size: 36px !important;
+  }
+
+  .statValue {
+    font-size: 24px !important;
   }
 }

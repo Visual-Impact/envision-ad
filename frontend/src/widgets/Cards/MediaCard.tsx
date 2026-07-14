@@ -15,7 +15,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { getJoinedAddress, MonthlyScheduleModel } from "@/entities/media";
 import { Venue } from "@/entities/venue";
 import { useMediaQuery } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MediaLocation } from "@/entities/media-location";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 import calculateWeeklyImpressions from "@/features/media-management/api/calculateWeeklyImpressions";
@@ -61,9 +61,15 @@ function MediaCard({
     const isXsMobile = useMediaQuery(`(max-width: 420px)`);
     const [imageLoaded, setImageLoaded] = useState(false);
 
-    useEffect(() => {
+    // Reset the loaded flag when the image itself changes. Adjusting state
+    // during render (rather than in an effect) for a prop change is the
+    // pattern React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevImageUrl, setPrevImageUrl] = useState(imageUrl);
+    if (imageUrl !== prevImageUrl) {
+        setPrevImageUrl(imageUrl);
         setImageLoaded(false);
-    }, [imageUrl]);
+    }
 
     const t = useTranslations("mediacard");
     const t2 = useTranslations("mediaPage");

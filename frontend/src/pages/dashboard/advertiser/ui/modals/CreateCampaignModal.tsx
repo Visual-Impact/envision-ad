@@ -40,7 +40,7 @@ export function CreateCampaignModal({ opened, onClose, onSuccess }: CreateCampai
     };
 
     return (
-        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting}>
+        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
             <Box>
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack>
@@ -48,7 +48,7 @@ export function CreateCampaignModal({ opened, onClose, onSuccess }: CreateCampai
 
                         <Group justify="flex-end">
                             <Button variant="default" onClick={handleClose} disabled={submitting}>{t('buttons.cancel')}</Button>
-                            <Button type="submit" loading={submitting}>{t('buttons.create')}</Button>
+                            <Button type="submit" variant="gradient" loading={submitting}>{t('buttons.create')}</Button>
                         </Group>
                     </Stack>
                 </form>

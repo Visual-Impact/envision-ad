@@ -136,7 +136,7 @@ export function EditMediaLocationModal({ opened, onClose, location, onSuccess }:
     };
 
     return (
-        <Modal opened={opened} onClose={onClose} title={t('title')} size="lg" closeOnClickOutside={!submitting}>
+        <Modal opened={opened} onClose={onClose} title={t('title')} size="lg" closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
             <form onSubmit={form.onSubmit(handleSubmit)} noValidate>
                 <Stack>
                     <TextInput label={t('fields.name')} placeholder={t('placeholders.name')} {...form.getInputProps("name")} />
@@ -155,7 +155,7 @@ export function EditMediaLocationModal({ opened, onClose, location, onSuccess }:
                         <Button type="button" variant="default" onClick={onClose} disabled={submitting}>
                             {t('buttons.cancel')}
                         </Button>
-                        <Button type="submit" loading={submitting}>{t('buttons.save')}</Button>
+                        <Button type="submit" variant="gradient" loading={submitting}>{t('buttons.save')}</Button>
                     </Group>
                 </Stack>
             </form>

@@ -21,6 +21,7 @@ import { LanguagePicker } from "./LanguagePicker";
 import { Link, usePathname } from "@/shared/lib/i18n/navigation";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconUser } from "@tabler/icons-react";
+import styles from "./Header.module.css";
 
 // 1px border + 8px padding + 38px logo image + 8px padding + 1px border = 56px
 const CAPSULE_HEIGHT = 56;
@@ -154,8 +155,8 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
             target={bookMeetingUrl ? "_blank" : undefined}
             rel={bookMeetingUrl ? "noopener noreferrer" : undefined}
             onClick={handleBookMeeting}
+            className={styles.bookButton}
             style={{
-                background: "linear-gradient(135deg, #00BFFF 0%, #A855F7 100%)",
                 borderRadius: 9999,
                 padding: "1.5px",
                 display: "inline-flex",
@@ -370,8 +371,8 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
                             target={bookMeetingUrl ? "_blank" : undefined}
                             rel={bookMeetingUrl ? "noopener noreferrer" : undefined}
                             onClick={handleBookMeeting}
+                            className={styles.bookButton}
                             style={{
-                                background: "linear-gradient(135deg, #00BFFF 0%, #A855F7 100%)",
                                 borderRadius: 9999,
                                 padding: "1.5px",
                                 display: "flex",

@@ -13,6 +13,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import type { MetricsKpi } from "@/pages/dashboard/media-owner/model/mockMetrics";
 import { formatCurrency } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/formatting-utils";
+import styles from "./KpiCard.module.css";
 
 const kpiIconMap: Record<string, React.ElementType> = {
     weeklyEarnings: IconCoin,
@@ -21,10 +22,18 @@ const kpiIconMap: Record<string, React.ElementType> = {
     activeCampaigns: IconSpeakerphone,
 };
 
+const kpiColorMap: Record<string, string> = {
+    weeklyEarnings: "blue",
+    monthlyEarnings: "grape",
+    yearlyEarnings: "teal",
+    activeCampaigns: "orange",
+};
+
 export function KpiCard({ item }: { item: MetricsKpi }) {
     const t = useTranslations("mediaOwnerMetrics");
     const locale = useLocale();
     const Icon = kpiIconMap[item.id] ?? IconChartBar;
+    const kpiColor = kpiColorMap[item.id] ?? "blue";
     const isHighlightedTitle =
         item.id === "weeklyEarnings" ||
         item.id === "monthlyEarnings" ||
@@ -37,12 +46,12 @@ export function KpiCard({ item }: { item: MetricsKpi }) {
         : "cards.decreaseComparedToLastPeriod";
 
     return (
-        <Paper withBorder p="md" radius="md">
+        <Paper p="md" radius="lg" shadow="sm" className={styles.card}>
             <Group justify="space-between" mb="xs">
-                <Text c={isHighlightedTitle ? "blue" : "dimmed"} size="xs" fw={700} tt="uppercase">
+                <Text c={isHighlightedTitle ? kpiColor : "dimmed"} size="xs" fw={700} tt="uppercase">
                     {t(`cards.${item.id}`)}
                 </Text>
-                <ThemeIcon variant="light" color="blue" radius="xl" size="md">
+                <ThemeIcon variant="light" color={kpiColor} radius="xl" size="md">
                     <Icon size={14} />
                 </ThemeIcon>
             </Group>

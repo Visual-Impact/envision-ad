@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Group, Modal, Text } from "@mantine/core";
+import styles from "./ConfirmationModal.module.css";
 
 interface ConfirmationModalProps {
     opened: boolean;
@@ -30,17 +31,21 @@ export function ConfirmationModal({
             title={title}
             centered
             padding="lg"
+            radius="lg"
+            shadow="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            classNames={{ content: styles.modalContent }}
         >
             <Text size="sm">
                 {message}
             </Text>
 
             <Group justify="flex-end" mt="lg">
-                <Button variant="default" onClick={onCancel}>
+                <Button variant="default" radius="md" className={styles.cancelButton} onClick={onCancel}>
                     {cancelLabel}
                 </Button>
 
-                <Button color={confirmColor} onClick={onConfirm}>
+                <Button color={confirmColor} radius="md" className={styles.confirmButton} onClick={onConfirm}>
                     {confirmLabel}
                 </Button>
             </Group>

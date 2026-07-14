@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
     Modal,
     Stack,
@@ -58,13 +58,19 @@ export function PaymentModal({
 
     const missingKey = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 
-    useEffect(() => {
+    // Reset once the modal transitions to closed. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (!opened) {
             setStep("review");
             setClientSecret(null);
             setLoading(false);
         }
-    }, [opened]);
+    }
 
     const handleProceedToPayment = async () => {
         if (!reservation) return;
@@ -135,13 +141,15 @@ export function PaymentModal({
             centered
             padding="xl"
             closeOnClickOutside={step !== "payment"}
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="xl" p="md">
                 {step === "review" && (
                     <>
                         <Stack align="center" gap="md">
                             <Text size="xl" fw={600}>{t("payment.reviewTitle")}</Text>
-                            <Paper withBorder p="lg" w="100%">
+                            <Paper shadow="sm" radius="lg" p="lg" w="100%">
                                 <Group justify="space-between">
                                     <Text c="dimmed">{t("payment.campaign")}:</Text>
                                     <Text fw={500}>{reservation.campaignName || "Unknown"}</Text>
@@ -169,7 +177,7 @@ export function PaymentModal({
                             <Button variant="default" onClick={handleModalClose}>
                                 {t("payment.cancel")}
                             </Button>
-                            <Button onClick={handleProceedToPayment} loading={loading}>
+                            <Button variant="gradient" onClick={handleProceedToPayment} loading={loading}>
                                 {t("payment.proceedToPay")}
                             </Button>
                         </Group>

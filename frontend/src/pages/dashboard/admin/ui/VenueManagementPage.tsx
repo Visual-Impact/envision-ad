@@ -36,9 +36,30 @@ export default function VenueManagementPage() {
         }
     }, [locale, t]);
 
+    // Initial load is inlined (rather than calling `refreshVenues`) so the
+    // effect's own state updates stay local to the effect, with proper
+    // unmount cancellation. `refreshVenues` remains for the post-mutation
+    // refreshes below, which aren't run from an effect.
     useEffect(() => {
-        refreshVenues();
-    }, [refreshVenues]);
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const data = await getAllVenues(locale);
+                if (!cancelled) setVenues(data);
+            } catch {
+                if (!cancelled) {
+                    notifications.show({ title: t("notifications.loadFailed"), message: "", color: "red" });
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [locale, t]);
 
     const handleCreate = () => {
         setEditingVenue(null);
@@ -92,7 +113,7 @@ export default function VenueManagementPage() {
         <Stack component="main" gap="md" p="md" style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" align="center">
                 <Title order={1}>{t("title")}</Title>
-                <Button leftSection={<IconPlus size={18} />} onClick={handleCreate}>
+                <Button variant="gradient" leftSection={<IconPlus size={18} />} onClick={handleCreate}>
                     {t("addVenue")}
                 </Button>
             </Group>

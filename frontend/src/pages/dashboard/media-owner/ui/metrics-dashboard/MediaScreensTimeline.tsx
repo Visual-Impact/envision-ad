@@ -108,7 +108,7 @@ export function MediaScreensTimeline({ data }: MediaScreensTimelineProps) {
             </Text>
             <Paper
               withBorder
-              radius="md"
+              radius="lg"
               bg="gray.0"
               h={trackHeight}
               style={{ flex: 1, position: "relative", overflow: "hidden" }}

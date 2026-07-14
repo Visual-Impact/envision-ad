@@ -2,7 +2,7 @@
 
 import { Modal, Stack, TextInput, ColorInput, Group, Button } from "@mantine/core";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Venue, VenueRequestDTO } from "@/entities/venue";
 
 interface VenueFormModalProps {
@@ -22,20 +22,20 @@ export function VenueFormModal({ opened, onClose, onSave, venue }: VenueFormModa
 
     const isEdit = venue !== null;
 
-    useEffect(() => {
+    // Reset the form from `venue` each time the modal transitions to open.
+    // Adjusting state during render (rather than in an effect) for a prop
+    // change is the pattern React recommends here — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (opened) {
-            if (venue) {
-                setNameEn(venue.nameEn);
-                setNameFr(venue.nameFr);
-                setColorCode(venue.colorCode);
-            } else {
-                setNameEn("");
-                setNameFr("");
-                setColorCode("#3B82F6");
-            }
+            setNameEn(venue?.nameEn ?? "");
+            setNameFr(venue?.nameFr ?? "");
+            setColorCode(venue?.colorCode ?? "#3B82F6");
             setErrors({});
         }
-    }, [opened, venue]);
+    }
 
     const validate = (): boolean => {
         const newErrors: typeof errors = {};
@@ -65,6 +65,8 @@ export function VenueFormModal({ opened, onClose, onSave, venue }: VenueFormModa
             title={isEdit ? t("editTitle") : t("createTitle")}
             size="md"
             centered
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 <TextInput
@@ -97,7 +99,7 @@ export function VenueFormModal({ opened, onClose, onSave, venue }: VenueFormModa
                     <Button variant="default" onClick={onClose}>
                         {t("cancel")}
                     </Button>
-                    <Button onClick={handleSubmit} loading={saving}>
+                    <Button variant="gradient" onClick={handleSubmit} loading={saving}>
                         {isEdit ? t("update") : t("create")}
                     </Button>
                 </Group>

@@ -174,6 +174,7 @@ export default function OrganizationDashboard() {
                     <Group justify="space-between" align="center">
                         <Title order={2}>{t("verificationHistory")}</Title>
                         <Button
+                            variant="gradient"
                             onClick={() => setConfirmVerificationRequest(true)}
                             disabled={!canRequestVerification}
                             loading={requestingVerification}

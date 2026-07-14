@@ -64,9 +64,31 @@ export default function StripePage() {
         }
     }, [searchParams, t, fetchStatus]);
 
+    // Initial load is inlined (rather than calling `fetchStatus`) so the
+    // effect's own state updates stay local to the effect, with proper
+    // unmount cancellation. `fetchStatus` remains for the onboarding-success
+    // re-check above, which runs from a timer callback, not directly.
     useEffect(() => {
-        void fetchStatus();
-    }, [fetchStatus]);
+        if (!organization) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsLoading(true);
+            try {
+                const stripeStatus = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStatus(stripeStatus);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+                if (!cancelled) setError(e instanceof Error ? e.message : t('errors.fetchFailed'));
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization, t]);
 
     const handleConnect = async () => {
         if (!organization) return;
@@ -114,14 +136,14 @@ export default function StripePage() {
         }
 
         return (
-            <Paper withBorder p="md">
+            <Paper shadow="sm" radius="lg" p="md">
                 <Stack>
                     <Title order={4}>{t('status.incomplete.title')}</Title>
                     <Text c="dimmed">{t('status.incomplete.description')}</Text>
                     <StatusCheck label={t('status.incomplete.checks.onboarding')} checked={status.onboardingComplete} />
                     <StatusCheck label={t('status.incomplete.checks.charges')} checked={status.chargesEnabled} />
                     <StatusCheck label={t('status.incomplete.checks.payouts')} checked={status.payoutsEnabled} />
-                    <Button onClick={handleConnect} loading={isConnecting} mt="md">
+                    <Button variant="gradient" onClick={handleConnect} loading={isConnecting} mt="md">
                         {status.connected ? t('buttons.continueOnboarding') : t('buttons.connect')}
                     </Button>
                 </Stack>

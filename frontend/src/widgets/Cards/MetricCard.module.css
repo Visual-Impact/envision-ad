@@ -1,0 +1,14 @@
+.card {
+    position: relative;
+    overflow: hidden;
+}
+
+.card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-brand, linear-gradient(95deg, #0795ed 0%, #a855f7 100%));
+}

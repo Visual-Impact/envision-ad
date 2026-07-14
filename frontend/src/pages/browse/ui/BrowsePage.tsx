@@ -93,7 +93,9 @@ function BrowsePage() {
 
   // Reset to first page whenever any filter (not page itself) changes
   useEffect(() => {
-    setActivePage(1);
+    (() => {
+      setActivePage(1);
+    })();
   }, [titleFilter, minPrice, maxPrice, minImpressions, venueIds, sortBy, location, bbox]);
 
   const groupedMedia = useMemo(() => {
@@ -102,16 +104,16 @@ function BrowsePage() {
   }, [media]);
 
   useEffect(() => {
-    // Nothing to resolve when there's no address and sort isn't "nearest"
-    if (sortBy !== SpecialSort.nearest && !addressSearch) {
-      setLocation(null);
-      setLocationStatus('idle');
-      return;
-    }
-
     let cancelled = false;
 
     async function resolveLocation() {
+      // Nothing to resolve when there's no address and sort isn't "nearest"
+      if (sortBy !== SpecialSort.nearest && !addressSearch) {
+        setLocation(null);
+        setLocationStatus('idle');
+        return;
+      }
+
       setLocationStatus('loading');
 
       try {
@@ -158,9 +160,11 @@ function BrowsePage() {
 
 
   useEffect(() => {
-    if (addressSearch) {
-      setMapVisible(true);
-    }
+    (() => {
+      if (addressSearch) {
+        setMapVisible(true);
+      }
+    })();
   }, [addressSearch]);
 
 
@@ -189,17 +193,17 @@ function BrowsePage() {
   }, [map])
 
   useEffect(() => {
-    if (!draftBbox) {
-      setBbox(null);
-      return;
-    }
-
-    const timeout = setTimeout(() => {
+    const applyBbox = () => {
+      if (!draftBbox) {
+        setBbox(null);
+        return;
+      }
       setBbox(draftBbox);
-    }, 300);
+    };
+
+    const timeout = setTimeout(applyBbox, draftBbox ? 300 : 0);
 
     return () => clearTimeout(timeout);
-
   }, [draftBbox])
   
   
@@ -209,12 +213,14 @@ function BrowsePage() {
   }, [map, onMove])
 
   useEffect(() => {
-    if (mapVisible) {
-      onMove();
-    } else {
-      setDraftBbox(null);
-    }
-  }, [mapVisible, onMove])
+    (() => {
+      if (mapVisible) {
+        setDraftBbox(map ? map.getBounds() : null);
+      } else {
+        setDraftBbox(null);
+      }
+    })();
+  }, [mapVisible, map])
 
   const hasActiveFilters = titleFilter !== "" || addressSearch !== "" || minPrice !== null || maxPrice !== null || minImpressions !== null || venueIds.length > 0;
 

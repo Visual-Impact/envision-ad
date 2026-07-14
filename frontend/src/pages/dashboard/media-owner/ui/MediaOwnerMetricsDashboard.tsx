@@ -66,13 +66,15 @@ export default function MediaOwnerMetricsDashboard() {
 
     // Initialise to the first N media once data loads; runs only once
     useEffect(() => {
-        if (selectedMediaNames.length === 0 && overviewMetricsData.revenueByMediaLocation.length > 0) {
-            setSelectedMediaNames(
-                overviewMetricsData.revenueByMediaLocation
-                    .slice(0, DEFAULT_SELECTED_MEDIA_COUNT)
-                    .map((m) => m.locationName)
-            );
-        }
+        (() => {
+            if (selectedMediaNames.length === 0 && overviewMetricsData.revenueByMediaLocation.length > 0) {
+                setSelectedMediaNames(
+                    overviewMetricsData.revenueByMediaLocation
+                        .slice(0, DEFAULT_SELECTED_MEDIA_COUNT)
+                        .map((m) => m.locationName)
+                );
+            }
+        })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [overviewMetricsData.revenueByMediaLocation]);
 
@@ -103,10 +105,12 @@ export default function MediaOwnerMetricsDashboard() {
 
     // Initialise to all rows on first load, and re-sync whenever the location rows change
     useEffect(() => {
-        if (mediaScreensTimelineData.rows.length > 0) {
-            setSelectedTimelineMediaIds(mediaScreensTimelineData.rows.map((r) => r.mediaId));
-            setTimelineLegendPage(1);
-        }
+        (() => {
+            if (mediaScreensTimelineData.rows.length > 0) {
+                setSelectedTimelineMediaIds(mediaScreensTimelineData.rows.map((r) => r.mediaId));
+                setTimelineLegendPage(1);
+            }
+        })();
     }, [mediaScreensTimelineData.rows]);
 
     const filteredTimelineData = {
@@ -260,7 +264,7 @@ export default function MediaOwnerMetricsDashboard() {
 
             <Grid gutter="md">
                 <Grid.Col span={{ base: 12, lg: 6 }}>
-                    <Paper withBorder p="md" radius="md">
+                    <Paper shadow="sm" p="md" radius="lg">
                         <Text fw={600} mb="sm">
                             {earningsTrendSectionTitle}
                         </Text>
@@ -278,7 +282,7 @@ export default function MediaOwnerMetricsDashboard() {
                                     tooltipProps={{
                                         content: ({ payload, label }) =>
                                             renderEarningsTrendTooltip(
-                                                payload as ChartTooltipPayload[] | undefined,
+                                                payload as unknown as ChartTooltipPayload[] | undefined,
                                                 label
                                             ),
                                     }}
@@ -317,7 +321,7 @@ export default function MediaOwnerMetricsDashboard() {
                 </Grid.Col>
 
                 <Grid.Col span={{ base: 12, lg: 6 }}>
-                    <Paper withBorder p="md" radius="md" h="100%">
+                    <Paper shadow="sm" p="md" radius="lg" h="100%">
                         <Text fw={600} mb="sm">
                             {t("sections.revenueByLocation")}
                         </Text>
@@ -340,7 +344,7 @@ export default function MediaOwnerMetricsDashboard() {
                                             cursor: false,
                                             content: ({ payload, label }) =>
                                                 renderTooltip(
-                                                    payload as ChartTooltipPayload[] | undefined,
+                                                    payload as unknown as ChartTooltipPayload[] | undefined,
                                                     label
                                                 ),
                                         }}
@@ -357,7 +361,7 @@ export default function MediaOwnerMetricsDashboard() {
             {/* Media Screens Reservation Trend Section */}
             <Grid gutter="md">
                 <Grid.Col span={12}>
-                    <Paper withBorder p="md" radius="md">
+                    <Paper shadow="sm" p="md" radius="lg">
                         <Group justify="space-between" align="center" mb="sm">
                             <Text fw={600}>
                                 {t("sections.mediaReservations")}

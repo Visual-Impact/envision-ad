@@ -62,7 +62,7 @@ export default function ProofMediaTable({
             <Stack gap="md">
                 {pagedRows.length ? (
                     pagedRows.map((row) => (
-                        <Card key={String(row.id)} shadow="sm" radius="md" withBorder>
+                        <Card key={String(row.id)} shadow="sm" radius="lg">
                             <Group justify="space-between" align="center" mb="sm">
                                 <Group gap="sm">
                                     <Avatar src={row.image} alt={row.name} size="md" radius="md" />
@@ -113,7 +113,7 @@ export default function ProofMediaTable({
     }
 
     return (
-        <Paper shadow="sm" radius="md" withBorder>
+        <Paper shadow="sm" radius="lg">
             <ScrollArea>
                 <Table striped highlightOnHover verticalSpacing="md" horizontalSpacing="lg" layout="fixed">
                     <Table.Thead>

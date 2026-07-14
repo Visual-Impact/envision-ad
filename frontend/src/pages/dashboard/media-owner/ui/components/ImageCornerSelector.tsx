@@ -41,17 +41,18 @@ export const ImageCornerSelector: React.FC<ImageCornerSelectorProps> = ({ imageU
         // that causes the infinite loop and crash.
         if (dragging || !initialCorners) return;
 
+        (() => {
+            setCorners((prev) => {
+                // Check for value equality to prevent infinite loops (since JSON.parse creates new refs)
+                const isDifferent =
+                    initialCorners.tl.x !== prev.tl.x || initialCorners.tl.y !== prev.tl.y ||
+                    initialCorners.tr.x !== prev.tr.x || initialCorners.tr.y !== prev.tr.y ||
+                    initialCorners.br.x !== prev.br.x || initialCorners.br.y !== prev.br.y ||
+                    initialCorners.bl.x !== prev.bl.x || initialCorners.bl.y !== prev.bl.y;
 
-        setCorners((prev) => {
-            // Check for value equality to prevent infinite loops (since JSON.parse creates new refs)
-            const isDifferent =
-                initialCorners.tl.x !== prev.tl.x || initialCorners.tl.y !== prev.tl.y ||
-                initialCorners.tr.x !== prev.tr.x || initialCorners.tr.y !== prev.tr.y ||
-                initialCorners.br.x !== prev.br.x || initialCorners.br.y !== prev.br.y ||
-                initialCorners.bl.x !== prev.bl.x || initialCorners.bl.y !== prev.bl.y;
-
-            return isDifferent ? initialCorners : prev;
-        });
+                return isDifferent ? initialCorners : prev;
+            });
+        })();
     }, [initialCorners, dragging]);
 
     useEffect(() => {

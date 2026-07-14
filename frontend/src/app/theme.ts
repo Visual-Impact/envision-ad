@@ -73,6 +73,15 @@ export const theme = createTheme({
     },
   },
   defaultRadius: 'lg',
+  // Used by Mantine's built-in `variant="gradient"` (Button, ThemeIcon, ActionIcon, text gradient)
+  // when no explicit `gradient` prop is passed. Matches the brand gradient established on the
+  // home page hero (see docs/design-overhaul/project-brief.md). Additive — does not change the
+  // default (non-gradient) variant of any component.
+  defaultGradient: { from: '#0795ED', to: '#a855f7', deg: 95 },
+  other: {
+    gradientBrand: 'linear-gradient(95deg, #0795ED 0%, #a855f7 100%)',
+    gradientBrandSoft: 'linear-gradient(95deg, rgba(7, 149, 237, 0.10) 0%, rgba(168, 85, 247, 0.10) 100%)',
+  },
 });
 
 // Export fonts to use in layout.tsx

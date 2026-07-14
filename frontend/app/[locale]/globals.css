@@ -2,6 +2,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Brand gradient tokens (see docs/design-overhaul/project-brief.md §8) — additive,
+     reused across dashboard + marketing surfaces. */
+  --gradient-brand: linear-gradient(95deg, #0795ed 0%, #a855f7 100%);
+  --gradient-brand-soft: linear-gradient(95deg, rgba(7, 149, 237, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
 }
 
 @theme inline {
@@ -19,4 +24,20 @@
 body {
   margin: 0;
   padding: 0;
+}
+
+/* Dashboard table restyle (Mantine <Table> is only used on dashboard routes) —
+   additive: only sets properties Mantine's own table styles don't touch. */
+table {
+  border-radius: var(--mantine-radius-md);
+  overflow: hidden;
+}
+
+table thead tr th {
+  background-color: var(--mantine-color-gray-0);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mantine-color-gray-6);
 }

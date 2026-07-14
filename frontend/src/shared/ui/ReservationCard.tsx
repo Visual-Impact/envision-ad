@@ -124,29 +124,27 @@ function ReservationCard({
     }, [reservation.mediaId]);
 
     useEffect(() => {
-        if (!reasonOpened ||
-            !reservation.denialDetails?.description ||
-            hasBeenProcessed) return;
+        const description = reservation.denialDetails?.description;
+        if (!reasonOpened || !description || hasBeenProcessed) return;
 
         let isMounted = true;
 
-        setHasBeenProcessed(true);
-        setIsTranslating(true);
+        const runTranslation = async () => {
+            setHasBeenProcessed(true);
+            setIsTranslating(true);
 
-        translate(reservation.denialDetails.description, { from: locale === 'fr' ? 'en' : 'fr', to: locale })
-            .then(translated => {
-                if (!isMounted) return;
-                setTranslatedDescription(translated);
-            })
-            .catch(error => {
+            try {
+                const translated = await translate(description, { from: locale === 'fr' ? 'en' : 'fr', to: locale });
+                if (isMounted) setTranslatedDescription(translated);
+            } catch (error) {
                 console.error('Translation error:', error);
-                if (!isMounted) return;
-                setTranslatedDescription(reservation.denialDetails?.description || '');
-            })
-            .finally(() => {
-                if (!isMounted) return;
-                setIsTranslating(false);
-            });
+                if (isMounted) setTranslatedDescription(description);
+            } finally {
+                if (isMounted) setIsTranslating(false);
+            }
+        };
+
+        void runTranslation();
 
         return () => {
             isMounted = false;
@@ -174,8 +172,7 @@ function ReservationCard({
         <Card
             shadow="sm"
             padding="lg"
-            radius="md"
-            withBorder
+            radius="lg"
             style={{
                 cursor: isMediaOwnerView ? "pointer" : "default",
                 height: "100%",
@@ -224,7 +221,7 @@ function ReservationCard({
                 </Group>
 
                 {isAdvertiserView && isApproved && onPayClick && (
-                    <Button fullWidth mt="auto" onClick={() => onPayClick(reservation)}>
+                    <Button fullWidth mt="auto" variant="gradient" onClick={() => onPayClick(reservation)}>
                         {t("payButton")}
                     </Button>
                 )}

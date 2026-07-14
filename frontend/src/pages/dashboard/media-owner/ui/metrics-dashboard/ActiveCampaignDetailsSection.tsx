@@ -27,7 +27,7 @@ export function ActiveCampaignDetailsSection({
     const locale = useLocale();
 
     return (
-        <Paper withBorder p="md" radius="md">
+        <Paper shadow="sm" p="md" radius="lg">
             <Text fw={600} mb="sm">
                 {t("sections.activeCampaignDetails")}
             </Text>

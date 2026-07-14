@@ -31,14 +31,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <SideBar />
             </Drawer>
 
-            <Group align="stretch" gap={0} wrap="nowrap">
+            <Group align="flex-start" gap="lg" wrap="nowrap" px={{ base: 0, md: "lg" }} py={{ base: 0, md: "lg" }}>
                 {!isMobile && (!!organization || isAdmin) && (
                     <Paper
-                        w={250}
+                        w={260}
                         p="md"
-                        style={{ minHeight: "calc(100vh - 80px)", borderRadius: 0 }}
+                        radius="lg"
+                        shadow="sm"
                         withBorder
                         bg="gray.0"
+                        pos="sticky"
+                        top={96}
+                        style={{ flexShrink: 0, alignSelf: "flex-start", maxHeight: "calc(100vh - 128px)", overflowY: "auto" }}
                     >
                         <SideBar />
                     </Paper>

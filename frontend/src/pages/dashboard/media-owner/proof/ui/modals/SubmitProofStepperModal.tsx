@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
     Modal,
     Stepper,
@@ -49,7 +49,13 @@ export default function SubmitProofStepperModal({
     const t = useTranslations("proofOfDisplay");
 
 
-    useEffect(() => {
+    // Reset once the modal transitions to closed. Adjusting state during
+    // render (rather than in an effect) for a prop change is the pattern
+    // React recommends — see
+    // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+    const [prevOpened, setPrevOpened] = useState(opened);
+    if (opened !== prevOpened) {
+        setPrevOpened(opened);
         if (!opened) {
             setActive(0);
             setSelectedCampaignId(null);
@@ -57,7 +63,7 @@ export default function SubmitProofStepperModal({
             setError(null);
             setSubmitting(false);
         }
-    }, [opened, setSelectedCampaignId]);
+    }
 
     const widgetOptions = {
         sources: ["local", "url"] as ("local" | "url")[],
@@ -128,7 +134,7 @@ export default function SubmitProofStepperModal({
     }
 
     return (
-        <Modal opened={opened} onClose={onClose} centered size="lg" title={t("modal.title", { mediaName })} >
+        <Modal opened={opened} onClose={onClose} centered size="lg" title={t("modal.title", { mediaName })} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
             <Stepper active={active}>
                 <Stepper.Step
                     label={t("stepper.campaign.label")}
@@ -147,6 +153,7 @@ export default function SubmitProofStepperModal({
 
                             <Group justify="flex-end">
                                 <Button
+                                    variant="gradient"
                                     rightSection={<IconArrowRight size={16} />}
                                     onClick={nextStep}
                                     disabled={!canGoNext}
@@ -225,7 +232,7 @@ export default function SubmitProofStepperModal({
                                 {t("buttons.back")}
                             </Button>
 
-                            <Button onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
+                            <Button variant="gradient" onClick={handleSubmit} loading={submitting} disabled={!canSubmit}>
                                 {t("buttons.submitProof")}
                             </Button>
                         </Group>
@@ -241,7 +248,7 @@ export default function SubmitProofStepperModal({
                         <Text size="sm">{t("completed.uploadedFiles", { count: uploaded.length })}</Text>
 
                         <Group justify="flex-end" mt="sm">
-                            <Button onClick={onClose}>{t("buttons.close")}</Button>
+                            <Button variant="gradient" onClick={onClose}>{t("buttons.close")}</Button>
                         </Group>
                     </Stack>
                 </Stepper.Completed>

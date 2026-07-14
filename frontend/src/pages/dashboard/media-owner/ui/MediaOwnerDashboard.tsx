@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
 import { MediaTable } from "@/pages/dashboard/media-owner/ui/tables/MediaTable";
 import { useMediaList } from "@/pages/dashboard/media-owner/hooks/useMediaList";
@@ -36,22 +36,26 @@ export default function MediaOwnerPage() {
     const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
     const [isStripeLoading, setIsStripeLoading] = useState(true);
 
-    const fetchStripeStatus = useCallback(async () => {
-        if (!organization) return;
-        try {
-            setIsStripeLoading(true);
-            const status = await getStripeAccountStatus(organization.businessId);
-            setStripeStatus(status);
-        } catch (e) {
-            console.error("Failed to fetch Stripe status", e);
-        } finally {
-            setIsStripeLoading(false);
-        }
-    }, [organization]);
-
     useEffect(() => {
-        void fetchStripeStatus();
-    }, [fetchStripeStatus]);
+        if (!organization) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsStripeLoading(true);
+            try {
+                const status = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStripeStatus(status);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+            } finally {
+                if (!cancelled) setIsStripeLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization]);
 
     const isStripeOnboarded = stripeStatus?.onboardingComplete && stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
 
@@ -180,7 +184,7 @@ export default function MediaOwnerPage() {
                 {isStripeLoading ? (
                     <Loader />
                 ) : isStripeOnboarded ? (
-                    <Button onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }}>
+                    <Button variant="gradient" onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }}>
                         {t('newMedia')}
                     </Button>
                 ) : (

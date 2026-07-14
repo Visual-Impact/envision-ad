@@ -1,0 +1,70 @@
+.accordion {
+    --accordion-radius: var(--mantine-radius-md);
+}
+
+.accordionItem {
+    border: none;
+    background: transparent;
+}
+
+.accordionControl {
+    padding: 8px 10px;
+    border-radius: var(--mantine-radius-md);
+}
+
+.accordionControl:hover {
+    background: var(--mantine-color-gray-1);
+}
+
+.accordionLabel {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--mantine-color-gray-6);
+}
+
+.accordionPanel {
+    padding-top: 2px;
+}
+
+.navLink {
+    border-radius: var(--mantine-radius-md);
+    padding: 8px 10px;
+    position: relative;
+}
+
+.navLinkActive {
+    background: var(--gradient-brand-soft, linear-gradient(95deg, rgba(7, 149, 237, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%));
+    color: var(--mantine-color-blue-8);
+    font-weight: 600;
+}
+
+.navLinkActive::before {
+    content: "";
+    position: absolute;
+    left: -2px;
+    top: 6px;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 0 4px 4px 0;
+    background: var(--gradient-brand, linear-gradient(95deg, #0795ed 0%, #a855f7 100%));
+}
+
+.iconChip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: var(--mantine-radius-md);
+    background: var(--mantine-color-gray-1);
+    color: var(--mantine-color-gray-6);
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.iconChipActive {
+    background: var(--gradient-brand, linear-gradient(95deg, #0795ed 0%, #a855f7 100%));
+    color: var(--mantine-color-white);
+}

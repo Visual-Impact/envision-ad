@@ -32,7 +32,7 @@ export function MediaTable({ rows, onEdit, onDelete, onToggleStatus }: MediaTabl
       <Stack gap="md">
         {rows.length > 0 ? (
           rows.map((row) => (
-            <Card key={row.id} shadow="sm" radius="md" withBorder>
+            <Card key={row.id} shadow="sm" radius="lg">
               <Group justify="space-between" mb="xs">
                 <Group>
                   <Avatar src={row.image} alt={row.name} size="md" radius="md" />
@@ -87,7 +87,7 @@ export function MediaTable({ rows, onEdit, onDelete, onToggleStatus }: MediaTabl
   }
 
   return (
-    <Paper shadow="sm" radius="md" withBorder>
+    <Paper shadow="sm" radius="lg">
       <ScrollArea>
         <Table
           striped

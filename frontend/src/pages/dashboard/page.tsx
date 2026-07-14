@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Center, Stack, Title, Text, Button, Group, Loader,
     ThemeIcon, Badge, Divider, Paper, Box, Alert, SimpleGrid,
@@ -71,22 +71,26 @@ export default function OnboardingPage() {
         }
     }, [isAdmin, router]);
 
-    const fetchStripeStatus = useCallback(async () => {
-        if (!organization || !isMediaOwner) return;
-        try {
-            setIsStripeLoading(true);
-            const status = await getStripeAccountStatus(organization.businessId);
-            setStripeStatus(status);
-        } catch (e) {
-            console.error("Failed to fetch Stripe status", e);
-        } finally {
-            setIsStripeLoading(false);
-        }
-    }, [organization, isMediaOwner]);
-
     useEffect(() => {
-        void fetchStripeStatus();
-    }, [fetchStripeStatus]);
+        if (!organization || !isMediaOwner) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsStripeLoading(true);
+            try {
+                const status = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStripeStatus(status);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+            } finally {
+                if (!cancelled) setIsStripeLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization, isMediaOwner]);
 
     const handleStripeConnect = async () => {
         if (!organization) return;
@@ -233,7 +237,7 @@ export default function OnboardingPage() {
             <Stack gap="sm">
                 <Text fw={500}>{t("actions.organization.prompt")}</Text>
                 <Text size="sm" c="dimmed">{t("actions.organization.hint")}</Text>
-                <Button fullWidth onClick={() => setIsModalOpen(true)}>{t("actions.organization.cta")}</Button>
+                <Button fullWidth variant="gradient" onClick={() => setIsModalOpen(true)}>{t("actions.organization.cta")}</Button>
             </Stack>
         );
         if (stepKey === "stripe") return (
@@ -252,7 +256,7 @@ export default function OnboardingPage() {
                                 {stripeError}
                             </Alert>
                         )}
-                        <Button fullWidth onClick={handleStripeConnect} loading={isConnecting}>
+                        <Button fullWidth variant="gradient" onClick={handleStripeConnect} loading={isConnecting}>
                             {stripeStatus?.connected ? t("actions.stripe.ctaContinue") : t("actions.stripe.cta")}
                         </Button>
                     </>
@@ -263,7 +267,7 @@ export default function OnboardingPage() {
             <Stack gap="sm">
                 <Text fw={500}>{t("actions.media.prompt")}</Text>
                 <Text size="sm" c="dimmed">{t("actions.media.hint")}</Text>
-                <Button fullWidth component={Link} href="/dashboard/media-owner/locations">
+                <Button fullWidth variant="gradient" component={Link} href="/dashboard/media-owner/locations">
                     {t("actions.media.cta")}
                 </Button>
             </Stack>
@@ -272,7 +276,7 @@ export default function OnboardingPage() {
             <Stack gap="sm">
                 <Text fw={500}>{t("actions.campaign.prompt")}</Text>
                 <Text size="sm" c="dimmed">{t("actions.campaign.hint")}</Text>
-                <Button fullWidth component={Link} href="/dashboard/advertiser/campaigns">
+                <Button fullWidth variant="gradient" component={Link} href="/dashboard/advertiser/campaigns">
                     {t("actions.campaign.cta")}
                 </Button>
             </Stack>
@@ -281,7 +285,7 @@ export default function OnboardingPage() {
             <Stack gap="sm">
                 <Text fw={500}>{t("actions.reservation.prompt")}</Text>
                 <Text size="sm" c="dimmed">{t("actions.reservation.hint")}</Text>
-                <Button fullWidth component={Link} href="/browse">
+                <Button fullWidth variant="gradient" component={Link} href="/browse">
                     {t("actions.reservation.cta")}
                 </Button>
             </Stack>
@@ -327,7 +331,7 @@ export default function OnboardingPage() {
             <Stack gap="xl" w="100%" maw={isBoth ? 760 : 560}>
                 {/* Header */}
                 <Stack gap="xs" align="center" ta="center">
-                    <ThemeIcon size={56} radius="xl" variant="light" color="blue">
+                    <ThemeIcon size={56} radius="xl" variant="gradient">
                         <IconRocket size="1.75rem" />
                     </ThemeIcon>
                     <Title order={2}>{t("header.title")}</Title>
@@ -351,7 +355,7 @@ export default function OnboardingPage() {
                         {!isMobile && (
                             <Stack gap="lg">
                                 <SimpleGrid cols={2} spacing="lg">
-                                    <Paper withBorder p="md" radius="md">
+                                    <Paper shadow="sm" radius="lg" p="md">
                                         <Stack gap="xs" mb="sm">
                                             <Badge color="violet" variant="light" size="sm">
                                                 {t("roles.mediaOwner")}
@@ -359,7 +363,7 @@ export default function OnboardingPage() {
                                         </Stack>
                                         {renderStepList(mediaOwnerKeys, mediaTrackFull)}
                                     </Paper>
-                                    <Paper withBorder p="md" radius="md">
+                                    <Paper shadow="sm" radius="lg" p="md">
                                         <Stack gap="xs" mb="sm">
                                             <Badge color="orange" variant="light" size="sm">
                                                 {t("roles.advertiser")}
@@ -370,12 +374,12 @@ export default function OnboardingPage() {
                                 </SimpleGrid>
                                 {!allDone && (
                                     <SimpleGrid cols={2} spacing="lg">
-                                        <Paper withBorder p="lg" radius="md">
+                                        <Paper shadow="sm" radius="lg" p="lg">
                                             {mediaCurrentStep
                                                 ? renderActionPanel(mediaCurrentStep.key)
                                                 : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.mediaOwner")}</Text></Group>}
                                         </Paper>
-                                        <Paper withBorder p="lg" radius="md">
+                                        <Paper shadow="sm" radius="lg" p="lg">
                                             {advertiserCurrentStep
                                                 ? renderActionPanel(advertiserCurrentStep.key)
                                                 : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.advertiser")}</Text></Group>}
@@ -388,7 +392,7 @@ export default function OnboardingPage() {
                         {/* Mobile: each track's steps immediately followed by its action */}
                         {isMobile && (
                             <Stack gap="sm">
-                                <Paper withBorder p="sm" radius="md">
+                                <Paper shadow="sm" radius="lg" p="sm">
                                     <Stack gap="xs" mb="sm">
                                         <Badge color="violet" variant="light" size="sm">
                                             {t("roles.mediaOwner")}
@@ -397,13 +401,13 @@ export default function OnboardingPage() {
                                     {renderStepList(mediaOwnerKeys, mediaTrackFull)}
                                 </Paper>
                                 {!allDone && (
-                                    <Paper withBorder p="md" radius="md">
+                                    <Paper shadow="sm" radius="lg" p="md">
                                         {mediaCurrentStep
                                             ? renderActionPanel(mediaCurrentStep.key)
                                             : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.mediaOwner")}</Text></Group>}
                                     </Paper>
                                 )}
-                                <Paper withBorder p="sm" radius="md">
+                                <Paper shadow="sm" radius="lg" p="sm">
                                     <Stack gap="xs" mb="sm">
                                         <Badge color="orange" variant="light" size="sm">
                                             {t("roles.advertiser")}
@@ -412,7 +416,7 @@ export default function OnboardingPage() {
                                     {renderStepList(advertiserKeys, advertiserTrackFull)}
                                 </Paper>
                                 {!allDone && (
-                                    <Paper withBorder p="md" radius="md">
+                                    <Paper shadow="sm" radius="lg" p="md">
                                         {advertiserCurrentStep
                                             ? renderActionPanel(advertiserCurrentStep.key)
                                             : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.advertiser")}</Text></Group>}
@@ -425,14 +429,14 @@ export default function OnboardingPage() {
 
                 {/* Action panel — single role only */}
                 {!allDone && !isBoth && singleCurrentStep && (
-                    <Paper withBorder p={{ base: "md", sm: "lg" }} radius="md">
+                    <Paper shadow="sm" radius="lg" p={{ base: "md", sm: "lg" }}>
                         {renderActionPanel(singleCurrentStep.key)}
                     </Paper>
                 )}
 
                 {/* All done */}
                 {allDone && (
-                    <Paper withBorder p={{ base: "md", sm: "lg" }} radius="md" bg="green.0">
+                    <Paper shadow="sm" radius="lg" p={{ base: "md", sm: "lg" }} bg="green.0">
                         <Stack gap="xs" align="center" ta="center">
                             <ThemeIcon size={44} radius="xl" color="green">
                                 <IconCheck size="1.5rem" />
