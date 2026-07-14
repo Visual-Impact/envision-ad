@@ -21,6 +21,8 @@ import { LanguagePicker } from "./LanguagePicker";
 import { Link, usePathname } from "@/shared/lib/i18n/navigation";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconUser } from "@tabler/icons-react";
+import { useOrganization, usePermissions } from "@/app/providers";
+import SideBar from "@/widgets/SideBar/SideBar";
 import styles from "./Header.module.css";
 
 // 1px border + 8px padding + 38px logo image + 8px padding + 1px border = 56px
@@ -46,6 +48,15 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
     const t = useTranslations("nav");
     const pathname = usePathname();
     const { user } = useUser();
+    const { organization } = useOrganization();
+    const { permissions } = usePermissions();
+
+    const isDashboardRoute = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+    const isAdmin =
+        permissions.includes("patch:media_status") &&
+        permissions.includes("readAll:verification") &&
+        permissions.includes("update:verification");
+    const showDashboardNav = isDashboardRoute && (!!organization || isAdmin);
 
     const links: Array<{
         link: "/" | "/dashboard" | "/browse";
@@ -193,8 +204,8 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
                     position: "fixed",
                     top: 20,
                     left: 0,
-                    right: 0,
-                    zIndex: 1000,
+                    right: "var(--removed-body-scroll-bar-size, 0px)",
+                    zIndex: "var(--mantine-z-index-app)",
                     pointerEvents: "none",
                 }}
             >
@@ -320,6 +331,19 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
                     <Stack px="md" gap={2}>
                         {mobileItems}
                     </Stack>
+
+                    {showDashboardNav && (
+                        <>
+                            <Divider my="sm" />
+
+                            <Text size="xs" fw={600} c="dimmed" px="md" mb={4} style={{ textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                {t("dashboard")}
+                            </Text>
+                            <Box px="md">
+                                <SideBar />
+                            </Box>
+                        </>
+                    )}
 
                     <Divider my="sm" />
 

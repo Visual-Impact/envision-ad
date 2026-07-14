@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import com.envisionad.webservice.reservation.dataaccesslayer.Reservation;
 import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
+import com.envisionad.webservice.reservation.dataaccesslayer.ReservationStatus;
 
 @Slf4j
 @Service
@@ -42,6 +43,7 @@ public class StripeServiceImpl implements StripeService {
     private final MediaRepository mediaRepository;
     private final ReservationRepository reservationRepository;
     private final JwtUtils jwtUtils;
+    private final StripeWebhookService stripeWebhookService;
 
     @Value("${stripe.platform-fee-percent}")
     private int platformFeePercent;
@@ -51,13 +53,15 @@ public class StripeServiceImpl implements StripeService {
             AdCampaignRepository adCampaignRepository,
             MediaRepository mediaRepository,
             ReservationRepository reservationRepository,
-            JwtUtils jwtUtils) {
+            JwtUtils jwtUtils,
+            StripeWebhookService stripeWebhookService) {
         this.stripeAccountRepository = stripeAccountRepository;
         this.paymentIntentRepository = paymentIntentRepository;
         this.adCampaignRepository = adCampaignRepository;
         this.mediaRepository = mediaRepository;
         this.reservationRepository = reservationRepository;
         this.jwtUtils = jwtUtils;
+        this.stripeWebhookService = stripeWebhookService;
     }
 
     @Override
@@ -556,6 +560,11 @@ public class StripeServiceImpl implements StripeService {
                             }
                             paymentIntentRepository.save(p);
                             log.info("Synced pending payment {} to SUCCEEDED", p.getId());
+
+                            // The webhook that normally confirms the reservation may not have
+                            // arrived yet (or at all, e.g. local dev without webhook forwarding).
+                            // Reconcile the reservation here too so it doesn't stay stuck as PENDING.
+                            stripeWebhookService.updateReservationStatus(p.getReservationId(), ReservationStatus.CONFIRMED);
                         } else if ("expired".equals(session.getStatus())) {
                             p.setStatus(PaymentStatus.FAILED);
                             paymentIntentRepository.save(p);

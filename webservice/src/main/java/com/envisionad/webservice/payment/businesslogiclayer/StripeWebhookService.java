@@ -225,7 +225,8 @@ public class StripeWebhookService {
         }
     }
 
-    private void updateReservationStatus(String reservationId, ReservationStatus newStatus) {
+    @Transactional
+    public void updateReservationStatus(String reservationId, ReservationStatus newStatus) {
         Optional<Reservation> reservationOpt = reservationRepository.findByReservationId(reservationId);
 
         if (reservationOpt.isEmpty()) {

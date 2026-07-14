@@ -13,6 +13,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.StripeAccountRepository
 import com.envisionad.webservice.reservation.dataaccesslayer.Reservation;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
+import com.envisionad.webservice.reservation.dataaccesslayer.ReservationStatus;
 import com.envisionad.webservice.advertisement.exceptions.AdCampaignNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicatePaymentException;
 import com.envisionad.webservice.payment.exceptions.InvalidPricingException;
@@ -64,10 +65,14 @@ class StripeServiceUnitTest {
         @Mock
         private JwtUtils jwtUtils;
 
+        @Mock
+        private StripeWebhookService stripeWebhookService;
+
         @BeforeEach
         void setUp() {
                 stripeService = new StripeServiceImpl(stripeAccountRepository, paymentIntentRepository,
-                                adCampaignRepository, mediaRepository, reservationRepository, jwtUtils);
+                                adCampaignRepository, mediaRepository, reservationRepository, jwtUtils,
+                                stripeWebhookService);
                 // set platform fee percent for deterministic behavior
                 org.springframework.test.util.ReflectionTestUtils.setField(stripeService, "platformFeePercent", 30);
         }
@@ -1097,11 +1102,13 @@ class StripeServiceUnitTest {
                 account.setBusinessId(businessId);
                 account.setStripeAccountId("acct_123");
 
+                String reservationId = "res-complete-1";
                 PaymentIntent pendingPayment = new PaymentIntent();
                 pendingPayment.setId(1L);
                 pendingPayment.setBusinessId(businessId);
                 pendingPayment.setStatus(PaymentStatus.PENDING);
                 pendingPayment.setStripeSessionId("sess_complete");
+                pendingPayment.setReservationId(reservationId);
 
                 when(jwtUtils.extractUserId(jwt)).thenReturn(userId);
                 doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(userId, businessId);
@@ -1147,6 +1154,9 @@ class StripeServiceUnitTest {
                         assertEquals(PaymentStatus.SUCCEEDED, pendingPayment.getStatus());
                         assertEquals("pi_new_123", pendingPayment.getStripePaymentIntentId());
                         verify(paymentIntentRepository).save(pendingPayment);
+                        // The reservation must also be reconciled to CONFIRMED, since the Stripe
+                        // webhook that normally does this may never arrive (e.g. local dev).
+                        verify(stripeWebhookService).updateReservationStatus(reservationId, ReservationStatus.CONFIRMED);
                 }
         }
 
@@ -1206,6 +1216,7 @@ class StripeServiceUnitTest {
                         // Then
                         assertEquals(PaymentStatus.FAILED, pendingPayment.getStatus());
                         verify(paymentIntentRepository).save(pendingPayment);
+                        verify(stripeWebhookService, never()).updateReservationStatus(anyString(), any());
                 }
         }
 
