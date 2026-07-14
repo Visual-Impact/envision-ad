@@ -133,7 +133,8 @@ export function MediaModal({
 
         for (const [day, isActive] of Object.entries(formState.activeDaysOfWeek)) {
             if (isActive) {
-                const {start, end} = formState.dailyOperatingHours[day];
+                const hours = formState.dailyOperatingHours[day] ?? { start: "", end: "" };
+                const { start, end } = hours;
                 const timePattern = /^\d{2}:\d{2}$/;
                 if (!start) {
                     errors[`${day}_start`] = t("errors.required");

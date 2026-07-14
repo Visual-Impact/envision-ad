@@ -60,9 +60,8 @@ export function DisplayGallery({ images }: DisplayGalleryProps) {
                     getEmblaApi={setEmbla}
                 >
                     {slides.map((src, index) => (
-                        <Carousel.Slide key={src}>
+                        <Carousel.Slide key={`${src}-${index}`}>
                             <div className={classes.card}>
-                                {/* Mantine Image (plain <img>): Cloudinary URLs render
                                     without next/image remote-domain config, like MediaCard. */}
                                 <Image
                                     src={src}
