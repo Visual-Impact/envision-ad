@@ -47,6 +47,6 @@ out/
 ### Environment Variables ###
 .env
 
-### Secrets ###
+### Secrets for developer documentation auth ###
 nginx/.htpasswd
->>>>>>> Stashed changes
+

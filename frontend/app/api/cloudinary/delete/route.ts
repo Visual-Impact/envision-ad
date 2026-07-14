@@ -7,10 +7,14 @@ import { Token } from "@/entities/auth";
 const GALLERY_KEY = 'homepage-gallery';
 const REQUIRED_PERMISSION = 'manage:settings';
 
-function backendBaseUrl(): string | undefined {
-    return process.env.DOCKER === "true"
+function backendBaseUrl(): string {
+    const url = process.env.DOCKER === "true"
         ? process.env.WEBSERVICE_API_URL
         : process.env.NEXT_PUBLIC_API_URL;
+    if (!url) {
+        throw new Error("Missing backend base URL (WEBSERVICE_API_URL or NEXT_PUBLIC_API_URL)");
+    }
+    return url;
 }
 
 // Pull the stored public_ids out of the gallery setting JSON. Folder-mode

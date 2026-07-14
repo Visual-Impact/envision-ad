@@ -35,6 +35,11 @@ export function MediaModal({
                                isEditing,
                            }: MediaModalProps) {
     const t = useTranslations("mediaModal");
+
+    if (!process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_SQUARE_IMAGES) {
+        throw new Error('NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_SQUARE_IMAGES environment variable is not set');
+    }
+
     const [active, setActive] = useState(0);
 
     // Cloudinary Widget Options
@@ -48,7 +53,7 @@ export function MediaModal({
         croppingAspectRatio: 1,
         croppingDefaultSelectionRatio: 1,
         singleUploadAutoClose: true,
-        uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_SQUARE_IMAGES ?? ''
+        uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_SQUARE_IMAGES
     };
 
     const handleUploadSuccess = (results: CloudinaryUploadWidgetResults) => {
@@ -133,7 +138,8 @@ export function MediaModal({
 
         for (const [day, isActive] of Object.entries(formState.activeDaysOfWeek)) {
             if (isActive) {
-                const {start, end} = formState.dailyOperatingHours[day];
+                const hours = formState.dailyOperatingHours[day] ?? { start: "", end: "" };
+                const { start, end } = hours;
                 const timePattern = /^\d{2}:\d{2}$/;
                 if (!start) {
                     errors[`${day}_start`] = t("errors.required");
