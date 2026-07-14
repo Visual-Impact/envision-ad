@@ -15,7 +15,7 @@ export function VenueTable({ venues, onEdit, onDelete }: VenueTableProps) {
     const t = useTranslations("venueManagement.table");
 
     return (
-        <Paper shadow="sm" radius="md" withBorder>
+        <Paper shadow="sm" radius="lg">
             <ScrollArea>
                 <Table
                     striped

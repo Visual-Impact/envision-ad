@@ -88,7 +88,7 @@ export default async function RootLayout({
                                     <div style={{ paddingTop: 92 }}>
                                         {children}
                                     </div>
-                                    <Footer />
+                                    <Footer bookMeetingUrl={bookMeetingUrl} />
                                 </ModalsProvider>
                             </MantineProvider>
                         </OrganizationProvider>

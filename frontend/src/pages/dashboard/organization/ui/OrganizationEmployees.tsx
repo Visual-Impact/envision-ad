@@ -148,7 +148,7 @@ export default function OrganizationEmployees() {
             <Group justify="space-between">
                 <Title order={1}>{t("title")}</Title>
                 {user?.sub === organization.ownerId && (
-                    <Button onClick={() => setIsModalOpen(true)}>{t("addButton")}</Button>
+                    <Button variant="gradient" onClick={() => setIsModalOpen(true)}>{t("addButton")}</Button>
                 )}
             </Group>
 

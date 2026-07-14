@@ -174,8 +174,7 @@ function ReservationCard({
         <Card
             shadow="sm"
             padding="lg"
-            radius="md"
-            withBorder
+            radius="lg"
             style={{
                 cursor: isMediaOwnerView ? "pointer" : "default",
                 height: "100%",
@@ -224,7 +223,7 @@ function ReservationCard({
                 </Group>
 
                 {isAdvertiserView && isApproved && onPayClick && (
-                    <Button fullWidth mt="auto" onClick={() => onPayClick(reservation)}>
+                    <Button fullWidth mt="auto" variant="gradient" onClick={() => onPayClick(reservation)}>
                         {t("payButton")}
                     </Button>
                 )}

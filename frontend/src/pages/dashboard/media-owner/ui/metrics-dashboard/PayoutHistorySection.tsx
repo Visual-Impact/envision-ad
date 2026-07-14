@@ -33,7 +33,7 @@ export function PayoutHistorySection({
     };
 
     return (
-        <Paper withBorder p="md" radius="md" style={isMobile ? { overflowX: "hidden" } : undefined}>
+        <Paper shadow="sm" p="md" radius="lg" style={isMobile ? { overflowX: "hidden" } : undefined}>
             <Text fw={600} mb="sm">
                 {t("sections.payoutHistory")}
             </Text>

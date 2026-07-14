@@ -95,7 +95,7 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
     };
 
     return (
-        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting}>
+        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
             <Box pos="relative">
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">
@@ -169,7 +169,7 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
 
                         <Group justify="flex-end" mt="md">
                             <Button variant="default" onClick={handleClose} disabled={submitting}>{t('buttons.cancel')}</Button>
-                            <Button type="submit" loading={submitting} disabled={!uploadedFileUrl}>
+                            <Button type="submit" variant="gradient" loading={submitting} disabled={!uploadedFileUrl}>
                                 {t('buttons.createAd')}
                             </Button>
                         </Group>

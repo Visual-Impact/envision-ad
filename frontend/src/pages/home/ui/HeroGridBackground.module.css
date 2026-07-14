@@ -1,0 +1,36 @@
+.root {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    /* White base (matching the site background) with a light-grey square grid.
+       This is both the static grid the canvas draws its "fireflies" over and the
+       SSR / no-JS fallback, so the hero is never blank before the canvas mounts. */
+    background-color: #ffffff;
+    background-image:
+        linear-gradient(to right, rgba(60, 72, 96, 0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(60, 72, 96, 0.06) 1px, transparent 1px);
+    background-size: 64px 64px;
+}
+
+.canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Fade the top of the grid to white so it blends into the (white) navbar above
+   the hero instead of starting with a hard grid edge. */
+.root::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 130px;
+    background: linear-gradient(to bottom, #ffffff 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+}

@@ -1,0 +1,75 @@
+@startuml
+!include <archimate/Archimate>
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/nginx.puml
+
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/devicons2/nextjs.puml
+
+!define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
+!include SPRITESURL/cloudflare.puml
+!include SPRITESURL/aws-ec2.puml
+!include SPRITESURL/aws-rds.puml
+!include SPRITESURL/auth0-icon.puml
+!include SPRITESURL/cloudinary-icon.puml
+!include SPRITESURL/stripe.puml
+!include SPRITESURL/google-gmail.puml
+
+AddElementTag("service", $shape=EightSidedShape(), $bgColor="Green", $fontColor="white", $legendText="API \neight sided")
+AddElementTag("ext_service", $shape=EightSidedShape(), $bgColor="Gray", $fontColor="white" ,$legendText="External Services\neight sided")
+AddElementTag("PostgreSQL Database", $shape=RoundedBoxShape(), $bgColor="#336791",$borderColor="Black", $fontColor="white", $legendText="Managed Database (Amazon RDS)")
+AddElementTag("nextjs-app", $shape=RoundedBoxShape(), $bgColor="#000000", $fontColor="white", $legendText="Next.js Application")
+AddElementTag("proxy", $shape=RoundedBoxShape(), $bgColor="#009639", $fontColor="white", $legendText="Reverse Proxy / TLS termination")
+
+SetDefaultLegendEntries("")
+
+allowmixing
+
+actor "User" as user
+
+node "Cloudflare \n[DNS + CDN: envision-ad.ca]" as cloudflare {
+    Container(cf, "Cloudflare DNS", "DNS / Proxy", "Resolves envision-ad.ca to the EC2 public IP and proxies HTTPS traffic.", $sprite="cloudflare", $tags="ext_service")
+}
+
+node "Amazon EC2 Instance \n[Deployment Node : Amazon Linux 2023]" <<$aws-ec2>> as ec2 {
+
+    node "Docker Compose Network \n[Deployment Node : Docker Compose]" as compose {
+
+        node "Nginx Container \n[Deployment Node : Docker]" as nginxNode {
+            Container(nginx, "Nginx", "Container: Nginx", "Terminates SSL (Let's Encrypt) on :443 and reverse-proxies requests: /api/* to the backend, everything else to the frontend.", $sprite="nginx", $tags="proxy")
+        }
+
+        node "Frontend Container \n[Deployment Node : Docker]" as feNode {
+            Container(nextjs, "Next.js Frontend", "Container: TypeScript, Next.js, React", "Serves the Envision Ad web application (SSR + static) and Auth/Cloudinary route handlers on :3000.", $sprite="nextjs", $tags="nextjs-app")
+        }
+
+        node "Backend Container \n[Deployment Node : Docker]" as beNode {
+            Container(java, "Spring Boot Backend", "Container: Java 21, Spring Boot", "Provides the REST API where media owners list ad spaces and advertisers book and manage campaigns. Listens on :8080.", $sprite="java", $tags="service")
+        }
+    }
+}
+
+node "Amazon RDS \n[Deployment Node : AWS]" <<$aws-rds>> as rds {
+    Container(postgres, "PostgreSQL Database", "Container: PostgreSQL 15", "Managed relational store for organizations, media, advertising, reservations, and payments.", $sprite="postgresql", $tags="PostgreSQL Database")
+}
+
+Container_Ext(cloudinary, "Cloudinary Service", "REST API", "Cloudinary's image and video hosting service and API.", $sprite="cloudinary-icon", $tags="ext_service")
+Container_Ext(auth, "Auth0", "SaaS", "Authentication and authorization platform issuing JWTs and enforcing RBAC.", $sprite="auth0-icon", $tags="ext_service")
+Container_Ext(email, "Gmail SMTP System", "Email Service", "The Google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
+Container_Ext(stripe, "Stripe", "Payment Service", "Stripe Connect payment processing between advertisers and media owners.", $sprite="stripe", $tags="ext_service")
+
+user -[dashed]-> cf : Requests envision-ad.ca via\n[HTTPS/443]
+cf -[dashed]-> nginx : Proxies HTTPS to EC2 via\n[HTTPS/443]
+nginx -[dashed]-> nextjs : Routes /* to\n[HTTP/3000]
+nginx -[dashed]-> java : Routes /api/* to\n[HTTP/8080]
+nextjs -[dashed]-> auth : Authenticates users via\n[OAuth2/HTTPS]
+java -[dashed]-> postgres : SQL/TCP\n[JDBC/5432]
+
+java -[dashed]-> cloudinary : Makes API calls to \n[JSON/HTTPS]
+java -[dashed]-> stripe : Makes API calls to \n[JSON/HTTPS]
+java -[dashed]-> email : Sends email to \n[SMTP/TCP/IP]
+SHOW_LEGEND()
+@enduml

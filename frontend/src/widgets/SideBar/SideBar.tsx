@@ -1,3 +1,4 @@
+import type { ComponentProps, ElementType } from "react";
 import { NavLink, Stack, Accordion } from "@mantine/core";
 import { Link, usePathname } from "@/shared/lib/i18n/navigation";
 import {
@@ -16,6 +17,35 @@ import {
 import { useTranslations } from "next-intl";
 import { usePermissions } from "@/app/providers/PermissionProvider";
 import { useOrganization } from "@/app/providers/OrganizationProvider";
+import styles from "./SideBar.module.css";
+
+function joinClassNames(...classes: Array<string | false | undefined>) {
+    return classes.filter(Boolean).join(" ");
+}
+
+interface SideBarLinkProps {
+    href: ComponentProps<typeof Link>["href"];
+    label: string;
+    icon: ElementType;
+    active: boolean;
+}
+
+function SideBarLink({ href, label, icon: Icon, active }: SideBarLinkProps) {
+    return (
+        <NavLink
+            component={Link}
+            href={href}
+            label={label}
+            leftSection={
+                <span className={joinClassNames(styles.iconChip, active && styles.iconChipActive)}>
+                    <Icon size={16} stroke={1.75} />
+                </span>
+            }
+            active={active}
+            className={joinClassNames(styles.navLink, active && styles.navLinkActive)}
+        />
+    );
+}
 
 export default function SideBar() {
     const { permissions } = usePermissions();
@@ -25,129 +55,117 @@ export default function SideBar() {
 
     const mediaOwnerNavItems = organization?.roles?.mediaOwner ? [
         permissions.includes("read:media") && (
-            <NavLink
+            <SideBarLink
                 key="metrics"
-                component={Link}
                 href="/dashboard/media-owner/metrics"
                 label={t("media-owner.metrics")}
-                leftSection={<IconChartDots size={20} stroke={1.5} />}
-                active={pathname?.includes("/media-owner/metrics")}
+                icon={IconChartDots}
+                active={!!pathname?.includes("/media-owner/metrics")}
             />
         ),
         permissions.includes("create:media") && (
-            <NavLink
+            <SideBarLink
                 key="media"
-                component={Link}
                 href="/dashboard/media-owner/locations"
                 label={t("media-owner.media")}
-                leftSection={<IconDeviceTv size={20} stroke={1.5} />}
-                active={pathname?.includes("/media-owner/locations")}
+                icon={IconDeviceTv}
+                active={!!pathname?.includes("/media-owner/locations")}
             />
         ),
         permissions.includes("create:media") && (
-            <NavLink
+            <SideBarLink
                 key="proof"
-                component={Link}
                 href="/dashboard/media-owner/proof"
                 label={t("media-owner.proof")}
-                leftSection={<IconFileDescription size={20} stroke={1.5} />}
-                active={pathname?.endsWith("/media-owner/proof")}
+                icon={IconFileDescription}
+                active={!!pathname?.endsWith("/media-owner/proof")}
             />
         ),
         permissions.includes("update:reservation") && (
-            <NavLink
+            <SideBarLink
                 key="advertisements"
-                component={Link}
                 href="/dashboard/media-owner/advertisements"
                 label={t("media-owner.adRequests")}
-                leftSection={<IconSpeakerphone size={20} stroke={1.5} />}
-                active={pathname?.includes("/dashboard/media-owner/advertisements")}
+                icon={IconSpeakerphone}
+                active={!!pathname?.includes("/dashboard/media-owner/advertisements")}
             />
         ),
     ].filter(Boolean) : [];
 
     const advertiserNavItems = organization?.roles?.advertiser ? [
         permissions.includes("read:campaign") && (
-            <NavLink
+            <SideBarLink
                 key="metricOverview"
-                component={Link}
                 href="/dashboard/advertiser/metrics"
                 label={t("advertiser.metricOverview")}
-                leftSection={<IconChartDots size={20} stroke={1.5} />}
+                icon={IconChartDots}
                 active={pathname === "/dashboard/advertiser/metrics"}
             />
         ),
         permissions.includes("read:campaign") && (
-            <NavLink
+            <SideBarLink
                 key="campaigns"
-                component={Link}
                 href="/dashboard/advertiser/campaigns"
                 label={t("advertiser.myAds")}
-                leftSection={<IconAd size={20} stroke={1.5} />}
-                active={pathname?.endsWith("/advertiser/campaigns")}
+                icon={IconAd}
+                active={!!pathname?.endsWith("/advertiser/campaigns")}
             />
         ),
         permissions.includes("readAll:reservation") && (
-            <NavLink
+            <SideBarLink
                 key="advertisements"
-                component={Link}
                 href="/dashboard/advertiser/advertisements"
                 label={t("advertiser.advertisements")}
-                leftSection={<IconSpeakerphone size={20} stroke={1.5} />}
-                active={pathname?.endsWith("/advertiser/advertisements")}
+                icon={IconSpeakerphone}
+                active={!!pathname?.endsWith("/advertiser/advertisements")}
             />
         ),
     ].filter(Boolean) : [];
 
     const adminNavItems = [
         permissions.includes("patch:media_status") && (
-            <NavLink
+            <SideBarLink
                 key="adminMetrics"
-                component={Link}
                 href="/dashboard/admin/metrics"
                 label={t("admin.metrics")}
-                leftSection={<IconChartDots size={20} stroke={1.5} />}
-                active={pathname?.includes("/dashboard/admin/metrics")}
+                icon={IconChartDots}
+                active={!!pathname?.includes("/dashboard/admin/metrics")}
             />
         ),
         permissions.includes("update:verification") && (
-            <NavLink
+            <SideBarLink
                 key="pendingMedia"
-                component={Link}
                 href="/dashboard/admin/media/pending"
                 label={t("admin.pendingMedia")}
-                leftSection={<IconShieldCheck size={20} stroke={1.5} />}
-                active={pathname?.includes("/dashboard/admin/media/pending")}
+                icon={IconShieldCheck}
+                active={!!pathname?.includes("/dashboard/admin/media/pending")}
             />
         ),
         permissions.includes("update:verification") && (
-            <NavLink
+            <SideBarLink
                 key="pendingOrganizations"
-                component={Link}
                 href="/dashboard/admin/organization/verification"
                 label={t("admin.pendingOrganizations")}
-                leftSection={<IconDiscountCheck size={20} stroke={1.5} />}
-                active={pathname?.includes("/dashboard/admin/organization/verification")}
+                icon={IconDiscountCheck}
+                active={!!pathname?.includes("/dashboard/admin/organization/verification")}
             />
         ),
         permissions.includes("manage:venues") && (
-            <NavLink
+            <SideBarLink
                 key="venues"
-                component={Link}
                 href="/dashboard/admin/venues"
                 label={t("admin.venues")}
-                leftSection={<IconTag size={20} stroke={1.5} />}
-                active={pathname?.includes("/dashboard/admin/venues")}
+                icon={IconTag}
+                active={!!pathname?.includes("/dashboard/admin/venues")}
             />
         ),
         permissions.includes("manage:settings") && (
-            <NavLink
+            <SideBarLink
                 key="settings"
-                component={Link}
                 href="/dashboard/admin/settings"
                 label={t("admin.settings")}
-                leftSection={<IconSettings size={20} stroke={1.5} />}
-                active={pathname?.includes("/dashboard/admin/settings")}
+                icon={IconSettings}
+                active={!!pathname?.includes("/dashboard/admin/settings")}
             />
         ),
     ].filter(Boolean);
@@ -157,6 +175,13 @@ export default function SideBar() {
             multiple
             variant="separated"
             defaultValue={["organization", "media-owner", "advertiser", "admin"]}
+            className={styles.accordion}
+            classNames={{
+                item: styles.accordionItem,
+                control: styles.accordionControl,
+                label: styles.accordionLabel,
+                panel: styles.accordionPanel,
+            }}
         >
             {advertiserNavItems.length > 0 && (
                 <Accordion.Item value="advertiser">
@@ -181,22 +206,20 @@ export default function SideBar() {
                     <Accordion.Control>{t("organizationTitle")}</Accordion.Control>
                     <Accordion.Panel>
                         <Stack gap="xs">
-                            <NavLink
+                            <SideBarLink
                                 key="organizationOverview"
-                                component={Link}
                                 href="/dashboard/organization/overview"
                                 label={t("organization.overview")}
-                                leftSection={<IconLayoutDashboard size={20} stroke={1.5} />}
-                                active={pathname?.endsWith("/organization/overview")}
+                                icon={IconLayoutDashboard}
+                                active={!!pathname?.endsWith("/organization/overview")}
                             />
                             {permissions.includes("read:employee") && (
-                                <NavLink
+                                <SideBarLink
                                     key="employees"
-                                    component={Link}
                                     href="/dashboard/organization/employees"
                                     label={t("organization.employees")}
-                                    leftSection={<IconUsers size={20} stroke={1.5} />}
-                                    active={pathname?.endsWith("/organization/employees")}
+                                    icon={IconUsers}
+                                    active={!!pathname?.endsWith("/organization/employees")}
                                 />
                             )}
                         </Stack>

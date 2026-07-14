@@ -92,6 +92,8 @@ export function AddEmployeeModal({
             title={t("title")}
             centered
             size="lg"
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 {invalidInputWarning && (
@@ -117,7 +119,7 @@ export function AddEmployeeModal({
                     <Button variant="default" onClick={onClose} disabled={saving}>
                         {t("cancel")}
                     </Button>
-                    <Button onClick={handleSave} loading={saving}>
+                    <Button variant="gradient" onClick={handleSave} loading={saving}>
                         {t("submit")}
                     </Button>
                 </Group>

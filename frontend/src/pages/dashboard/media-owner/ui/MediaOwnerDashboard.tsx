@@ -180,7 +180,7 @@ export default function MediaOwnerPage() {
                 {isStripeLoading ? (
                     <Loader />
                 ) : isStripeOnboarded ? (
-                    <Button onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }}>
+                    <Button variant="gradient" onClick={() => { setEditingId(null); resetForm(); setIsModalOpen(true); }}>
                         {t('newMedia')}
                     </Button>
                 ) : (

@@ -114,14 +114,14 @@ export default function StripePage() {
         }
 
         return (
-            <Paper withBorder p="md">
+            <Paper shadow="sm" radius="lg" p="md">
                 <Stack>
                     <Title order={4}>{t('status.incomplete.title')}</Title>
                     <Text c="dimmed">{t('status.incomplete.description')}</Text>
                     <StatusCheck label={t('status.incomplete.checks.onboarding')} checked={status.onboardingComplete} />
                     <StatusCheck label={t('status.incomplete.checks.charges')} checked={status.chargesEnabled} />
                     <StatusCheck label={t('status.incomplete.checks.payouts')} checked={status.payoutsEnabled} />
-                    <Button onClick={handleConnect} loading={isConnecting} mt="md">
+                    <Button variant="gradient" onClick={handleConnect} loading={isConnecting} mt="md">
                         {status.connected ? t('buttons.continueOnboarding') : t('buttons.connect')}
                     </Button>
                 </Stack>

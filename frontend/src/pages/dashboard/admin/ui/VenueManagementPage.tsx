@@ -92,7 +92,7 @@ export default function VenueManagementPage() {
         <Stack component="main" gap="md" p="md" style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" align="center">
                 <Title order={1}>{t("title")}</Title>
-                <Button leftSection={<IconPlus size={18} />} onClick={handleCreate}>
+                <Button variant="gradient" leftSection={<IconPlus size={18} />} onClick={handleCreate}>
                     {t("addVenue")}
                 </Button>
             </Group>

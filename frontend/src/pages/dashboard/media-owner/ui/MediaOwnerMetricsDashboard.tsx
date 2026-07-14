@@ -260,7 +260,7 @@ export default function MediaOwnerMetricsDashboard() {
 
             <Grid gutter="md">
                 <Grid.Col span={{ base: 12, lg: 6 }}>
-                    <Paper withBorder p="md" radius="md">
+                    <Paper shadow="sm" p="md" radius="lg">
                         <Text fw={600} mb="sm">
                             {earningsTrendSectionTitle}
                         </Text>
@@ -278,7 +278,7 @@ export default function MediaOwnerMetricsDashboard() {
                                     tooltipProps={{
                                         content: ({ payload, label }) =>
                                             renderEarningsTrendTooltip(
-                                                payload as ChartTooltipPayload[] | undefined,
+                                                payload as unknown as ChartTooltipPayload[] | undefined,
                                                 label
                                             ),
                                     }}
@@ -317,7 +317,7 @@ export default function MediaOwnerMetricsDashboard() {
                 </Grid.Col>
 
                 <Grid.Col span={{ base: 12, lg: 6 }}>
-                    <Paper withBorder p="md" radius="md" h="100%">
+                    <Paper shadow="sm" p="md" radius="lg" h="100%">
                         <Text fw={600} mb="sm">
                             {t("sections.revenueByLocation")}
                         </Text>
@@ -340,7 +340,7 @@ export default function MediaOwnerMetricsDashboard() {
                                             cursor: false,
                                             content: ({ payload, label }) =>
                                                 renderTooltip(
-                                                    payload as ChartTooltipPayload[] | undefined,
+                                                    payload as unknown as ChartTooltipPayload[] | undefined,
                                                     label
                                                 ),
                                         }}
@@ -357,7 +357,7 @@ export default function MediaOwnerMetricsDashboard() {
             {/* Media Screens Reservation Trend Section */}
             <Grid gutter="md">
                 <Grid.Col span={12}>
-                    <Paper withBorder p="md" radius="md">
+                    <Paper shadow="sm" p="md" radius="lg">
                         <Group justify="space-between" align="center" mb="sm">
                             <Text fw={600}>
                                 {t("sections.mediaReservations")}

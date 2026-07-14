@@ -35,6 +35,8 @@ export function VenueDeleteModal({ opened, onClose, onConfirm, venue }: VenueDel
             title={t("title")}
             size="sm"
             centered
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 <Text>{t("message", { name: venue.nameEn })}</Text>

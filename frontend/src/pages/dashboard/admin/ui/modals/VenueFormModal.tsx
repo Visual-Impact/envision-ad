@@ -65,6 +65,8 @@ export function VenueFormModal({ opened, onClose, onSave, venue }: VenueFormModa
             title={isEdit ? t("editTitle") : t("createTitle")}
             size="md"
             centered
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 <TextInput
@@ -97,7 +99,7 @@ export function VenueFormModal({ opened, onClose, onSave, venue }: VenueFormModa
                     <Button variant="default" onClick={onClose}>
                         {t("cancel")}
                     </Button>
-                    <Button onClick={handleSubmit} loading={saving}>
+                    <Button variant="gradient" onClick={handleSubmit} loading={saving}>
                         {isEdit ? t("update") : t("create")}
                     </Button>
                 </Group>

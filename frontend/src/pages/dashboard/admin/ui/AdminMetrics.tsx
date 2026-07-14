@@ -163,7 +163,7 @@ export default function AdminMetricsPage() {
           />
         </SimpleGrid>
 
-        <Card withBorder radius="md" p="md">
+        <Card shadow="sm" radius="lg" p="md">
           <Title order={2} mb="xs">
             {t("chart.title")}
           </Title>

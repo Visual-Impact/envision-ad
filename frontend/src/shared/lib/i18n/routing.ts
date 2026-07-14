@@ -26,6 +26,10 @@ export const routing = defineRouting({
       'en': '/about',
       'fr': '/a-propos'
     },
+    '/privacy': {
+      'en': '/privacy',
+      'fr': '/confidentialite'
+    },
     '/dashboard': {
       'en': '/dashboard',
       'fr': '/tableau-de-bord'

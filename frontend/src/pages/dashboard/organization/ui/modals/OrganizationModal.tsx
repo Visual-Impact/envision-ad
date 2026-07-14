@@ -103,6 +103,8 @@ export function OrganizationModal({
             title={editingId ? t("editTitle") : t("createTitle")}
             size="lg"
             centered
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 {validationError && (
@@ -125,7 +127,7 @@ export function OrganizationModal({
                     <Button variant="default" onClick={onClose} disabled={saving}>
                         {t("cancel")}
                     </Button>
-                    <Button onClick={handleSave} loading={saving}>
+                    <Button variant="gradient" onClick={handleSave} loading={saving}>
                         {editingId ? t("update") : t("create")}
                     </Button>
                 </Group>

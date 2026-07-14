@@ -46,3 +46,7 @@ out/
 
 ### Environment Variables ###
 .env
+
+### Secrets ###
+nginx/.htpasswd
+>>>>>>> Stashed changes

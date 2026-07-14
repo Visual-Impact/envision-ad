@@ -70,6 +70,8 @@ export function OrganizationDetailsModal({
             title={t("verificationDetails")}
             size="lg"
             closeButtonProps={{ "aria-label": t("close") }}
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
         >
             <Stack gap="md">
                 <Stack gap={4}>
@@ -141,7 +143,7 @@ export function OrganizationDetailsModal({
                             <Button variant="default" onClick={handleCancelApprove}>
                                 {t("cancel")}
                             </Button>
-                            <Button onClick={handleConfirmApprove}>
+                            <Button variant="gradient" onClick={handleConfirmApprove}>
                                 {t("approve")}
                             </Button>
                         </>
@@ -150,7 +152,7 @@ export function OrganizationDetailsModal({
                             <Button color="red" variant="outline"  onClick={handleDenyClick}>
                                 {t("deny")}
                             </Button>
-                            <Button onClick={handleApproveClick}>
+                            <Button variant="gradient" onClick={handleApproveClick}>
                                 {t("approve")}
                             </Button>
                         </>

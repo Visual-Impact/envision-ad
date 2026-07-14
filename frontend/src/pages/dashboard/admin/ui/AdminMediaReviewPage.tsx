@@ -165,6 +165,7 @@ export default function AdminMediaReviewPage() {
               <Button
                 radius="xl"
                 fullWidth
+                variant="gradient"
                 type="button"
                 aria-label="Approve"
                 onMouseDown={(e) => e.preventDefault()}
@@ -203,6 +204,8 @@ export default function AdminMediaReviewPage() {
             centered
             keepMounted={false}
             closeButtonProps={{ "aria-label": t1("close") }}
+            radius="lg"
+            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
             title={
               confirmAction === "approve"
                   ? t1("approveMediaConfirmation")

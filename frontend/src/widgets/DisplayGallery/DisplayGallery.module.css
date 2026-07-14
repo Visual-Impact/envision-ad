@@ -1,0 +1,102 @@
+.section {
+  padding: 64px 0 72px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.container {
+  width: 100%;
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.heading {
+  min-width: 0;
+}
+
+.title {
+  font-size: 42px !important;
+  line-height: 1.08 !important;
+  color: var(--mantine-color-gray-9);
+  font-weight: 800 !important;
+}
+
+.titleGradient {
+  background: linear-gradient(95deg, #0795ED 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.carousel {
+  width: 100%;
+}
+
+/* Let the right-edge card peek beyond the container without a horizontal
+   scrollbar on the page. */
+.viewport {
+  overflow: visible;
+}
+
+.slides {
+  align-items: stretch;
+}
+
+/* Portrait ad-display card. Square source photos are cropped to match via
+   object-fit: cover, so the row stays visually uniform. */
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--mantine-color-gray-1);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.controls {
+  margin-top: 28px;
+}
+
+.control {
+  border: 1.5px solid var(--mantine-color-gray-3);
+  color: var(--mantine-color-gray-8);
+  background: #ffffff;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--mantine-color-blue-5);
+  color: var(--mantine-color-blue-6);
+  box-shadow: 0 4px 14px rgba(7, 149, 237, 0.18);
+}
+
+.control:disabled {
+  opacity: 0.4;
+}
+
+@media (max-width: 62em) {
+  .section {
+    padding: 48px 0 56px;
+  }
+
+  .title {
+    font-size: 32px !important;
+  }
+}
+
+@media (max-width: 48em) {
+  .title {
+    font-size: 26px !important;
+  }
+}

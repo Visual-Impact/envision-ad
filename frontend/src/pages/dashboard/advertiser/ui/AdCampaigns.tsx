@@ -1,7 +1,8 @@
 "use client";
 
 import React, {useCallback, useEffect, useState} from "react";
-import {Button, Group, Stack, Title} from "@mantine/core";
+import {Button, Group, SimpleGrid, Stack, Title} from "@mantine/core";
+import {IconAd, IconMovie, IconPhoto, IconSpeakerphone} from "@tabler/icons-react";
 import {notifications} from "@mantine/notifications";
 import {useTranslations} from 'next-intl';
 
@@ -17,6 +18,7 @@ import {AdCampaignsTable} from "@/pages/dashboard/advertiser/ui/tables/AdCampaig
 import {AddAdModal} from "@/pages/dashboard/advertiser/ui/modals/AddAdModal";
 import {CreateCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/CreateCampaignModal";
 import {ConfirmationModal} from "@/shared/ui/ConfirmationModal";
+import {MetricCard} from "@/widgets/Cards/MetricCard";
 import {useOrganization} from "@/app/providers";
 
 export default function AdCampaigns() {
@@ -75,7 +77,7 @@ export default function AdCampaigns() {
         if (!targetCampaignId) return;
 
         try {
-            await addAdToCampaign(targetCampaignId, payload);
+            await addAdToCampaign(organization!.businessId, targetCampaignId, payload);
             notifications.show({
                 title: t('notifications.addAd.success.title'),
                 message: t('notifications.addAd.success.message'),
@@ -210,14 +212,37 @@ export default function AdCampaigns() {
         }
     };
 
+    const allAds = campaigns.flatMap((c) => c.ads);
+    const imageAdsCount = allAds.filter((ad) => ad.adType === "IMAGE").length;
+    const videoAdsCount = allAds.filter((ad) => ad.adType === "VIDEO").length;
+
+    const stats = [
+        { title: t('stats.totalCampaigns'), value: campaigns.length.toString(), icon: IconSpeakerphone, color: "blue" },
+        { title: t('stats.totalAds'), value: allAds.length.toString(), icon: IconAd, color: "orange" },
+        { title: t('stats.imageAds'), value: imageAdsCount.toString(), icon: IconPhoto, color: "teal" },
+        { title: t('stats.videoAds'), value: videoAdsCount.toString(), icon: IconMovie, color: "grape" },
+    ];
+
     return (
         <Stack gap="md" p="md">
             <Group justify="space-between">
                 <Title order={1}>{t('page.title')}</Title>
-                <Button onClick={() => setIsCreateCampaignOpen(true)}>
+                <Button variant="gradient" onClick={() => setIsCreateCampaignOpen(true)}>
                     {t('page.createButton')}
                 </Button>
             </Group>
+
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
+                {stats.map((stat) => (
+                    <MetricCard
+                        key={stat.title}
+                        label={stat.title}
+                        value={stat.value}
+                        color={stat.color}
+                        icon={<stat.icon size="1.4rem" stroke={1.5} />}
+                    />
+                ))}
+            </SimpleGrid>
 
             <AdCampaignsTable
                 campaigns={campaigns}

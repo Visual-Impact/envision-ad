@@ -241,63 +241,68 @@
     }
   },
   "homepage": {
-    "heroTitlePart1": "Des publicités abordables.",
-    "heroTitlePart2": "Un impact inoubliable.",
-    "heroDescription": "Découvrez des opportunités publicitaires abordables et à fort impact dans votre ville. Connectez-vous avec des audiences locales grâce à des espaces publicitaires uniques et rendez votre marque inoubliable. Notre plateforme facilite la navigation, la réservation et la gestion des placements publicitaires qui correspondent à votre budget et vos objectifs.",
-    "ctaTitle": "Trouvez des espaces publicitaires maintenant",
-    "ctaBrowse": "Parcourir",
-    "images": {
-      "backgroundImage": {
-        "alt": "Image d'un oeuil, représentant Impact Visuel"
+    "networkBadge": "RÉSEAU D'ÉCRANS PUBLICITAIRES",
+    "heroTitlePart1": "Votre publicité partout dans le",
+    "heroTitlePart2": "Grand Montréal",
+    "heroDescription": "Diffusez votre message sur {count} écrans numériques stratégiquement placés à travers la Rive-Sud et l'île de Montréal — toutes les 2 à 3 minutes.",
+    "ctaMeeting": "Réserver une réunion",
+    "ctaPackages": "Voir les forfaits",
+    "stats": {
+      "screens": "ÉCRANS ACTIFS",
+      "cities": "VILLES COUVERTES",
+      "venueTypes": "TYPES DE LIEUX",
+      "broadcasts": "DIFFUSIONS / MOIS"
+    },
+    "screens": {
+      "stand": "STAND",
+      "suspended": "SUSPENDU",
+      "kiosk": "KIOSQUE",
+      "cta": "ANNONCEZ ICI",
+      "clusterLabel": "Aperçu des écrans du réseau : stand, écran suspendu et kiosque"
+    },
+    "gallery": {
+      "titlePart1": "Voyez nos écrans",
+      "titlePart2": "sur le terrain",
+      "previous": "Affichages précédents",
+      "next": "Affichages suivants",
+      "imageAlt": "Écran Envision Ad affichant une publicité dans un lieu réel ({index})"
+    },
+    "timeline": {
+      "titlePart1": "Comment ça",
+      "titlePart2": "fonctionne",
+      "subtitle": "De la première rencontre à la diffusion sur écran, en 5 étapes simples.",
+      "steps": {
+        "step1": {
+          "title": "Réservez une réunion",
+          "description": "Planifiez un appel rapide pour qu'on comprenne vos objectifs et vous recommande les bons écrans."
+        },
+        "step2": {
+          "title": "Choisissez et soumettez",
+          "description": "Sélectionnez l'abonnement qui correspond à votre budget et téléversez votre publicité."
+        },
+        "step3": {
+          "title": "Paiement sécurisé",
+          "description": "Vérifiez votre commande et payez en toute sécurité — sans allers-retours, sans frais cachés."
+        },
+        "step4": {
+          "title": "Suivez votre campagne",
+          "description": "Consultez les impressions et les résultats en temps réel depuis votre tableau de bord."
+        },
+        "step5": {
+          "title": "Renouvelez ou évoluez",
+          "description": "Prolongez, ajustez ou augmentez votre campagne quand vous le souhaitez — conditions flexibles, mise en ligne rapide."
+        }
       }
     }
   },
-  "partners": {
-    "title": "Partenaires",
-    "visualImpact": {
-      "name": "Visual Impact",
-      "alt": "Logo de Visual Impact"
-    },
-    "champlainCollege": {
-      "name": "Collège Champlain Saint-Lambert",
-      "alt": "Logo du Collège Champlain"
-    },
-    "salonLola": {
-      "name": "Salon Lola",
-      "alt": "Logo de Salon Lola"
-    },
-    "bazGym": {
-      "name": "Baz Gym",
-      "alt": "Logo de Baz Gym"
-    },
-    "entrepotEnFolie": {
-      "name": "Entrepôt En Folie",
-      "alt": "Logo d'Entrepôt en Folie"
-    },
-    "infiniteBarbershop": {
-      "name": "Infinite Barbershop",
-      "alt": "Logo d'Infinite Barbershop"
-    },
-    "liquidationMarie": {
-      "name": "Liquidation Marie",
-      "alt": "Logo de Liquidation Marie"
-    },
-    "pingMo": {
-      "name": "Ping Mo",
-      "alt": "Logo de Ping Mo"
-    }
-  },
   "footer": {
+    "tagline": "Publicités numériques sur de vrais écrans partout dans le Grand Montréal.",
+    "quickLinks": "Liens rapides",
     "contactUs": "Contactez-nous",
     "email": "Courriel : mlhamidi@visualsimpact.com",
-    "phone": "Téléphone : +1 (450) 626-0540",
     "followUs": "Suivez-nous",
-    "twitter": "Twitter",
-    "facebook": "Facebook",
     "linkedin": "LinkedIn",
     "instagram": "Instagram",
-    "legal": "Mentions légales",
-    "terms": "Conditions d'utilisation",
     "privacy": "Politique de confidentialité",
     "copyright": "© {year} Envision AD. Tous droits réservés."
   },
@@ -709,7 +714,26 @@
       "months": "Mois",
       "schedule": "Jours et heures",
       "start": "Début",
-      "end": "Fin"
+      "end": "Fin",
+      "quickFill": "Définir les mêmes heures pour chaque jour ouvré",
+      "applyToAll": "Appliquer à tous les jours ouverts",
+      "selectAll": "Tout sélectionner",
+      "clearAll": "Tout effacer",
+      "closed": "Fermé",
+      "open": "Ouvert",
+      "presets": "Préréglages rapides",
+      "preset24h": "Ouvert 24 h",
+      "presetBusiness": "9 h à 17 h",
+      "presetWeekdays": "Jours ouvrés uniquement",
+      "timeFormatInvalid": "Veuillez choisir une heure valide"
+    },
+    "steps": {
+      "details": "Détails",
+      "detailsDescription": "Nom, type et prix",
+      "image": "Image",
+      "imageDescription": "Téléverser et cadrer",
+      "schedule": "Horaire",
+      "scheduleDescription": "Mois, jours et heures"
     },
     "labels": {
       "mediaName": "Nom du média",
@@ -770,7 +794,9 @@
       "cancel": "Annuler",
       "save": "Enregistrer",
       "uploadFile": "Téléverser un fichier",
-      "changeFile": "Changer de fichier"
+      "changeFile": "Changer de fichier",
+      "next": "Suivant",
+      "back": "Précédent"
     },
     "calendar": {
       "months": {
@@ -1046,6 +1072,12 @@
       "createButton": "Créer une campagne",
       "noCampaigns": "Aucune campagne trouvée. Cliquez sur 'Créer une campagne' pour en ajouter une."
     },
+    "stats": {
+      "totalCampaigns": "Campagnes totales",
+      "totalAds": "Publicités totales",
+      "imageAds": "Publicités images",
+      "videoAds": "Publicités vidéos"
+    },
     "createCampaignModal": {
       "title": "Créer une campagne",
       "labels": {
@@ -1229,6 +1261,21 @@
       "notifications": {
         "saved": "Paramètre enregistré avec succès.",
         "saveFailed": "Échec de l'enregistrement du paramètre."
+      },
+      "gallery": {
+        "title": "Galerie de la page d’accueil",
+        "description": "Photos affichées dans la galerie défilante de la page d’accueil, dans l’ordre. Les changements sont appliqués immédiatement.",
+        "addImage": "Ajouter une image",
+        "remove": "Supprimer l’image",
+        "removed": "Image supprimée.",
+        "added": "Image ajoutée.",
+        "moveLeft": "Déplacer avant",
+        "moveRight": "Déplacer après",
+        "imageAlt": "Image {index} de la galerie de la page d’accueil",
+        "emptyDefaults": "Aucune image personnalisée — la page d’accueil affiche les photos par défaut. Téléversez des images ici pour les remplacer.",
+        "loadFailed": "Échec du chargement des images de la galerie.",
+        "saveFailed": "Échec de l’enregistrement de la galerie. Veuillez réessayer.",
+        "removeFailed": "Impossible de supprimer l’image. Veuillez réessayer."
       }
     }
   },
@@ -1601,5 +1648,9 @@
       "updateFailed": "Échec de la mise à jour du tag de lieu.",
       "deleteFailed": "Échec de la suppression du tag de lieu."
     }
+  },
+  "privacyPage": {
+    "title": "Politique de confidentialité",
+    "placeholder": "Notre politique de confidentialité est en cours de finalisation et sera publiée ici prochainement. En attendant, si vous avez des questions sur la gestion de vos données, veuillez nous contacter."
   }
 }

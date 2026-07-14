@@ -128,7 +128,7 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
     };
 
     return (
-        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting}>
+        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
             <form onSubmit={form.onSubmit(handleSubmit)} noValidate>
                 <Stack gap="md">
                     <TextInput
@@ -181,7 +181,7 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
 
                     <Group justify="flex-end" mt="md">
                         <Button type="button" variant="default" onClick={handleClose} disabled={submitting}>{t('buttons.cancel')}</Button>
-                        <Button type="submit" loading={submitting || fetchingCoords}>
+                        <Button type="submit" variant="gradient" loading={submitting || fetchingCoords}>
                             {t('buttons.create')}
                         </Button>
                     </Group>

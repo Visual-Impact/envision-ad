@@ -396,7 +396,7 @@ export default function AdRequestDetailPage() {
 
                     <Stack gap="md" style={{ flex: 1, minWidth: 280 }}>
                         {!isPending && campaign && campaign.ads.length > 0 && (
-                            <Card withBorder radius="lg" p="lg">
+                            <Card shadow="sm" radius="lg" p="lg">
                                 <Stack gap="sm" align="center">
                                     <Text size="sm" fw={500}>{t("detail.mediaFiles")}</Text>
                                     <Button
@@ -412,7 +412,7 @@ export default function AdRequestDetailPage() {
                             </Card>
                         )}
 
-                        <Card withBorder radius="lg" p="lg">
+                        <Card shadow="sm" radius="lg" p="lg">
                             <Stack gap="sm">
                                 <Group justify="space-between" align="center">
                                     <Text size="sm" c="dimmed">{t("detail.name")}</Text>
@@ -447,7 +447,7 @@ export default function AdRequestDetailPage() {
                             </Stack>
                         </Card>
 
-                        <Card withBorder radius="lg" shadow="md" p="lg">
+                        <Card shadow="md" radius="lg" p="lg">
                             <Stack align="center" gap="md">
                                 <Group gap="xs" align="center">
                                     <IconCurrencyDollar size={20} />
@@ -463,6 +463,7 @@ export default function AdRequestDetailPage() {
                                         <Button
                                             radius="xl"
                                             fullWidth
+                                            variant="gradient"
                                             type="button"
                                             onClick={() => setShowApproveModal(true)}
                                             disabled={submitting}

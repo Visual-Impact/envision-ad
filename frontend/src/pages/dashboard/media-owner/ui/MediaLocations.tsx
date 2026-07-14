@@ -294,7 +294,7 @@ export default function MediaLocations() {
         <Stack gap="md" p="md">
             <Group justify="space-between">
                 <Title order={2}>{t('page.title')}</Title>
-                <Button onClick={() => setIsCreateModalOpen(true)}>{t('page.createButton')}</Button>
+                <Button variant="gradient" onClick={() => setIsCreateModalOpen(true)}>{t('page.createButton')}</Button>
             </Group>
 
             <MediaLocationsTable
