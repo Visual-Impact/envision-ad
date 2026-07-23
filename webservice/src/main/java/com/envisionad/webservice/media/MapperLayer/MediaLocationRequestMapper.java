@@ -15,6 +15,7 @@ public class MediaLocationRequestMapper {
         mediaLocation.setCountry(requestModel.getCountry());
         mediaLocation.setProvince(requestModel.getProvince());
         mediaLocation.setCity(requestModel.getCity());
+        mediaLocation.setRegion(requestModel.getRegion());
         mediaLocation.setStreet(requestModel.getStreet());
         mediaLocation.setPostalCode(requestModel.getPostalCode());
         mediaLocation.setLatitude(requestModel.getLatitude());

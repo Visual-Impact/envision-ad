@@ -10,6 +10,7 @@ public class MediaLocationRequestModel {
     private String country;
     private String province;
     private String city;
+    private String region;
     private String street;
     private String postalCode;
     private Double latitude;
