@@ -14,7 +14,7 @@ export function MetricCard({ label, value, description, icon, color = "blue" }: 
     return (
         <Card shadow="sm" radius="lg" p="xl" className={styles.card} style={{ height: "100%" }}>
             <Group justify="space-between" wrap="nowrap" align="flex-start">
-                <Text size="sm" c={color} fw={700} tt="uppercase" style={{ minWidth: 0 }}>
+                <Text size="sm" c={color} fw={700} tt="uppercase" truncate style={{ minWidth: 0 }}>
                     {label}
                 </Text>
 

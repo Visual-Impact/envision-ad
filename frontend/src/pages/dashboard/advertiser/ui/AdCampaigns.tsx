@@ -232,7 +232,7 @@ export default function AdCampaigns() {
                 </Button>
             </Group>
 
-            <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
+            <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
                 {stats.map((stat) => (
                     <MetricCard
                         key={stat.title}

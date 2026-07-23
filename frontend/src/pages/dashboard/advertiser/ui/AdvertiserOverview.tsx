@@ -207,7 +207,7 @@ export function AdvertiserOverview() {
 
     // Helper to render stats cards
     const items = stats.map((stat) => (
-        <Grid.Col span={{ base: 12, sm: 6, md: 3 }} key={stat.title}>
+        <Grid.Col span={{ base: 12, sm: 6, lg: 3 }} key={stat.title}>
             <MetricCard
                 label={stat.title}
                 value={stat.value}
