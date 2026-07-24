@@ -76,6 +76,7 @@
       "pendingMedia": "Pending Media",
       "pendingOrganizations": "Verification Requests",
       "venues": "Venue Tags",
+      "bundles": "Bundles",
       "settings": "Settings"
     }
   },
@@ -1508,6 +1509,7 @@
           "street": "Street",
           "city": "City",
           "province": "Province/State",
+          "region": "Region",
           "country": "Country",
           "postalCode": "Postal Code",
           "latitude": "Latitude",
@@ -1518,8 +1520,12 @@
           "street": "123 Main St",
           "city": "New York",
           "province": "NY",
+          "region": "e.g. Montérégie",
           "country": "USA",
           "postalCode": "10001"
+        },
+        "descriptions": {
+          "region": "Optional. Used to group this screen into regional bundles."
         },
         "validation": {
           "name": "Name is too short",
@@ -1589,6 +1595,7 @@
       "street": "Street",
       "city": "City",
       "province": "Province/State",
+      "region": "Region",
       "country": "Country",
       "postalCode": "Postal Code",
       "latitude": "Latitude",
@@ -1599,8 +1606,12 @@
       "street": "123 Main St",
       "city": "New York",
       "province": "NY",
+      "region": "e.g. Montérégie",
       "country": "USA",
       "postalCode": "10001"
+    },
+    "descriptions": {
+      "region": "Optional. Used to group this screen into regional bundles."
     },
     "buttons": {
       "cancel": "Cancel",
@@ -1646,6 +1657,104 @@
       "createFailed": "Failed to create venue tag.",
       "updateFailed": "Failed to update venue tag.",
       "deleteFailed": "Failed to delete venue tag."
+    }
+  },
+  "bundleManagement": {
+    "title": "Bundles",
+    "addBundle": "Add Bundle",
+    "table": {
+      "color": "Color",
+      "name": "Name",
+      "rule": "Rule",
+      "screens": "Screens",
+      "monthlyPrice": "Monthly Price",
+      "subscriptions": "Subscriptions",
+      "status": "Status",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "editAction": "Edit bundle",
+      "exclusionsAction": "Manage excluded screens",
+      "deleteAction": "Delete bundle",
+      "noBundles": "No bundles yet. Create your first one to get started.",
+      "ruleTypes": {
+        "FULL_NETWORK": "Full Network",
+        "CITY": "City",
+        "REGION": "Region",
+        "VENUE": "Venue Type"
+      }
+    },
+    "form": {
+      "createTitle": "Create Bundle",
+      "editTitle": "Edit Bundle",
+      "nameEnLabel": "Name (English)",
+      "nameEnPlaceholder": "e.g. Full Network",
+      "nameFrLabel": "Name (French)",
+      "nameFrPlaceholder": "e.g. Réseau complet",
+      "descriptionEnLabel": "Description (English)",
+      "descriptionEnPlaceholder": "Short summary shown on the bundle card",
+      "descriptionFrLabel": "Description (French)",
+      "descriptionFrPlaceholder": "Résumé affiché sur la carte du forfait",
+      "idealForEnLabel": "Ideal for (English)",
+      "idealForEnPlaceholder": "e.g. Local retailers, gyms, cafés",
+      "idealForFrLabel": "Ideal for (French)",
+      "idealForFrPlaceholder": "Ex. Détaillants locaux, gyms, cafés",
+      "ruleTypeLabel": "Rule type",
+      "ruleTypeDescription": "Determines which screens belong to this bundle.",
+      "ruleValueDescription": "Matched against screen locations, ignoring case and surrounding spaces.",
+      "cityLabel": "City",
+      "cityPlaceholder": "e.g. Montreal",
+      "regionLabel": "Region",
+      "regionPlaceholder": "e.g. Montérégie",
+      "venueLabel": "Venue type",
+      "venuePlaceholder": "Select a venue type",
+      "badgeColorLabel": "Badge color",
+      "activeLabel": "Active",
+      "activeDescription": "Inactive bundles are hidden from discovery. Existing subscriptions are unaffected.",
+      "required": "This field is required",
+      "invalidColor": "Enter a valid hex color",
+      "ruleTypes": {
+        "FULL_NETWORK": "Full Network",
+        "CITY": "City",
+        "REGION": "Region",
+        "VENUE": "Venue Type"
+      },
+      "cancel": "Cancel",
+      "create": "Create",
+      "update": "Update"
+    },
+    "delete": {
+      "title": "Delete Bundle",
+      "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+      "blockedWarning": "This bundle has {count} active subscription(s) and cannot be deleted. Cancel them first.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "exclusions": {
+      "title": "Excluded screens — {name}",
+      "description": "Turn a screen off to remove it from this bundle. Screen count and price update immediately.",
+      "searchPlaceholder": "Search by title, owner, city or region",
+      "includedCount": "{included} of {total} included",
+      "media": "Screen",
+      "owner": "Owner",
+      "location": "Location",
+      "price": "Price",
+      "included": "Included",
+      "toggleAria": "Toggle {title}",
+      "noCandidates": "No active screens match this bundle's rule yet.",
+      "noMatches": "No screens match your search.",
+      "loadFailed": "Failed to load candidate screens.",
+      "toggleFailed": "Failed to update the exclusion.",
+      "close": "Close"
+    },
+    "notifications": {
+      "created": "Bundle created successfully.",
+      "updated": "Bundle updated successfully.",
+      "deleted": "Bundle deleted successfully.",
+      "loadFailed": "Failed to load bundles.",
+      "createFailed": "Failed to create bundle.",
+      "updateFailed": "Failed to update bundle.",
+      "deleteFailed": "Failed to delete bundle."
     }
   },
   "privacyPage": {

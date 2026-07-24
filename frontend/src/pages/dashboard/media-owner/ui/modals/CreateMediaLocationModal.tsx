@@ -65,6 +65,7 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
             street: "",
             city: "",
             province: "",
+            region: "",
             country: "",
             postalCode: "",
             latitude: 0,
@@ -177,7 +178,12 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
                         />
                     </Group>
 
-
+                    <TextInput
+                        label={t('labels.region')}
+                        placeholder={t('placeholders.region')}
+                        description={t('descriptions.region')}
+                        {...form.getInputProps('region')}
+                    />
 
                     <Group justify="flex-end" mt="md">
                         <Button type="button" variant="default" onClick={handleClose} disabled={submitting}>{t('buttons.cancel')}</Button>

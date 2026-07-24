@@ -76,6 +76,7 @@
       "pendingMedia": "Médias en attente",
       "pendingOrganizations": "Demandes de vérification",
       "venues": "Tags de lieu",
+      "bundles": "Forfaits",
       "settings": "Paramètres"
     }
   },
@@ -1509,6 +1510,7 @@
           "street": "Rue",
           "city": "Ville",
           "province": "Province/État",
+          "region": "Région",
           "country": "Pays",
           "postalCode": "Code Postal",
           "latitude": "Latitude",
@@ -1519,8 +1521,12 @@
           "street": "123 Rue Principale",
           "city": "Montréal",
           "province": "QC",
+          "region": "Ex. Montérégie",
           "country": "Canada",
           "postalCode": "H1A 1A1"
+        },
+        "descriptions": {
+          "region": "Facultatif. Sert à regrouper cet écran dans les forfaits régionaux."
         },
         "validation": {
           "name": "Le nom est trop court",
@@ -1590,6 +1596,7 @@
       "street": "Rue",
       "city": "Ville",
       "province": "Province/État",
+      "region": "Région",
       "country": "Pays",
       "postalCode": "Code Postal",
       "latitude": "Latitude",
@@ -1600,8 +1607,12 @@
       "street": "123 Rue Principale",
       "city": "Montréal",
       "province": "QC",
+      "region": "Ex. Montérégie",
       "country": "Canada",
       "postalCode": "H1A 1A1"
+    },
+    "descriptions": {
+      "region": "Facultatif. Sert à regrouper cet écran dans les forfaits régionaux."
     },
     "buttons": {
       "cancel": "Annuler",
@@ -1647,6 +1658,104 @@
       "createFailed": "Échec de la création du tag de lieu.",
       "updateFailed": "Échec de la mise à jour du tag de lieu.",
       "deleteFailed": "Échec de la suppression du tag de lieu."
+    }
+  },
+  "bundleManagement": {
+    "title": "Forfaits",
+    "addBundle": "Ajouter un forfait",
+    "table": {
+      "color": "Couleur",
+      "name": "Nom",
+      "rule": "Règle",
+      "screens": "Écrans",
+      "monthlyPrice": "Prix mensuel",
+      "subscriptions": "Abonnements",
+      "status": "Statut",
+      "actions": "Actions",
+      "active": "Actif",
+      "inactive": "Inactif",
+      "editAction": "Modifier le forfait",
+      "exclusionsAction": "Gérer les écrans exclus",
+      "deleteAction": "Supprimer le forfait",
+      "noBundles": "Aucun forfait pour l'instant. Créez le premier pour commencer.",
+      "ruleTypes": {
+        "FULL_NETWORK": "Réseau complet",
+        "CITY": "Ville",
+        "REGION": "Région",
+        "VENUE": "Type de lieu"
+      }
+    },
+    "form": {
+      "createTitle": "Créer un forfait",
+      "editTitle": "Modifier le forfait",
+      "nameEnLabel": "Nom (anglais)",
+      "nameEnPlaceholder": "Ex. Full Network",
+      "nameFrLabel": "Nom (français)",
+      "nameFrPlaceholder": "Ex. Réseau complet",
+      "descriptionEnLabel": "Description (anglais)",
+      "descriptionEnPlaceholder": "Résumé affiché sur la carte du forfait",
+      "descriptionFrLabel": "Description (français)",
+      "descriptionFrPlaceholder": "Résumé affiché sur la carte du forfait",
+      "idealForEnLabel": "Idéal pour (anglais)",
+      "idealForEnPlaceholder": "Ex. Local retailers, gyms, cafés",
+      "idealForFrLabel": "Idéal pour (français)",
+      "idealForFrPlaceholder": "Ex. Détaillants locaux, gyms, cafés",
+      "ruleTypeLabel": "Type de règle",
+      "ruleTypeDescription": "Détermine quels écrans font partie de ce forfait.",
+      "ruleValueDescription": "Comparé aux emplacements des écrans, sans tenir compte de la casse ni des espaces.",
+      "cityLabel": "Ville",
+      "cityPlaceholder": "Ex. Montréal",
+      "regionLabel": "Région",
+      "regionPlaceholder": "Ex. Montérégie",
+      "venueLabel": "Type de lieu",
+      "venuePlaceholder": "Choisir un type de lieu",
+      "badgeColorLabel": "Couleur du badge",
+      "activeLabel": "Actif",
+      "activeDescription": "Les forfaits inactifs sont masqués de la découverte. Les abonnements existants ne sont pas affectés.",
+      "required": "Ce champ est obligatoire",
+      "invalidColor": "Entrez une couleur hexadécimale valide",
+      "ruleTypes": {
+        "FULL_NETWORK": "Réseau complet",
+        "CITY": "Ville",
+        "REGION": "Région",
+        "VENUE": "Type de lieu"
+      },
+      "cancel": "Annuler",
+      "create": "Créer",
+      "update": "Mettre à jour"
+    },
+    "delete": {
+      "title": "Supprimer le forfait",
+      "message": "Voulez-vous vraiment supprimer « {name} » ? Cette action est irréversible.",
+      "blockedWarning": "Ce forfait compte {count} abonnement(s) actif(s) et ne peut pas être supprimé. Annulez-les d'abord.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler"
+    },
+    "exclusions": {
+      "title": "Écrans exclus — {name}",
+      "description": "Désactivez un écran pour le retirer de ce forfait. Le nombre d'écrans et le prix sont mis à jour immédiatement.",
+      "searchPlaceholder": "Rechercher par titre, propriétaire, ville ou région",
+      "includedCount": "{included} sur {total} inclus",
+      "media": "Écran",
+      "owner": "Propriétaire",
+      "location": "Emplacement",
+      "price": "Prix",
+      "included": "Inclus",
+      "toggleAria": "Basculer {title}",
+      "noCandidates": "Aucun écran actif ne correspond encore à la règle de ce forfait.",
+      "noMatches": "Aucun écran ne correspond à votre recherche.",
+      "loadFailed": "Échec du chargement des écrans candidats.",
+      "toggleFailed": "Échec de la mise à jour de l'exclusion.",
+      "close": "Fermer"
+    },
+    "notifications": {
+      "created": "Forfait créé avec succès.",
+      "updated": "Forfait mis à jour avec succès.",
+      "deleted": "Forfait supprimé avec succès.",
+      "loadFailed": "Échec du chargement des forfaits.",
+      "createFailed": "Échec de la création du forfait.",
+      "updateFailed": "Échec de la mise à jour du forfait.",
+      "deleteFailed": "Échec de la suppression du forfait."
     }
   },
   "privacyPage": {

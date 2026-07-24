@@ -18,4 +18,7 @@ public interface BundleSubscriptionRepository extends JpaRepository<BundleSubscr
 
     List<BundleSubscription> findAllByBundleIdAndStatusIn(
             String bundleId, Collection<BundleSubscriptionStatus> statuses);
+
+    long countByBundleIdAndStatusIn(
+            String bundleId, Collection<BundleSubscriptionStatus> statuses);
 }

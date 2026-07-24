@@ -7,6 +7,8 @@ export interface MediaLocation {
     country: string;
     province: string;
     city: string;
+    /** Optional free-text region, used for bundle REGION rule matching. */
+    region?: string;
     street: string;
     postalCode: string;
     latitude: number;
@@ -19,6 +21,7 @@ export interface MediaLocationRequestDTO {
     country: string;
     province: string;
     city: string;
+    region?: string;
     street: string;
     postalCode: string;
     latitude: number;

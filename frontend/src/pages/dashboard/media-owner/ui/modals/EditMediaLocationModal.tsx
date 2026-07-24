@@ -66,6 +66,7 @@ export function EditMediaLocationModal({ opened, onClose, location, onSuccess }:
             street: "",
             city: "",
             province: "",
+            region: "",
             country: "",
             postalCode: "",
             latitude: 0,
@@ -91,6 +92,7 @@ export function EditMediaLocationModal({ opened, onClose, location, onSuccess }:
                 street: location.street,
                 city: location.city,
                 province: location.province,
+                region: location.region ?? "",
                 country: location.country,
                 postalCode: location.postalCode,
                 latitude: location.latitude,
@@ -149,7 +151,12 @@ export function EditMediaLocationModal({ opened, onClose, location, onSuccess }:
                         <TextInput label={t('fields.postalCode')} placeholder={t('placeholders.postalCode')} {...form.getInputProps("postalCode")} />
                         <TextInput label={t('fields.country')} placeholder={t('placeholders.country')} {...form.getInputProps("country")} />
                     </Group>
-
+                    <TextInput
+                        label={t('fields.region')}
+                        placeholder={t('placeholders.region')}
+                        description={t('descriptions.region')}
+                        {...form.getInputProps("region")}
+                    />
 
                     <Group justify="flex-end" mt="md">
                         <Button type="button" variant="default" onClick={onClose} disabled={submitting}>
