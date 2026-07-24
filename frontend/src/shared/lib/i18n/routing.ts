@@ -22,6 +22,10 @@ export const routing = defineRouting({
       'en': '/browse',
       'fr': '/parcourir'
     },
+    '/bundles': {
+      'en': '/bundles',
+      'fr': '/forfaits'
+    },
     '/about': {
       'en': '/about',
       'fr': '/a-propos'
