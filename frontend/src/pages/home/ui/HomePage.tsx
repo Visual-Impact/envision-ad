@@ -139,7 +139,7 @@ export default function HomePage({ bookMeetingUrl, stats, galleryImages }: HomeP
             <AdvertiserTimeline bookMeetingUrl={bookMeetingUrl} onBookMeetingClick={handleBookMeeting} />
 
             {/* Bundle discovery — a section here rather than a standalone /bundles page */}
-            <BundlesSection />
+            <BundlesSection stats={stats} />
         </>
     );
 }

@@ -1774,6 +1774,11 @@
     },
     "card": {
       "perMonth": "/ month",
+      "stats": {
+        "screens": "Screens",
+        "cities": "Cities",
+        "venueTypes": "Venue types"
+      },
       "subline": "{price} × {count} screens",
       "sublineNoPrice": "{count} screens",
       "idealFor": "Ideal for:",
