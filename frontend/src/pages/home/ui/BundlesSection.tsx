@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Bundle, BundleRuleType } from "@/entities/bundle";
 import { getAllBundles } from "@/features/bundle-management/api";
 import { BundleCard } from "@/widgets/Cards/BundleCard";
+import classes from "./BundlesSection.module.css";
 
 type TabValue = "ALL" | BundleRuleType;
 
@@ -58,12 +59,14 @@ export function BundlesSection() {
     );
 
     return (
-        <Box component="section" id="bundles" py={80}>
+        <Box component="section" id="bundles" className={classes.section}>
             <Container size="xl" px="md">
                 <Stack gap="lg">
                     <Stack gap="xs" align="center" ta="center">
-                        <Title order={2}>{t("title")}</Title>
-                        <Text c="dimmed" maw={640}>
+                        <Title order={2} className={`${classes.title} ${classes.heading} ${classes.titleGradient}`}>
+                            {t("title")}
+                        </Title>
+                        <Text size="lg" c="gray.6" className={classes.subtitle}>
                             {t("subtitle")}
                         </Text>
                     </Stack>

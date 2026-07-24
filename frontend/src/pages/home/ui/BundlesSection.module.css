@@ -1,0 +1,52 @@
+/* Matches AdvertiserTimeline.module.css so the two sections read as one system:
+   same section rhythm (0 top / 88px bottom), same title scale + gradient, same
+   subtitle treatment. Keep these values in sync with AdvertiserTimeline. */
+
+.section {
+  padding: 0 0 88px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.heading {
+  text-align: center;
+}
+
+.title {
+  font-size: 42px !important;
+  line-height: 1.08 !important;
+  color: var(--mantine-color-gray-9);
+  font-weight: 800 !important;
+}
+
+.titleGradient {
+  background: linear-gradient(95deg, #0795ed 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+}
+
+.subtitle {
+  text-align: center;
+  max-width: 520px;
+  margin: 12px auto 0;
+}
+
+/* ---- Tablet ---- */
+@media (max-width: 62em) {
+  .section {
+    padding: 0 0 64px;
+  }
+
+  .title {
+    font-size: 32px !important;
+  }
+}
+
+/* ---- Mobile ---- */
+@media (max-width: 48em) {
+  .title {
+    font-size: 26px !important;
+  }
+}
