@@ -20,7 +20,7 @@ import { useDisclosure } from "@mantine/hooks";
 import { LanguagePicker } from "./LanguagePicker";
 import { Link, usePathname } from "@/shared/lib/i18n/navigation";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconUser } from "@tabler/icons-react";
+import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconStack2, IconUser } from "@tabler/icons-react";
 import { useOrganization, usePermissions } from "@/app/providers";
 import SideBar from "@/widgets/SideBar/SideBar";
 import styles from "./Header.module.css";
@@ -32,6 +32,7 @@ const NAV_ICONS: Record<string, React.ReactNode> = {
     "/": <IconHome size={18} aria-hidden="true" />,
     "/dashboard": <IconLayoutDashboard size={18} aria-hidden="true" />,
     "/browse": <IconSearch size={18} aria-hidden="true" />,
+    "/bundles": <IconStack2 size={18} aria-hidden="true" />,
 };
 
 const CAPSULE_STYLE = {
@@ -59,13 +60,14 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
     const showDashboardNav = isDashboardRoute && (!!organization || isAdmin);
 
     const links: Array<{
-        link: "/" | "/dashboard" | "/browse";
+        link: "/" | "/dashboard" | "/browse" | "/bundles";
         label: string;
         authRequired?: boolean;
     }> = [
             { link: "/", label: t("home"), authRequired: false },
             { link: "/dashboard", label: t("dashboard"), authRequired: true },
             { link: "/browse", label: t("browse"), authRequired: false },
+            { link: "/bundles", label: t("bundles"), authRequired: false },
         ];
 
     const filteredLinks = links.filter((link) => {

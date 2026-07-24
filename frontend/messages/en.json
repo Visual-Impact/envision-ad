@@ -33,6 +33,7 @@
     "dashboard": "Dashboard",
     "organization": "Organization",
     "browse": "Browse",
+    "bundles": "Bundles",
     "register": "Register",
     "signIn": "Sign In",
     "platformName": "Envision Ad",
@@ -1755,6 +1756,52 @@
       "createFailed": "Failed to create bundle.",
       "updateFailed": "Failed to update bundle.",
       "deleteFailed": "Failed to delete bundle."
+    }
+  },
+  "bundles": {
+    "title": "Bundles",
+    "subtitle": "Subscribe to a curated group of screens and reach audiences across the network every month.",
+    "loadFailed": "Failed to load bundles.",
+    "tabs": {
+      "ALL": "All",
+      "FULL_NETWORK": "Full Network",
+      "REGION": "Regions",
+      "CITY": "Cities",
+      "VENUE": "Venue Types"
+    },
+    "empty": {
+      "title": "No bundles here yet",
+      "subtitle": "Check back soon, or try another category."
+    },
+    "card": {
+      "perMonth": "/ month",
+      "subline": "{price} × {count} screens",
+      "sublineNoPrice": "{count} screens",
+      "idealFor": "Ideal for:",
+      "subscribe": "Subscribe",
+      "noScreens": "This bundle has no available screens right now."
+    },
+    "features": {
+      "FULL_NETWORK": [
+        "Every active screen on the network",
+        "New screens added automatically",
+        "Cancel anytime"
+      ],
+      "REGION": [
+        "All active screens in the region",
+        "New screens added automatically",
+        "Cancel anytime"
+      ],
+      "CITY": [
+        "All active screens in the city",
+        "New screens added automatically",
+        "Cancel anytime"
+      ],
+      "VENUE": [
+        "All active screens of this venue type",
+        "New screens added automatically",
+        "Cancel anytime"
+      ]
     }
   },
   "privacyPage": {

@@ -33,6 +33,7 @@
     "dashboard": "Tableau de bord",
     "organization": "Organization",
     "browse": "Parcourir",
+    "bundles": "Forfaits",
     "register": "S'inscrire",
     "signIn": "Se connecter",
     "platformName": "Envision Ad",
@@ -1756,6 +1757,52 @@
       "createFailed": "Échec de la création du forfait.",
       "updateFailed": "Échec de la mise à jour du forfait.",
       "deleteFailed": "Échec de la suppression du forfait."
+    }
+  },
+  "bundles": {
+    "title": "Forfaits",
+    "subtitle": "Abonnez-vous à un ensemble d'écrans et rejoignez votre public partout sur le réseau, chaque mois.",
+    "loadFailed": "Échec du chargement des forfaits.",
+    "tabs": {
+      "ALL": "Tous",
+      "FULL_NETWORK": "Réseau complet",
+      "REGION": "Régions",
+      "CITY": "Villes",
+      "VENUE": "Types de lieux"
+    },
+    "empty": {
+      "title": "Aucun forfait ici pour l'instant",
+      "subtitle": "Revenez bientôt ou essayez une autre catégorie."
+    },
+    "card": {
+      "perMonth": "/ mois",
+      "subline": "{price} × {count} écrans",
+      "sublineNoPrice": "{count} écrans",
+      "idealFor": "Idéal pour :",
+      "subscribe": "S'abonner",
+      "noScreens": "Ce forfait n'a aucun écran disponible pour le moment."
+    },
+    "features": {
+      "FULL_NETWORK": [
+        "Tous les écrans actifs du réseau",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ],
+      "REGION": [
+        "Tous les écrans actifs de la région",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ],
+      "CITY": [
+        "Tous les écrans actifs de la ville",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ],
+      "VENUE": [
+        "Tous les écrans actifs de ce type de lieu",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ]
     }
   },
   "privacyPage": {

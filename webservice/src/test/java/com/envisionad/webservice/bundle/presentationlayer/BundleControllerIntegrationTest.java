@@ -2,8 +2,13 @@ package com.envisionad.webservice.bundle.presentationlayer;
 
 import com.envisionad.webservice.bundle.dataaccesslayer.*;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleCandidateMediaResponseModel;
+import com.envisionad.webservice.bundle.presentationlayer.models.BundlePriceQuoteResponseModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleRequestModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleResponseModel;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
+import com.envisionad.webservice.business.dataaccesslayer.Employee;
+import com.envisionad.webservice.business.dataaccesslayer.EmployeeIdentifier;
+import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
 import com.envisionad.webservice.config.BaseIntegrationTest;
 import com.envisionad.webservice.media.DataAccessLayer.*;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
@@ -47,6 +52,9 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private MediaLocationRepository mediaLocationRepository;
 
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
     private Media montrealMedia;
     private Media lavalMedia;
 
@@ -57,6 +65,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         bundleRepository.deleteAll();
         mediaRepository.deleteAll();
         mediaLocationRepository.deleteAll();
+        employeeRepository.deleteAll();
 
         Jwt adminJwt = Jwt.withTokenValue(ADMIN_TOKEN)
                 .header("alg", "none")
@@ -469,5 +478,131 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .header("Authorization", "Bearer plain-token")
                 .exchange()
                 .expectStatus().isForbidden();
+    }
+
+    // ---------- perScreenPrice on the response ----------
+
+    @Test
+    void perScreenPrice_isSetWhenAllEligibleScreensShareOnePrice() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals(1, body.getScreenCount());
+                    assertEquals(0, new BigDecimal("4.00").compareTo(body.getPerScreenPrice()));
+                });
+    }
+
+    @Test
+    void perScreenPrice_isNullWhenPricesAreMixed() {
+        // Full network here = Downtown $4.00 + Laval $6.50.
+        Bundle bundle = givenBundle(BundleRuleType.FULL_NETWORK, null, true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals(2, body.getScreenCount());
+                    assertNull(body.getPerScreenPrice(), "mixed prices must not yield a per-screen figure");
+                });
+    }
+
+    @Test
+    void perScreenPrice_isNullWhenNoEligibleScreens() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Vancouver", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals(0, body.getScreenCount());
+                    assertNull(body.getPerScreenPrice());
+                });
+    }
+
+    // ---------- authenticated quote endpoint ----------
+
+    private static final String BUYER_BUSINESS_ID = "buyer-business-1";
+    private static final String BUYER_USER_ID = "auth0|buyer123";
+    private static final String BUYER_TOKEN = "buyer-token";
+
+    private void givenBuyerEmployee() {
+        Employee employee = new Employee();
+        employee.setEmployeeId(new EmployeeIdentifier());
+        employee.setBusinessId(new BusinessIdentifier(BUYER_BUSINESS_ID));
+        employee.setUserId(BUYER_USER_ID);
+        employeeRepository.save(employee);
+    }
+
+    private void authAs(String token, String userId, List<String> permissions) {
+        Jwt jwt = Jwt.withTokenValue(token)
+                .header("alg", "none")
+                .claim("sub", userId)
+                .claim("permissions", permissions)
+                .build();
+        when(jwtDecoder.decode(anyString())).thenReturn(jwt);
+    }
+
+    @Test
+    void quote_forAnEmployeeOfTheBusiness_returnsScreenCountAndPrice() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        givenBuyerEmployee();
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/" + bundle.getBundleId() + "/quote?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundlePriceQuoteResponseModel.class)
+                .value(body -> {
+                    assertEquals(1, body.getScreenCount());
+                    assertEquals(0, new BigDecimal("4.00").compareTo(body.getFinalPrice()));
+                    assertEquals(0, new BigDecimal("4.00").compareTo(body.getPerScreenPrice()));
+                });
+    }
+
+    @Test
+    void quote_anonymously_isRejected() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.get()
+                .uri(BASE_URI + "/" + bundle.getBundleId() + "/quote?businessId=" + BUYER_BUSINESS_ID)
+                .exchange()
+                // Method security rejects an anonymous caller as 401 or 403 depending on
+                // the entry point; either is a correct "not allowed", matching the
+                // convention in createBundle_anonymously_isRejected.
+                .expectStatus().value(status -> assertTrue(status == 401 || status == 403,
+                        "anonymous quote must be rejected, got " + status));
+    }
+
+    @Test
+    void quote_forANonEmployeeOfTheBusiness_isForbidden() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        // Authenticated, but no employee row links this user to the business.
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/" + bundle.getBundleId() + "/quote?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void quote_forAnUnknownBundle_isNotFound() {
+        givenBuyerEmployee();
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/no-such-bundle/quote?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }
