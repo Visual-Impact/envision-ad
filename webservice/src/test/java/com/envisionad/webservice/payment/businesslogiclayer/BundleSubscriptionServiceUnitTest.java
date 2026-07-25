@@ -302,6 +302,39 @@ class BundleSubscriptionServiceUnitTest {
         verify(bundleSubscriptionItemRepository).deleteAllBySubscriptionId("existing-sub-id");
     }
 
+    /**
+     * Re-subscribing after cancelling starts a genuinely new subscription: the CANCELED row
+     * is history, is not matched by the INCOMPLETE reuse lookup, and keeps its own frozen
+     * items under its own id. Asserting it here because M5's payout reads items by
+     * subscription id, so a new signup quietly inheriting or clearing an old one's split
+     * would corrupt what gets paid out.
+     */
+    @Test
+    void createSubscriptionCheckout_afterACancellation_startsAFreshRowAndLeavesTheOldSplitAlone()
+            throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+        // A CANCELED row is invisible to both lookups: the live-status guard and the
+        // INCOMPLETE reuse lookup each return empty, which the default mock behaviour gives.
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+
+            SubscriptionCheckoutResult result = service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID);
+
+            ArgumentCaptor<BundleSubscription> saved = ArgumentCaptor.forClass(BundleSubscription.class);
+            verify(bundleSubscriptionRepository).save(saved.capture());
+            assertEquals(result.subscriptionId(), saved.getValue().getSubscriptionId());
+            assertEquals(BundleSubscriptionStatus.INCOMPLETE, saved.getValue().getStatus());
+        }
+
+        // Nothing is deleted, so the canceled subscription's items stay intact.
+        verify(bundleSubscriptionItemRepository, never()).deleteAllBySubscriptionId(anyString());
+    }
+
     @Test
     void createSubscriptionCheckout_doesNotClearItemsOnAFirstAttempt() throws Exception {
         givenValidPreconditions();

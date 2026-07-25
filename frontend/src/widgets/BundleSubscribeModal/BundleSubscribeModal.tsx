@@ -124,8 +124,18 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
             const data = await createBundleSubscription({ bundleId, campaignId, businessId });
             setClientSecret(data.clientSecret);
             setStep("payment");
-        } catch {
-            notifications.show({ title: t("errorTitle"), message: t("initFailed"), color: "red" });
+        } catch (error) {
+            // The guards return an explanatory message ("…already has a live subscription
+            // to bundle X", "…has no eligible screens"), and eligibility can genuinely have
+            // changed since the quote loaded — so show what the server said rather than a
+            // generic failure the advertiser can only respond to by retrying blindly.
+            const serverMessage = (error as { response?: { data?: { message?: string } } })
+                ?.response?.data?.message;
+            notifications.show({
+                title: t("errorTitle"),
+                message: serverMessage || t("initFailed"),
+                color: "red",
+            });
         } finally {
             setSubmitting(false);
         }
