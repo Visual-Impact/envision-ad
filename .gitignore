@@ -50,3 +50,9 @@ out/
 ### Secrets for developer documentation auth ###
 nginx/.htpasswd
 
+### Graphify graph cache
+graphify-out/
+
+### Claude config
+.claude
+

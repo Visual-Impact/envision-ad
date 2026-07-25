@@ -11,6 +11,30 @@
   }
 }
 
+.navLink {
+  text-decoration: none;
+  color: var(--mantine-color-text);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  padding: 7px 20px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  transition: color .15s ease, background-color .15s ease;
+}
+
+.navLink:hover {
+  color: var(--mantine-color-blue-6);
+  background: var(--mantine-color-blue-0);
+}
+
+.navLinkActive {
+  composes: navLink;
+  color: var(--mantine-color-blue-6);
+  font-weight: 700;
+  background: var(--mantine-color-blue-0);
+}
+
 .bookButton {
   --gradient-angle: 0deg;
   background: conic-gradient(

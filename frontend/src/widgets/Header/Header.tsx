@@ -104,19 +104,12 @@ export function Header({ bookMeetingUrl }: { bookMeetingUrl: string | null }) {
     });
 
     const desktopItems = filteredLinks.map((link) => {
+        const active = pathname === link.link || (link.link !== "/" && pathname.startsWith(link.link + '/'));
         return (
             <Link
                 key={link.label}
                 href={link.link}
-                style={{
-                    textDecoration: "none",
-                    color: "var(--mantine-color-text)",
-                    fontWeight: 400,
-                    padding: "7px 20px",
-                    transition: "color .15s ease",
-                    fontSize: 14,
-                    whiteSpace: "nowrap",
-                }}
+                className={active ? styles.navLinkActive : styles.navLink}
             >
                 {link.label}
             </Link>
