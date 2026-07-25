@@ -1219,6 +1219,14 @@
         "title": "Error",
         "approveFailed": "Failed to approve organization verification status.",
         "denyFailed": "Failed to deny organization verification status."
+      },
+      "mediaLocationReview": {
+        "title": "Media Location",
+        "description": "This media belongs to the location below. Verify the region, which determines regional bundle grouping.",
+        "region": "Region",
+        "regionNotSet": "Not set",
+        "name": "Location name",
+        "address": "Address"
       }
     },
     "metricsPage": {

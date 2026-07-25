@@ -23,6 +23,7 @@ import { notifications } from "@mantine/notifications";
 import { MediaStatusEnum } from "@/entities/media/model/media";
 import { useMediaQuery } from "@mantine/hooks";
 import { MediaDetails } from "@/widgets/MediaDetails/MediaDetails";
+import { MediaLocationReviewCard } from "./MediaLocationReviewCard";
 
 export default function AdminMediaReviewPage() {
   const t = useTranslations("mediaPage");
@@ -160,7 +161,15 @@ export default function AdminMediaReviewPage() {
   return (
       <>
         <Container size="md" py={20} px={isMobile? "sm" :80}>
-          <MediaDetails media={media} loading={loading} error={error} activeAdsCount={null}>
+          <MediaDetails
+            media={media}
+            loading={loading}
+            error={error}
+            activeAdsCount={null}
+            extraSection={
+              <MediaLocationReviewCard mediaLocation={media.mediaLocation} />
+            }
+          >
 
               <Button
                 radius="xl"
