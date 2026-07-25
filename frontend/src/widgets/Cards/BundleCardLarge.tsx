@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, Group, List, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { Box, Button, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconBuildingStore, IconCheck, IconDeviceTv, IconMapPin, type TablerIcon } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
@@ -20,7 +20,7 @@ export interface BundleCardLargeProps {
     onSubscribe?: (bundle: Bundle) => void;
 }
 
-const NETWORK_FEATURE_COUNT = 4;
+const NETWORK_VENUE_TYPE_COUNT = 5;
 
 /**
  * The flagship full-network bundle, rendered as a wide two-zone feature card:
@@ -40,9 +40,12 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
     const idealFor = locale === "fr" ? bundle.idealForFr : bundle.idealForEn;
     const hasScreens = bundle.screenCount > 0;
 
-    const features = Array.from({ length: NETWORK_FEATURE_COUNT }, (_, i) =>
-        t(`card.networkFeatures.${i}`),
-    );
+    // Where the screens actually are, not generic feature bullets — mirrors the
+    // prototype's venue-type list, ending with the posting-frequency line.
+    const venueTypeRows = [
+        ...Array.from({ length: NETWORK_VENUE_TYPE_COUNT }, (_, i) => t(`card.networkVenueTypes.${i}`)),
+        t("card.networkFrequency"),
+    ];
 
     const statBoxes: { value: number; label: string; Icon: TablerIcon }[] = [
         { value: bundle.screenCount, label: t("card.stats.screens"), Icon: IconDeviceTv },
@@ -116,22 +119,21 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
                         ))}
                     </SimpleGrid>
 
-                    <List
-                        spacing="xs"
-                        size="sm"
-                        center
-                        icon={
-                            <ThemeIcon color="teal" size={18} radius="xl">
-                                <IconCheck size={12} stroke={3} />
-                            </ThemeIcon>
-                        }
-                    >
-                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" verticalSpacing="xs">
-                            {features.map((feature, i) => (
-                                <List.Item key={i}>{feature}</List.Item>
-                            ))}
-                        </SimpleGrid>
-                    </List>
+                    {/* Built from Group rows rather than Mantine's List wrapping a grid —
+                        that nesting let the checkmark drift whenever a neighbouring cell's
+                        text wrapped to a different number of lines. Pinning the icon to
+                        the top of each self-contained row keeps every row aligned the
+                        same way regardless of text length. */}
+                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" verticalSpacing="sm">
+                        {venueTypeRows.map((row, i) => (
+                            <Group key={i} gap={8} wrap="nowrap" align="flex-start">
+                                <ThemeIcon color="teal" size={18} radius="xl" mt={2} style={{ flexShrink: 0 }}>
+                                    <IconCheck size={12} stroke={3} />
+                                </ThemeIcon>
+                                <Text size="sm">{row}</Text>
+                            </Group>
+                        ))}
+                    </SimpleGrid>
 
                     {idealFor && (
                         <Text size="sm" c="dimmed">

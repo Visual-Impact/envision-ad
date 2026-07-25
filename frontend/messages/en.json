@@ -1787,12 +1787,14 @@
       "eyebrow": "Complete coverage",
       "perScreenHook": "{price} per screen",
       "reassurance": "Cancel anytime · no setup fees",
-      "networkFeatures": [
-        "A spot on every active screen",
-        "New screens added automatically",
-        "Every city in our network",
-        "All venue types included"
-      ]
+      "networkVenueTypes": [
+        "Malls & storefronts",
+        "Colleges & student campuses",
+        "Grocery & discount stores",
+        "Barbershops & hair salons",
+        "Restaurants & gyms"
+      ],
+      "networkFrequency": "Every 2–3 minutes, all day"
     },
     "features": {
       "FULL_NETWORK": [

@@ -1788,12 +1788,14 @@
       "eyebrow": "Couverture complète",
       "perScreenHook": "{price} par écran",
       "reassurance": "Annulable à tout moment · sans frais d’installation",
-      "networkFeatures": [
-        "Une place sur chaque écran actif",
-        "Nouveaux écrans ajoutés automatiquement",
-        "Toutes les villes de notre réseau",
-        "Tous les types de lieux inclus"
-      ]
+      "networkVenueTypes": [
+        "Centres commerciaux & vitrines",
+        "Collège & campus étudiant",
+        "Épicerie & magasin à bas prix",
+        "Barbiers & salons de coiffure",
+        "Restaurant & gym"
+      ],
+      "networkFrequency": "Toutes les 2–3 min, toute la journée"
     },
     "features": {
       "FULL_NETWORK": [
