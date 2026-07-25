@@ -1784,7 +1784,16 @@
       "sublineNoPrice": "{count} écrans",
       "idealFor": "Idéal pour :",
       "subscribe": "S'abonner",
-      "noScreens": "Ce forfait n'a aucun écran disponible pour le moment."
+      "noScreens": "Ce forfait n'a aucun écran disponible pour le moment.",
+      "eyebrow": "Couverture complète",
+      "perScreenHook": "{price} par écran",
+      "reassurance": "Annulable à tout moment · sans frais d’installation",
+      "networkFeatures": [
+        "Une place sur chaque écran actif",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Toutes les villes de notre réseau",
+        "Tous les types de lieux inclus"
+      ]
     },
     "features": {
       "FULL_NETWORK": [

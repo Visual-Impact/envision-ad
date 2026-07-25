@@ -1,7 +1,7 @@
 "use client";
 
 import { Box, Button, Group, List, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
-import { IconCheck } from "@tabler/icons-react";
+import { IconBuildingStore, IconCheck, IconDeviceTv, IconMapPin, type TablerIcon } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Bundle } from "@/entities/bundle";
@@ -20,15 +20,15 @@ export interface BundleCardLargeProps {
     onSubscribe?: (bundle: Bundle) => void;
 }
 
-const FEATURE_COUNT = 3;
+const NETWORK_FEATURE_COUNT = 4;
 
 /**
- * The flagship full-network bundle, rendered as a wide feature card that stands
- * apart from the normal BundleCard grid. Uses only data we have: the bundle's own
- * badge/name/price/screen count/features, plus network-wide city & venue-type
- * counts (valid here since the full network spans everything). The prototype's
- * savings line and extra "most popular"/region tags are intentionally omitted —
- * there's no discount until P2 and no such fields in the model.
+ * The flagship full-network bundle, rendered as a wide two-zone feature card:
+ * value on the left (eyebrow, title, stat row, benefits) and the decision on the
+ * right (a full-height action rail with the price, the per-screen value hook, the
+ * CTA, and a risk-reducer). Uses only data we have; the prototype's savings line
+ * and "most popular"/region tags are omitted (no discount until P2, one badge per
+ * bundle in the model). See P1-PROGRESS decision log.
  */
 export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeProps) {
     const t = useTranslations("bundles");
@@ -40,16 +40,30 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
     const idealFor = locale === "fr" ? bundle.idealForFr : bundle.idealForEn;
     const hasScreens = bundle.screenCount > 0;
 
-    const features = Array.from({ length: FEATURE_COUNT }, (_, i) => t(`features.${bundle.ruleType}.${i}`));
+    const features = Array.from({ length: NETWORK_FEATURE_COUNT }, (_, i) =>
+        t(`card.networkFeatures.${i}`),
+    );
 
-    const statBoxes = [
-        { value: bundle.screenCount, label: t("card.stats.screens") },
-        ...(stats ? [{ value: stats.citiesCovered, label: t("card.stats.cities") }] : []),
-        ...(stats ? [{ value: stats.venueTypes, label: t("card.stats.venueTypes") }] : []),
+    const statBoxes: { value: number; label: string; Icon: TablerIcon }[] = [
+        { value: bundle.screenCount, label: t("card.stats.screens"), Icon: IconDeviceTv },
+        ...(stats ? [{ value: stats.citiesCovered, label: t("card.stats.cities"), Icon: IconMapPin }] : []),
+        ...(stats ? [{ value: stats.venueTypes, label: t("card.stats.venueTypes"), Icon: IconBuildingStore }] : []),
     ];
+
+    // Value hook: exact per-screen price when every screen shares one, else the
+    // average (flagged with ≈ so it stays honest). Both are real, no fabrication.
+    const perScreen = bundle.perScreenPrice ?? (hasScreens ? bundle.basePrice / bundle.screenCount : null);
+    const perScreenExact = bundle.perScreenPrice != null;
+    const perScreenHook =
+        perScreen != null
+            ? t("card.perScreenHook", {
+                  price: (perScreenExact ? "" : "≈ ") + formatCurrency(perScreen, { locale }),
+              })
+            : null;
 
     const subscribeButton = (
         <Button
+            fullWidth
             variant="gradient"
             size="md"
             disabled={!hasScreens}
@@ -63,32 +77,41 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
 
     return (
         <Paper radius="lg" p={{ base: "lg", md: "xl" }} withBorder bg="var(--mantine-color-indigo-0)">
-            <Group justify="space-between" align="flex-start" wrap="wrap" gap="xl">
-                {/* Main column */}
-                <Stack gap="md" style={{ flex: "1 1 420px", minWidth: 0 }}>
-                    {/* A colored accent bar in the bundle's badge color stands in for the
-                        badge pill (the name is already the title, so a pill would duplicate it). */}
-                    <Box w={48} h={4} style={{ background: bundle.badgeColor, borderRadius: 4 }} />
-
-                    <Title order={3} fw={800}>
-                        {name}
-                    </Title>
-
-                    {description && (
-                        <Text c="gray.7" maw={560}>
-                            {description}
+            {/* align=stretch makes both zones equal height, so the action rail fills
+                the full card height instead of leaving dead space beneath the price. */}
+            <Group align="stretch" wrap="wrap" gap="xl">
+                {/* Value zone */}
+                <Stack gap="md" style={{ flex: "1 1 460px", minWidth: 0 }}>
+                    <Stack gap={4}>
+                        <Text fw={700} size="xs" tt="uppercase" style={{ letterSpacing: "0.08em", color: bundle.badgeColor }}>
+                            {t("card.eyebrow")}
                         </Text>
-                    )}
+                        <Title order={3} fw={800}>
+                            {name}
+                        </Title>
+                        {description && (
+                            <Text c="gray.7" maw={560}>
+                                {description}
+                            </Text>
+                        )}
+                    </Stack>
 
                     <SimpleGrid cols={{ base: statBoxes.length, sm: statBoxes.length }} spacing="md">
-                        {statBoxes.map((s) => (
-                            <Paper key={s.label} radius="md" p="md" withBorder ta="center" bg="var(--mantine-color-body)">
-                                <Text fw={800} size="1.75rem" lh={1.1}>
-                                    {s.value}
-                                </Text>
-                                <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-                                    {s.label}
-                                </Text>
+                        {statBoxes.map(({ value, label, Icon }) => (
+                            <Paper key={label} radius="md" p="md" withBorder bg="var(--mantine-color-body)">
+                                <Group gap={8} wrap="nowrap" align="center">
+                                    <ThemeIcon variant="light" color="indigo" size={34} radius="md">
+                                        <Icon size={18} stroke={1.6} />
+                                    </ThemeIcon>
+                                    <Box>
+                                        <Text fw={800} size="1.5rem" lh={1.1}>
+                                            {value}
+                                        </Text>
+                                        <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+                                            {label}
+                                        </Text>
+                                    </Box>
+                                </Group>
                             </Paper>
                         ))}
                     </SimpleGrid>
@@ -120,25 +143,46 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
                     )}
                 </Stack>
 
-                {/* Price + CTA column */}
-                <Stack gap="sm" align="flex-end" style={{ flex: "0 0 auto" }}>
-                    <Box ta="right">
-                        <Text
-                            component="span"
-                            fw={800}
-                            variant="gradient"
-                            gradient={{ from: "#0795ed", to: "#a855f7", deg: 95 }}
-                            style={{ fontSize: "3rem", lineHeight: 1 }}
-                        >
-                            {formatCurrency(bundle.basePrice ?? 0, { locale })}
+                {/* Action rail — white panel, full height, centered on the price + CTA. */}
+                <Paper
+                    radius="md"
+                    p="lg"
+                    withBorder
+                    bg="var(--mantine-color-body)"
+                    style={{ flex: "1 1 240px", display: "flex" }}
+                >
+                    <Stack gap="xs" justify="center" align="center" ta="center" style={{ flex: 1 }}>
+                        <Box>
+                            <Text
+                                component="span"
+                                fw={800}
+                                variant="gradient"
+                                gradient={{ from: "#0795ed", to: "#a855f7", deg: 95 }}
+                                style={{ fontSize: "2.75rem", lineHeight: 1 }}
+                            >
+                                {formatCurrency(bundle.basePrice ?? 0, { locale })}
+                            </Text>
+                            <Text component="span" size="sm" c="dimmed" fw={500}>
+                                {" "}
+                                {t("card.perMonth")}
+                            </Text>
+                        </Box>
+
+                        {perScreenHook && (
+                            <Text size="sm" c="gray.7" fw={600}>
+                                {perScreenHook}
+                            </Text>
+                        )}
+
+                        <Box w="100%" mt="xs">
+                            {subscribeButton}
+                        </Box>
+
+                        <Text size="xs" c="dimmed">
+                            {t("card.reassurance")}
                         </Text>
-                        <Text component="span" size="sm" c="dimmed" fw={500}>
-                            {" "}
-                            {t("card.perMonth")}
-                        </Text>
-                    </Box>
-                    {subscribeButton}
-                </Stack>
+                    </Stack>
+                </Paper>
             </Group>
         </Paper>
     );

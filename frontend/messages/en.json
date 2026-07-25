@@ -1783,7 +1783,16 @@
       "sublineNoPrice": "{count} screens",
       "idealFor": "Ideal for:",
       "subscribe": "Subscribe",
-      "noScreens": "This bundle has no available screens right now."
+      "noScreens": "This bundle has no available screens right now.",
+      "eyebrow": "Complete coverage",
+      "perScreenHook": "{price} per screen",
+      "reassurance": "Cancel anytime · no setup fees",
+      "networkFeatures": [
+        "A spot on every active screen",
+        "New screens added automatically",
+        "Every city in our network",
+        "All venue types included"
+      ]
     },
     "features": {
       "FULL_NETWORK": [
