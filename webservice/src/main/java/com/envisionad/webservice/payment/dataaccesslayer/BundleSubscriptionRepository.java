@@ -19,6 +19,14 @@ public interface BundleSubscriptionRepository extends JpaRepository<BundleSubscr
     List<BundleSubscription> findAllByBundleIdAndStatusIn(
             String bundleId, Collection<BundleSubscriptionStatus> statuses);
 
+    /**
+     * The subscribe path's duplicate guard and INCOMPLETE-reuse lookup. Enforced here at
+     * the service layer because the partial unique index backing this rule is Flyway-only
+     * and absent from the entity-generated test schema.
+     */
+    Optional<BundleSubscription> findByBundleIdAndAdvertiserBusinessIdAndStatusIn(
+            String bundleId, String advertiserBusinessId, Collection<BundleSubscriptionStatus> statuses);
+
     long countByBundleIdAndStatusIn(
             String bundleId, Collection<BundleSubscriptionStatus> statuses);
 }

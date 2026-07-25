@@ -1826,6 +1826,29 @@
         "Nouveaux écrans ajoutés automatiquement",
         "Annulable à tout moment"
       ]
+    },
+    "subscribe": {
+      "title": "S'abonner à {bundle}",
+      "bundle": "Forfait",
+      "screens": "Écrans inclus",
+      "monthlyTotal": "Total mensuel",
+      "perMonth": "/ mois",
+      "campaignLabel": "Campagne active",
+      "campaignHelp": "La campagne dont les publicités seront diffusées sur ces écrans.",
+      "campaignPlaceholder": "Sélectionnez une campagne",
+      "noCampaigns": "Vous devez avoir une campagne avec au moins une publicité avant de vous abonner.",
+      "createCampaign": "Créer une campagne",
+      "noScreens": "Ce forfait n'a aucun écran disponible pour le moment; l'abonnement est impossible.",
+      "recurringNote": "Facturé mensuellement. Annulez à tout moment — aucuns frais d'installation.",
+      "cancel": "Annuler",
+      "proceed": "Passer au paiement",
+      "loadFailed": "Impossible de charger le prix de ce forfait. Veuillez réessayer.",
+      "errorTitle": "Échec de l'abonnement",
+      "initFailed": "Impossible de démarrer le paiement. Veuillez réessayer.",
+      "missingKey": "Paiement indisponible : la clé Stripe n'est pas configurée.",
+      "successTitle": "Paiement reçu",
+      "successMessage": "Votre abonnement est en cours de confirmation. Il apparaîtra dans votre tableau de bord une fois le traitement Stripe terminé.",
+      "done": "Terminé"
     }
   },
   "privacyPage": {
