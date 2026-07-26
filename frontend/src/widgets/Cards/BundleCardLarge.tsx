@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { Badge, Box, Button, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
 import { IconBuildingStore, IconCheck, IconDeviceTv, IconMapPin, type TablerIcon } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
@@ -53,16 +53,26 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
         ...(stats ? [{ value: stats.venueTypes, label: t("card.stats.venueTypes"), Icon: IconBuildingStore }] : []),
     ];
 
+    const isDiscounted = bundle.discountPercent > 0;
+
     // Value hook: exact per-screen price when every screen shares one, else the
     // average (flagged with ≈ so it stays honest). Both are real, no fabrication.
+    // Under a discount it becomes a before/after comparison.
     const perScreen = bundle.perScreenPrice ?? (hasScreens ? bundle.basePrice / bundle.screenCount : null);
     const perScreenExact = bundle.perScreenPrice != null;
+    const discountedPerScreen =
+        bundle.discountedPerScreenPrice ??
+        (isDiscounted && hasScreens ? bundle.finalPrice / bundle.screenCount : null);
+    const approx = perScreenExact ? "" : "≈ ";
     const perScreenHook =
-        perScreen != null
-            ? t("card.perScreenHook", {
-                  price: (perScreenExact ? "" : "≈ ") + formatCurrency(perScreen, { locale }),
+        isDiscounted && perScreen != null && discountedPerScreen != null
+            ? t("card.perScreenHookDiscounted", {
+                  was: approx + formatCurrency(perScreen, { locale }),
+                  now: approx + formatCurrency(discountedPerScreen, { locale }),
               })
-            : null;
+            : perScreen != null
+              ? t("card.perScreenHook", { price: approx + formatCurrency(perScreen, { locale }) })
+              : null;
 
     const subscribeButton = (
         <Button
@@ -154,6 +164,12 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
                     style={{ flex: "1 1 240px", display: "flex" }}
                 >
                     <Stack gap="xs" justify="center" align="center" ta="center" style={{ flex: 1 }}>
+                        {isDiscounted && (
+                            <Badge color="red" variant="filled" size="lg">
+                                {t("card.discountBadge", { percent: bundle.discountPercent })}
+                            </Badge>
+                        )}
+
                         <Box>
                             <Text
                                 component="span"
@@ -162,13 +178,19 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
                                 gradient={{ from: "#0795ed", to: "#a855f7", deg: 95 }}
                                 style={{ fontSize: "2.75rem", lineHeight: 1 }}
                             >
-                                {formatCurrency(bundle.basePrice ?? 0, { locale })}
+                                {formatCurrency(bundle.finalPrice ?? 0, { locale })}
                             </Text>
                             <Text component="span" size="sm" c="dimmed" fw={500}>
                                 {" "}
                                 {t("card.perMonth")}
                             </Text>
                         </Box>
+
+                        {isDiscounted && (
+                            <Text size="sm" c="dimmed" td="line-through">
+                                {formatCurrency(bundle.basePrice ?? 0, { locale })}
+                            </Text>
+                        )}
 
                         {perScreenHook && (
                             <Text size="sm" c="gray.7" fw={600}>

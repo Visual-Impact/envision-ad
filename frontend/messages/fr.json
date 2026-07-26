@@ -1691,7 +1691,8 @@
         "CITY": "Ville",
         "REGION": "Région",
         "VENUE": "Type de lieu"
-      }
+      },
+      "discount": "Rabais"
     },
     "form": {
       "createTitle": "Créer un forfait",
@@ -1730,7 +1731,10 @@
       },
       "cancel": "Annuler",
       "create": "Créer",
-      "update": "Mettre à jour"
+      "update": "Mettre à jour",
+      "discountLabel": "Rabais",
+      "discountDescription": "Pourcentage de réduction sur le prix total des écrans. 0 signifie aucun rabais.",
+      "discountAboveFeeWarning": "Au-delà des frais de plateforme de {fee} %, les propriétaires reçoivent plus que ce que l'abonnement encaisse — la plateforme couvre la différence."
     },
     "delete": {
       "title": "Supprimer le forfait",
@@ -1803,7 +1807,10 @@
         "Barbiers & salons de coiffure",
         "Restaurant & gym"
       ],
-      "networkFrequency": "Toutes les 2–3 min, toute la journée"
+      "networkFrequency": "Toutes les 2–3 min, toute la journée",
+      "discountBadge": "−{percent} %",
+      "sublineDiscounted": "{now} × {count} écrans (au lieu de {was})",
+      "perScreenHookDiscounted": "{now} par écran — au lieu de {was}"
     },
     "features": {
       "FULL_NETWORK": [

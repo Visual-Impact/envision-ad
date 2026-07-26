@@ -1,22 +1,31 @@
 "use client";
 
 import {
+    Alert,
     Button,
     ColorInput,
     Group,
     Modal,
+    NumberInput,
     Select,
     Stack,
     Switch,
     Textarea,
     TextInput,
 } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Bundle, BundleRequestDTO, BundleRuleType } from "@/entities/bundle";
 import { Venue } from "@/entities/venue";
 
 const RULE_TYPES: BundleRuleType[] = ["FULL_NETWORK", "CITY", "REGION", "VENUE"];
+
+/**
+ * Mirrors stripe.platform-fee-percent. Only drives an advisory warning — the
+ * server does not block a larger discount, since a loss-leader may be intentional.
+ */
+const PLATFORM_FEE_PERCENT = 30;
 
 interface BundleFormModalProps {
     opened: boolean;
@@ -39,6 +48,7 @@ export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: Bun
     const [ruleType, setRuleType] = useState<BundleRuleType>("FULL_NETWORK");
     const [ruleValue, setRuleValue] = useState("");
     const [active, setActive] = useState(true);
+    const [discountPercent, setDiscountPercent] = useState<number | string>(0);
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<{
         nameEn?: string;
@@ -67,6 +77,7 @@ export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: Bun
             setRuleType(bundle?.ruleType ?? "FULL_NETWORK");
             setRuleValue(bundle?.ruleValue ?? "");
             setActive(bundle?.active ?? true);
+            setDiscountPercent(bundle?.discountPercent ?? 0);
             setErrors({});
         }
     }
@@ -105,6 +116,7 @@ export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: Bun
                 ruleType,
                 ruleValue: needsRuleValue ? ruleValue.trim() : null,
                 active,
+                discountPercent: Number(discountPercent) || 0,
             });
         } finally {
             setSaving(false);
@@ -219,6 +231,26 @@ export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: Bun
                     format="hex"
                     required
                 />
+
+                <NumberInput
+                    label={t("discountLabel")}
+                    description={t("discountDescription")}
+                    value={discountPercent}
+                    onChange={setDiscountPercent}
+                    min={0}
+                    max={100}
+                    clampBehavior="strict"
+                    suffix="%"
+                    allowDecimal={false}
+                />
+
+                {/* The platform absorbs the discount out of its own fee, so past the
+                    fee percentage each subscription pays owners more than it collects. */}
+                {Number(discountPercent) > PLATFORM_FEE_PERCENT && (
+                    <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
+                        {t("discountAboveFeeWarning", { fee: PLATFORM_FEE_PERCENT })}
+                    </Alert>
+                )}
 
                 <Switch
                     label={t("activeLabel")}

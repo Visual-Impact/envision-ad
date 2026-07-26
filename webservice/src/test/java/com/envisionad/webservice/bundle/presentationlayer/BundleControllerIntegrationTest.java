@@ -480,6 +480,102 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().isForbidden();
     }
 
+    // ---------- discount ----------
+
+    @Test
+    void discount_appliesToFinalPriceWhileBasePriceStaysUndiscounted() {
+        // Montreal bundle = the single $4.00 Downtown board.
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        bundle.setDiscountPercent(25);
+        bundleRepository.save(bundle);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals(25, body.getDiscountPercent());
+                    assertEquals(0, new BigDecimal("4.00").compareTo(body.getBasePrice()),
+                            "basePrice is the undiscounted sum the card strikes through");
+                    assertEquals(0, new BigDecimal("3.00").compareTo(body.getFinalPrice()));
+                    assertEquals(0, new BigDecimal("4.00").compareTo(body.getPerScreenPrice()));
+                    assertEquals(0, new BigDecimal("3.00").compareTo(body.getDiscountedPerScreenPrice()));
+                });
+    }
+
+    @Test
+    void noDiscount_leavesBaseAndFinalEqualAndDiscountedPerScreenNull() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals(0, body.getDiscountPercent());
+                    assertEquals(0, body.getBasePrice().compareTo(body.getFinalPrice()));
+                    assertNull(body.getDiscountedPerScreenPrice());
+                });
+    }
+
+    @Test
+    void discount_isPersistedThroughCreateAndUpdate() {
+        BundleRequestModel create = requestModel(BundleRuleType.CITY, "Montreal");
+        create.setDiscountPercent(15);
+
+        String bundleId = webTestClient.post().uri(BASE_URI)
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(create)
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> assertEquals(15, body.getDiscountPercent()))
+                .returnResult().getResponseBody().getBundleId();
+
+        BundleRequestModel update = requestModel(BundleRuleType.CITY, "Montreal");
+        update.setDiscountPercent(40);
+
+        webTestClient.put().uri(BASE_URI + "/" + bundleId)
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(update)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> assertEquals(40, body.getDiscountPercent()));
+    }
+
+    @Test
+    void discount_omittedOnUpdateClearsIt() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        bundle.setDiscountPercent(30);
+        bundleRepository.save(bundle);
+
+        // No discountPercent on the body — the admin cleared the field.
+        webTestClient.put().uri(BASE_URI + "/" + bundle.getBundleId())
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestModel(BundleRuleType.CITY, "Montreal"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> assertEquals(0, body.getDiscountPercent()));
+    }
+
+    @Test
+    void discount_outOfRangeIsRejected() {
+        BundleRequestModel request = requestModel(BundleRuleType.CITY, "Montreal");
+        request.setDiscountPercent(150);
+
+        webTestClient.post().uri(BASE_URI)
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
     // ---------- perScreenPrice on the response ----------
 
     @Test

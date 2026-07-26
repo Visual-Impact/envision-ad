@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Check;
+import org.hibernate.annotations.Checks;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -16,9 +17,13 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "bundles")
-@Check(name = "chk_bundles_rule_value", constraints =
-        "(rule_type = 'FULL_NETWORK' AND rule_value IS NULL)" +
-        " OR (rule_type <> 'FULL_NETWORK' AND rule_value IS NOT NULL)")
+@Checks({
+        @Check(name = "chk_bundles_rule_value", constraints =
+                "(rule_type = 'FULL_NETWORK' AND rule_value IS NULL)" +
+                " OR (rule_type <> 'FULL_NETWORK' AND rule_value IS NOT NULL)"),
+        @Check(name = "chk_bundles_discount_percent", constraints =
+                "discount_percent >= 0 AND discount_percent <= 100")
+})
 @Data
 @NoArgsConstructor
 public class Bundle {
@@ -66,6 +71,18 @@ public class Bundle {
      */
     @Column(name = "active", nullable = false)
     private boolean active = true;
+
+    /**
+     * Whole-percent discount applied to the summed screen price by
+     * {@code BundleDiscountModifier}. 0 = no discount.
+     *
+     * <p>The discount reduces what the advertiser is charged
+     * ({@code bundle_subscriptions.monthly_amount}) but NOT what media owners are
+     * paid — {@code bundle_subscription_items} keep each screen's full
+     * {@code media.price}, so the platform absorbs it out of its own fee.
+     */
+    @Column(name = "discount_percent", nullable = false)
+    private int discountPercent = 0;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

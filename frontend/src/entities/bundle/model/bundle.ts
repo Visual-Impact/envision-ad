@@ -15,14 +15,20 @@ export interface Bundle {
     active: boolean;
     /** Eligible screens after exclusions. */
     screenCount: number;
-    /** Sum of the eligible screens' monthly prices. */
+    /** Sum of the eligible screens' monthly prices, before any discount. */
     basePrice: number;
+    /** What the advertiser pays: basePrice after the discount. Equals basePrice when discountPercent is 0. */
+    finalPrice: number;
+    /** Whole-percent discount on this bundle; 0 when none. */
+    discountPercent: number;
     /**
      * Shared per-screen price when every eligible screen has the same non-null price;
      * null/absent for an empty, mixed, or partially-priceless set. Drives the card's
      * "$X × N screens" vs. "N screens" subline.
      */
     perScreenPrice?: number | null;
+    /** perScreenPrice after the discount; null when there's no discount or no honest per-screen figure. */
+    discountedPerScreenPrice?: number | null;
     /** Subscriptions in INCOMPLETE/ACTIVE/PAST_DUE — non-zero blocks deletion. */
     activeSubscriptionCount: number;
 }
@@ -45,6 +51,8 @@ export interface BundleRequestDTO {
     ruleType: BundleRuleType;
     ruleValue?: string | null;
     active?: boolean;
+    /** Whole-percent discount, 0–100. Omitted or 0 means no discount. */
+    discountPercent?: number;
 }
 
 /** One row of a bundle's rule-matched set, as shown in the exclusions modal. */

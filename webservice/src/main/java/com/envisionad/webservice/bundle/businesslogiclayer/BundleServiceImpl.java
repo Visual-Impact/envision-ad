@@ -62,7 +62,20 @@ public class BundleServiceImpl implements BundleService {
 
     @Override
     public Bundle createBundle(Bundle bundle) {
+        validateDiscountPercent(bundle.getDiscountPercent());
         return bundleRepository.save(bundle);
+    }
+
+    /**
+     * Guards the DB CHECK with a 400 instead of a 500. Deliberately not capped at
+     * the platform fee: a loss-leading promotion is a business call, and the admin
+     * form warns past that threshold rather than blocking it.
+     */
+    private void validateDiscountPercent(int discountPercent) {
+        if (discountPercent < 0 || discountPercent > 100) {
+            throw new IllegalArgumentException(
+                    "Discount percent must be between 0 and 100, got " + discountPercent);
+        }
     }
 
     @Override
@@ -85,6 +98,11 @@ public class BundleServiceImpl implements BundleService {
         if (request.getActive() != null) {
             existing.setActive(request.getActive());
         }
+        // Absent means "no discount" rather than "leave unchanged", so clearing the
+        // field in the admin form actually removes the discount.
+        int discountPercent = request.getDiscountPercent() == null ? 0 : request.getDiscountPercent();
+        validateDiscountPercent(discountPercent);
+        existing.setDiscountPercent(discountPercent);
 
         return bundleRepository.save(existing);
     }

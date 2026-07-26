@@ -30,13 +30,23 @@ export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
     const idealFor = locale === "fr" ? bundle.idealForFr : bundle.idealForEn;
 
     const hasScreens = bundle.screenCount > 0;
+    const isDiscounted = bundle.discountPercent > 0;
+
+    // With a discount the subline compares per-screen before/after; otherwise it
+    // keeps the plain "$X × N screens" form.
     const subline =
-        bundle.perScreenPrice != null
-            ? t("card.subline", {
-                  price: formatCurrency(bundle.perScreenPrice, { locale }),
+        isDiscounted && bundle.discountedPerScreenPrice != null && bundle.perScreenPrice != null
+            ? t("card.sublineDiscounted", {
+                  was: formatCurrency(bundle.perScreenPrice, { locale }),
+                  now: formatCurrency(bundle.discountedPerScreenPrice, { locale }),
                   count: bundle.screenCount,
               })
-            : t("card.sublineNoPrice", { count: bundle.screenCount });
+            : bundle.perScreenPrice != null
+              ? t("card.subline", {
+                    price: formatCurrency(bundle.perScreenPrice, { locale }),
+                    count: bundle.screenCount,
+                })
+              : t("card.sublineNoPrice", { count: bundle.screenCount });
 
     const features = Array.from({ length: FEATURE_COUNT }, (_, i) =>
         t(`features.${bundle.ruleType}.${i}`),
@@ -62,16 +72,28 @@ export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
                     <Badge color={bundle.badgeColor} variant="filled" size="lg">
                         {name}
                     </Badge>
+                    {isDiscounted && (
+                        <Badge color="red" variant="filled" size="lg">
+                            {t("card.discountBadge", { percent: bundle.discountPercent })}
+                        </Badge>
+                    )}
                 </Group>
 
                 <Box>
-                    <Text fw={700} size="2rem" lh={1.1}>
-                        {formatCurrency(bundle.basePrice ?? 0, { locale })}
-                        <Text component="span" size="sm" c="dimmed" fw={500}>
-                            {" "}
-                            {t("card.perMonth")}
+                    <Group gap={8} align="baseline" wrap="nowrap">
+                        <Text fw={700} size="2rem" lh={1.1}>
+                            {formatCurrency(bundle.finalPrice ?? 0, { locale })}
+                            <Text component="span" size="sm" c="dimmed" fw={500}>
+                                {" "}
+                                {t("card.perMonth")}
+                            </Text>
                         </Text>
-                    </Text>
+                        {isDiscounted && (
+                            <Text size="sm" c="dimmed" td="line-through">
+                                {formatCurrency(bundle.basePrice ?? 0, { locale })}
+                            </Text>
+                        )}
+                    </Group>
                     <Text size="sm" c="dimmed">
                         {subline}
                     </Text>

@@ -24,8 +24,17 @@ public class BundleResponseModel {
     /** Eligible screens after the pricing pipeline's filter chain. */
     private int screenCount;
 
-    /** Sum of the eligible screens' monthly prices. */
+    /** Sum of the eligible screens' monthly prices, before any discount. */
     private BigDecimal basePrice;
+
+    /**
+     * What the advertiser actually pays: {@link #basePrice} after the bundle's
+     * discount. Equal to basePrice when {@link #discountPercent} is 0.
+     */
+    private BigDecimal finalPrice;
+
+    /** Whole-percent discount on this bundle; 0 when none. */
+    private int discountPercent;
 
     /**
      * The shared per-screen price when every eligible screen has the same non-null
@@ -33,6 +42,12 @@ public class BundleResponseModel {
      * discovery card's "$X × N screens" vs. "N screens" subline.
      */
     private BigDecimal perScreenPrice;
+
+    /**
+     * {@link #perScreenPrice} after the discount, or null when there is no discount
+     * or no honest per-screen figure. Drives the card's per-screen comparison.
+     */
+    private BigDecimal discountedPerScreenPrice;
 
     /**
      * Subscriptions in INCOMPLETE/ACTIVE/PAST_DUE. Non-zero means delete is blocked;

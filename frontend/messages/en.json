@@ -1690,7 +1690,8 @@
         "CITY": "City",
         "REGION": "Region",
         "VENUE": "Venue Type"
-      }
+      },
+      "discount": "Discount"
     },
     "form": {
       "createTitle": "Create Bundle",
@@ -1729,7 +1730,10 @@
       },
       "cancel": "Cancel",
       "create": "Create",
-      "update": "Update"
+      "update": "Update",
+      "discountLabel": "Discount",
+      "discountDescription": "Percentage off the summed screen price. 0 means no discount.",
+      "discountAboveFeeWarning": "Above the {fee}% platform fee, media owners are paid more than this subscription collects — the platform covers the difference."
     },
     "delete": {
       "title": "Delete Bundle",
@@ -1802,7 +1806,10 @@
         "Barbershops & hair salons",
         "Restaurants & gyms"
       ],
-      "networkFrequency": "Every 2–3 minutes, all day"
+      "networkFrequency": "Every 2–3 minutes, all day",
+      "discountBadge": "−{percent}%",
+      "sublineDiscounted": "{now} × {count} screens (was {was})",
+      "perScreenHookDiscounted": "{now} per screen — was {was}"
     },
     "features": {
       "FULL_NETWORK": [

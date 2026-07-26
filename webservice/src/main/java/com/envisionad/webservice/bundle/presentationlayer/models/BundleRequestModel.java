@@ -19,4 +19,6 @@ public class BundleRequestModel {
     private String ruleValue;
     /** Optional on update; ignored on create, where bundles default to active. */
     private Boolean active;
+    /** Whole-percent discount, 0–100. Null/absent is treated as 0. */
+    private Integer discountPercent;
 }
