@@ -335,19 +335,7 @@ public class StripeWebhookService {
                         .orElseThrow(() -> new BundleSubscriptionNotLinkedException(
                                 stripeSubscriptionId, invoice.getId()));
 
-        // A row already linked to a DIFFERENT live Stripe subscription means an
-        // orphaned duplicate exists in Stripe — an abandoned checkout that was
-        // completed later and minted its own subscription. Paying it out would pay
-        // the same owners twice over for one bundle. Log loudly and stop; do NOT
-        // throw, because retrying cannot fix it and would produce a retry storm that
-        // repeats every billing cycle forever.
-        if (subscription.getStripeSubscriptionId() != null
-                && !subscription.getStripeSubscriptionId().equals(stripeSubscriptionId)) {
-            log.error("ORPHANED STRIPE SUBSCRIPTION: invoice {} belongs to {}, but local subscription {} "
-                            + "is linked to {}. The customer is being billed more than once for this bundle. "
-                            + "No payout made — cancel the orphan in Stripe.",
-                    invoice.getId(), stripeSubscriptionId,
-                    subscription.getSubscriptionId(), subscription.getStripeSubscriptionId());
+        if (isOrphanedDuplicate(subscription, stripeSubscriptionId, "invoice.paid " + invoice.getId())) {
             return;
         }
 
@@ -402,6 +390,12 @@ public class StripeWebhookService {
         }
 
         BundleSubscription subscription = subscriptionOpt.get();
+
+        if (isOrphanedDuplicate(subscription, details.getSubscription(),
+                "invoice.payment_failed " + invoice.getId())) {
+            return;
+        }
+
         if (subscription.getStatus() == BundleSubscriptionStatus.CANCELED) {
             log.warn("Ignoring invoice.payment_failed for canceled subscription {}",
                     subscription.getSubscriptionId());
@@ -433,6 +427,15 @@ public class StripeWebhookService {
         }
 
         BundleSubscription subscription = subscriptionOpt.get();
+
+        // Critical here: cancelling an orphan in Stripe emits this event carrying the
+        // live subscription's own metadata, so without this guard tidying up a
+        // duplicate would cancel the paying subscription it was duplicating.
+        if (isOrphanedDuplicate(subscription, stripeSub.getId(),
+                "customer.subscription.deleted")) {
+            return;
+        }
+
         subscription.setStatus(BundleSubscriptionStatus.CANCELED);
         subscription.setCanceledAt(LocalDateTime.now());
         bundleSubscriptionRepository.save(subscription);
@@ -464,6 +467,10 @@ public class StripeWebhookService {
 
         BundleSubscription subscription = subscriptionOpt.get();
 
+        if (isOrphanedDuplicate(subscription, stripeSub.getId(), "customer.subscription.updated")) {
+            return;
+        }
+
         if (subscription.getStatus() == BundleSubscriptionStatus.CANCELED) {
             // Consistent with the other handlers: a canceled subscription is terminal,
             // and a late update must not rewrite its renewal date or cancel flag.
@@ -482,6 +489,37 @@ public class StripeWebhookService {
 
         log.info("Synced bundle subscription {} from Stripe: cancelAtPeriodEnd={}, currentPeriodEnd={}",
                 subscription.getSubscriptionId(), subscription.isCancelAtPeriodEnd(), periodEnd);
+    }
+
+    /**
+     * True when the resolved row belongs to a <em>different</em> Stripe subscription
+     * than the event does — i.e. the event came from an orphaned duplicate.
+     *
+     * <p>Duplicates arise from an abandoned checkout completed after the fact, which
+     * mints its own Stripe subscription carrying the same {@code subscriptionId}
+     * metadata (see the retry fix in {@code BundleSubscriptionServiceImpl}). Because
+     * every handler here resolves by that metadata first, an orphan's event would
+     * otherwise be applied to the <em>live</em> subscription's row: cancelling it,
+     * marking it past due, or rewriting its renewal date. This check must therefore
+     * run in every handler, not just the payout one.
+     *
+     * <p>Callers return quietly rather than throwing. Retrying cannot fix a duplicate,
+     * and throwing would produce a retry storm repeating every billing cycle.
+     */
+    private boolean isOrphanedDuplicate(BundleSubscription subscription,
+            String stripeSubscriptionId, String eventDescription) {
+
+        if (subscription.getStripeSubscriptionId() == null
+                || subscription.getStripeSubscriptionId().equals(stripeSubscriptionId)) {
+            return false;
+        }
+
+        log.error("ORPHANED STRIPE SUBSCRIPTION: {} arrived for {}, but local subscription {} is linked "
+                        + "to {}. Ignoring — acting on it would corrupt the live subscription's state. "
+                        + "Cancel the orphan in Stripe.",
+                eventDescription, stripeSubscriptionId,
+                subscription.getSubscriptionId(), subscription.getStripeSubscriptionId());
+        return true;
     }
 
     /**

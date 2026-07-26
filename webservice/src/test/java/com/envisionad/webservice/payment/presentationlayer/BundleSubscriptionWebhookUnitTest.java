@@ -259,6 +259,53 @@ class BundleSubscriptionWebhookUnitTest {
         verify(bundleSubscriptionRepository, never()).save(any());
     }
 
+    /**
+     * The scenario that made this guard necessary: tidying up an orphaned duplicate in
+     * Stripe emits customer.subscription.deleted carrying the LIVE subscription's own
+     * subscriptionId metadata. Without the guard, cleaning up a duplicate would cancel
+     * the paying subscription it was duplicating.
+     */
+    @Test
+    void whenAnOrphanedDuplicateIsDeletedInStripe_thenTheLiveSubscriptionIsNotCanceled() {
+        BundleSubscription live = givenSubscription(BundleSubscriptionStatus.ACTIVE, "sub_the_live_one");
+        when(bundleSubscriptionRepository.findBySubscriptionId(LOCAL_SUB_ID)).thenReturn(Optional.of(live));
+
+        Subscription orphan = stripeSubscription(false);
+        orphan.setId("sub_the_orphan");
+
+        service.handleSubscriptionDeleted(eventOf(orphan));
+
+        verify(bundleSubscriptionRepository, never()).save(any());
+        assertEquals(BundleSubscriptionStatus.ACTIVE, live.getStatus());
+        assertNull(live.getCanceledAt());
+    }
+
+    @Test
+    void whenAnOrphanedDuplicateFailsPayment_thenTheLiveSubscriptionIsNotMarkedPastDue() {
+        BundleSubscription live = givenSubscription(BundleSubscriptionStatus.ACTIVE, "sub_the_live_one");
+        when(bundleSubscriptionRepository.findBySubscriptionId(LOCAL_SUB_ID)).thenReturn(Optional.of(live));
+
+        service.handleInvoicePaymentFailed(eventOf(invoiceWith(LOCAL_SUB_ID, "sub_the_orphan")));
+
+        verify(bundleSubscriptionRepository, never()).save(any());
+        assertEquals(BundleSubscriptionStatus.ACTIVE, live.getStatus());
+    }
+
+    @Test
+    void whenAnOrphanedDuplicateIsUpdated_thenTheLiveSubscriptionsRenewalDateIsNotRewritten() {
+        BundleSubscription live = givenSubscription(BundleSubscriptionStatus.ACTIVE, "sub_the_live_one");
+        when(bundleSubscriptionRepository.findBySubscriptionId(LOCAL_SUB_ID)).thenReturn(Optional.of(live));
+
+        Subscription orphan = stripeSubscription(true);
+        orphan.setId("sub_the_orphan");
+
+        service.handleSubscriptionUpdated(eventOf(orphan));
+
+        verify(bundleSubscriptionRepository, never()).save(any());
+        assertFalse(live.isCancelAtPeriodEnd());
+        assertNull(live.getCurrentPeriodEnd());
+    }
+
     @Test
     void whenStripeSubscriptionIsUpdatedForACanceledRow_thenItIsLeftAlone() {
         BundleSubscription row = givenSubscription(BundleSubscriptionStatus.CANCELED, STRIPE_SUB_ID);
