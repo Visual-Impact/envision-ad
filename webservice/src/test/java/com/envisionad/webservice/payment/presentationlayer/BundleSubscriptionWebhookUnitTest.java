@@ -233,6 +233,42 @@ class BundleSubscriptionWebhookUnitTest {
         verifyNoInteractions(bundlePayoutService, bundleSubscriptionRepository);
     }
 
+    /** A payload of the wrong type is as unusable as one that will not deserialize. */
+    @Test
+    void whenInvoicePaidCarriesTheWrongObjectType_thenItThrows() {
+        assertThrows(IllegalStateException.class,
+                () -> service.handleInvoicePaid(eventOf(subscriptionSession())));
+        verifyNoInteractions(bundlePayoutService);
+    }
+
+    /** Non-payout-critical handlers log and give up instead. */
+    @Test
+    void whenSubscriptionDeletedCarriesTheWrongObjectType_thenItNoOps() {
+        assertDoesNotThrow(() -> service.handleSubscriptionDeleted(eventOf(new Invoice())));
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void whenSubscriptionDeletedCannotBeDeserialized_thenItNoOps() {
+        Event event = mock(Event.class);
+        EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+        when(deserializer.getObject()).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> service.handleSubscriptionDeleted(event));
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void whenStripeSubscriptionIsUpdatedForACanceledRow_thenItIsLeftAlone() {
+        BundleSubscription row = givenSubscription(BundleSubscriptionStatus.CANCELED, STRIPE_SUB_ID);
+        when(bundleSubscriptionRepository.findBySubscriptionId(LOCAL_SUB_ID)).thenReturn(Optional.of(row));
+
+        service.handleSubscriptionUpdated(eventOf(stripeSubscription(true)));
+
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
     // --- invoice.payment_failed --------------------------------------------
 
     @Test

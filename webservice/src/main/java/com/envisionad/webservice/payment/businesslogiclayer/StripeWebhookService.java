@@ -463,6 +463,15 @@ public class StripeWebhookService {
         }
 
         BundleSubscription subscription = subscriptionOpt.get();
+
+        if (subscription.getStatus() == BundleSubscriptionStatus.CANCELED) {
+            // Consistent with the other handlers: a canceled subscription is terminal,
+            // and a late update must not rewrite its renewal date or cancel flag.
+            log.warn("Ignoring subscription update for canceled subscription {}",
+                    subscription.getSubscriptionId());
+            return;
+        }
+
         subscription.setCancelAtPeriodEnd(Boolean.TRUE.equals(stripeSub.getCancelAtPeriodEnd()));
 
         LocalDateTime periodEnd = currentPeriodEndOf(stripeSub);

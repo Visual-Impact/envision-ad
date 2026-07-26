@@ -169,10 +169,15 @@ public class BundlePayoutServiceImpl implements BundlePayoutService {
                 .putMetadata("mediaOwnerBusinessId", ownerBusinessId)
                 .build();
 
-        // Belt and braces alongside the ledger: if the transaction rolls back after a
-        // transfer succeeds, the ledger row is lost but this key still blocks a
-        // duplicate on redelivery. Stripe retains keys ~24h, which covers the window
-        // where redelivery is most likely; the ledger covers the rest.
+        // NOT redundant with the ledger — the two guards cover different failures and
+        // neither is sufficient alone. The ledger row is invisible to a concurrent
+        // transaction until commit, so two deliveries processed in parallel both see
+        // exists() == false and both reach this call; only one loses on the unique
+        // index, and by then the money has moved twice. This stable key is what makes
+        // the second call return the FIRST transfer instead of creating another. It is
+        // also the only guard if the transaction rolls back after a transfer succeeds.
+        // Conversely Stripe retains keys only ~24h, well inside its ~3-day retry
+        // schedule — which is the window the ledger covers. Do not remove either.
         RequestOptions requestOptions = RequestOptions.builder()
                 .setIdempotencyKey("payout-" + stripeInvoiceId + "-" + ownerBusinessId)
                 .build();
