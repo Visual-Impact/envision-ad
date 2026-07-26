@@ -14,13 +14,17 @@ import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
+import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
+import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
+import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -29,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -43,6 +48,10 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             Set.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
 
     private static final int MONEY_SCALE = 2;
+
+    /** Stripe Checkout Session statuses relevant to retiring an abandoned attempt. */
+    private static final String COMPLETE_SESSION_STATUS = "complete";
+    private static final String EXPIRED_SESSION_STATUS = "expired";
 
     private final BundleService bundleService;
     private final BundlePricingService pricingService;
@@ -116,6 +125,15 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                 .map(BundleSubscription::getSubscriptionId)
                 .orElseGet(() -> UUID.randomUUID().toString());
 
+        // Retiring the abandoned attempt's session BEFORE opening a new one is what
+        // stops it being completed later and minting a Stripe subscription this
+        // platform has no row for. Live data proved this is not hypothetical: three
+        // separate Stripe subscriptions ended up carrying the same local
+        // subscriptionId, billing one customer three times over. (Decision D38.)
+        if (retryOf.isPresent()) {
+            retirePreviousSession(retryOf.get().getStripeCheckoutSessionId(), bundleId);
+        }
+
         String stripeCustomerId = ensureStripeCustomer(businessId);
 
         BigDecimal monthlyAmount = quote.finalPrice().setScale(MONEY_SCALE, RoundingMode.HALF_UP);
@@ -144,6 +162,53 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         return new SubscriptionCheckoutResult(session.getClientSecret(), session.getId(), subscriptionId);
     }
 
+    /**
+     * Guards run before the Stripe call, same as the subscribe path — both so a
+     * rejected cancel never touches Stripe, and so the guard paths stay testable
+     * without stubbing it.
+     */
+    @Transactional
+    @Override
+    public void cancelSubscription(Jwt jwt, String subscriptionId) throws StripeException {
+
+        BundleSubscription subscription = bundleSubscriptionRepository
+                .findBySubscriptionId(subscriptionId)
+                .orElseThrow(() -> new BundleSubscriptionNotFoundException(subscriptionId));
+
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, subscription.getAdvertiserBusinessId());
+
+        if (subscription.getStatus() == BundleSubscriptionStatus.CANCELED) {
+            // Idempotent by design: a double-click should not produce an error.
+            log.info("Subscription {} is already canceled — nothing to do", subscriptionId);
+            return;
+        }
+
+        if (subscription.getStripeSubscriptionId() == null) {
+            // An abandoned checkout that never completed. There is nothing at Stripe to
+            // cancel, and leaving the row INCOMPLETE would keep occupying this buyer's
+            // one-live-subscription-per-bundle slot, so it is closed out locally.
+            subscription.setStatus(BundleSubscriptionStatus.CANCELED);
+            subscription.setCanceledAt(LocalDateTime.now());
+            bundleSubscriptionRepository.save(subscription);
+            log.info("Canceled incomplete subscription {} locally — it has no Stripe subscription",
+                    subscriptionId);
+            return;
+        }
+
+        Subscription stripeSubscription = Subscription.retrieve(subscription.getStripeSubscriptionId());
+        stripeSubscription.update(
+                SubscriptionUpdateParams.builder().setCancelAtPeriodEnd(true).build());
+
+        // Mirrored locally straight away rather than waiting for the
+        // customer.subscription.updated webhook, so the advertiser sees the change on
+        // their next page load. The webhook still lands and re-syncs the same value.
+        subscription.setCancelAtPeriodEnd(true);
+        bundleSubscriptionRepository.save(subscription);
+
+        log.info("Subscription {} ({}) set to cancel at period end {}",
+                subscriptionId, subscription.getStripeSubscriptionId(), subscription.getCurrentPeriodEnd());
+    }
+
     private AdCampaign validateCampaign(String campaignId, String businessId) {
         AdCampaign campaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
         if (campaign == null) {
@@ -155,6 +220,50 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             throw new CampaignHasNoAdsException(campaignId);
         }
         return campaign;
+    }
+
+    /**
+     * Closes out the checkout session of an abandoned attempt so it can never be
+     * completed after the fact.
+     *
+     * <p>If it turns out the buyer already completed it, the retry is refused rather
+     * than expired — they have paid, and opening a second session would charge them
+     * twice for one bundle. Their row is activated by the webhook that is already in
+     * flight (or by its redelivery).
+     *
+     * <p>Note this is the one Stripe call that does not sit behind all the pure
+     * guards: it can only run in the retry branch, which by definition requires an
+     * existing row to have been read first.
+     */
+    private void retirePreviousSession(String previousSessionId, String bundleId) throws StripeException {
+        Session previous;
+        try {
+            previous = Session.retrieve(previousSessionId);
+        } catch (StripeException e) {
+            // A session Stripe no longer knows about cannot be completed either, so
+            // there is nothing left to protect against.
+            log.warn("Could not retrieve previous checkout session {} while retrying: {}",
+                    previousSessionId, e.getMessage());
+            return;
+        }
+
+        if (previous == null) {
+            return;
+        }
+
+        if (COMPLETE_SESSION_STATUS.equals(previous.getStatus())) {
+            log.warn("Refusing retry for bundle {}: session {} was already completed and paid; "
+                            + "its activating webhook has not landed yet",
+                    bundleId, previousSessionId);
+            throw new BundleSubscriptionAlreadyPaidException(bundleId);
+        }
+
+        if (EXPIRED_SESSION_STATUS.equals(previous.getStatus())) {
+            return;
+        }
+
+        previous.expire();
+        log.info("Expired abandoned checkout session {} before opening a replacement", previousSessionId);
     }
 
     /**

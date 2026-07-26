@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -221,7 +222,78 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
                 .isPresent(), "the INCOMPLETE row must be findable for reuse");
     }
 
+    // ---------- cancel ----------
+    // Same split as subscribe: everything here short-circuits before the Stripe call.
+    // The one path that does reach Stripe — an ACTIVE subscription with a linked
+    // stripe_subscription_id — is covered in BundleSubscriptionServiceUnitTest.
+
+    @Test
+    void cancel_withUnknownSubscription_returnsNotFound() {
+        postCancel("no-such-subscription").expectStatus().isNotFound();
+    }
+
+    @Test
+    void cancel_aSubscriptionBelongingToAnotherBusiness_returnsForbidden() {
+        BundleSubscription foreign = givenSubscription(
+                bundle.getBundleId(), UUID.randomUUID().toString(), BundleSubscriptionStatus.ACTIVE);
+
+        postCancel(foreign.getSubscriptionId()).expectStatus().isForbidden();
+
+        assertEquals(BundleSubscriptionStatus.ACTIVE,
+                subscriptionRepository.findBySubscriptionId(foreign.getSubscriptionId())
+                        .orElseThrow().getStatus());
+    }
+
+    @Test
+    void cancel_withoutAToken_isRejected() {
+        BundleSubscription subscription = givenSubscription(
+                bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+
+        webTestClient.post().uri(BASE_URI + "/" + subscription.getSubscriptionId() + "/cancel")
+                .exchange()
+                .expectStatus().value(status -> assertTrue(status == 401 || status == 403,
+                        "anonymous callers must be rejected, got " + status));
+    }
+
+    /** Double-clicking cancel should not produce an error. */
+    @Test
+    void cancel_anAlreadyCanceledSubscription_succeedsQuietly() {
+        BundleSubscription subscription = givenSubscription(
+                bundle.getBundleId(), businessId, BundleSubscriptionStatus.CANCELED);
+
+        postCancel(subscription.getSubscriptionId()).expectStatus().isNoContent();
+
+        assertEquals(BundleSubscriptionStatus.CANCELED,
+                subscriptionRepository.findBySubscriptionId(subscription.getSubscriptionId())
+                        .orElseThrow().getStatus());
+    }
+
+    /**
+     * An abandoned checkout has no Stripe subscription to cancel. Closing it out
+     * locally frees the buyer's one-live-subscription-per-bundle slot instead of
+     * leaving it stuck INCOMPLETE forever.
+     */
+    @Test
+    void cancel_anIncompleteSubscription_closesItLocallyWithoutCallingStripe() {
+        BundleSubscription subscription = givenSubscription(
+                bundle.getBundleId(), businessId, BundleSubscriptionStatus.INCOMPLETE);
+
+        postCancel(subscription.getSubscriptionId()).expectStatus().isNoContent();
+
+        BundleSubscription reloaded = subscriptionRepository
+                .findBySubscriptionId(subscription.getSubscriptionId()).orElseThrow();
+        assertEquals(BundleSubscriptionStatus.CANCELED, reloaded.getStatus());
+        assertNotNull(reloaded.getCanceledAt());
+    }
+
     // ---------- fixtures ----------
+
+    private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec postCancel(
+            String subscriptionId) {
+        return webTestClient.post().uri(BASE_URI + "/" + subscriptionId + "/cancel")
+                .header("Authorization", "Bearer " + TOKEN)
+                .exchange();
+    }
 
     private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec postSubscribe(
             BundleSubscriptionRequestModel body) {
@@ -264,7 +336,7 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         return adCampaignRepository.save(c);
     }
 
-    private void givenSubscription(String bundleId, String advertiserBusinessId,
+    private BundleSubscription givenSubscription(String bundleId, String advertiserBusinessId,
             BundleSubscriptionStatus status) {
         BundleSubscription subscription = new BundleSubscription();
         subscription.setSubscriptionId(UUID.randomUUID().toString());
@@ -275,7 +347,7 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         subscription.setStatus(status);
         subscription.setMonthlyAmount(new BigDecimal("4.00"));
         subscription.setScreenCount(1);
-        subscriptionRepository.save(subscription);
+        return subscriptionRepository.save(subscription);
     }
 
     private void givenMedia(Status status, String price) {

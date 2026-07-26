@@ -44,8 +44,26 @@ public class WebhookController {
         try {
             // Handle different event types
             switch (event.getType()) {
+                // Both legacy one-time payments and bundle subscriptions arrive here;
+                // the service tells them apart by the session's mode.
                 case "checkout.session.completed":
                     webhookService.handleCheckoutSessionCompleted(event);
+                    break;
+
+                case "invoice.paid":
+                    webhookService.handleInvoicePaid(event);
+                    break;
+
+                case "invoice.payment_failed":
+                    webhookService.handleInvoicePaymentFailed(event);
+                    break;
+
+                case "customer.subscription.deleted":
+                    webhookService.handleSubscriptionDeleted(event);
+                    break;
+
+                case "customer.subscription.updated":
+                    webhookService.handleSubscriptionUpdated(event);
                     break;
 
                 case "payment_intent.succeeded":
