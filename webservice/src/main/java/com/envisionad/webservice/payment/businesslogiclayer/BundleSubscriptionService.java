@@ -1,7 +1,11 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
+import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
+import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
 import com.stripe.exception.StripeException;
 import org.springframework.security.oauth2.jwt.Jwt;
+
+import java.util.List;
 
 public interface BundleSubscriptionService {
 
@@ -28,4 +32,21 @@ public interface BundleSubscriptionService {
      * rather than erroring.
      */
     void cancelSubscription(Jwt jwt, String subscriptionId) throws StripeException;
+
+    /**
+     * Every bundle subscription held by a business, newest first — the advertiser's own view of
+     * what they are paying for (P1 M6).
+     *
+     * <p>Returns all statuses, not just live ones. INCOMPLETE matters because an abandoned
+     * checkout occupies that business's one-live-subscription slot for the bundle until it is
+     * cancelled, and the advertiser otherwise has no way to see or clear it; CANCELED matters as
+     * history. Access is validated as employee-of-business, matching the rest of this service.
+     */
+    List<BundleSubscriptionResponseModel> getSubscriptionsForBusiness(Jwt jwt, String businessId);
+
+    /**
+     * The campaigns currently running on one screen, for the media owner's proof-of-display
+     * picker (decision D40). Caller must be an employee of the business that owns the media.
+     */
+    List<LiveCampaignResponseModel> getLiveCampaignsForMedia(Jwt jwt, String mediaId);
 }

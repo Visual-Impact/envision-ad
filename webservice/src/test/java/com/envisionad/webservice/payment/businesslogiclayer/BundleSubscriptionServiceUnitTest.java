@@ -5,13 +5,16 @@ import com.envisionad.webservice.bundle.businesslogiclayer.BundlePriceQuote;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePricingService;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundleService;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
+import com.envisionad.webservice.bundle.dataaccesslayer.BundleRepository;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleRuleType;
 import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaException;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
+import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
+import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.utils.JwtUtils;
@@ -66,6 +69,9 @@ class BundleSubscriptionServiceUnitTest {
     @Mock private StripeCustomerRepository stripeCustomerRepository;
     @Mock private BundleSubscriptionRepository bundleSubscriptionRepository;
     @Mock private BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
+    @Mock private BundleRepository bundleRepository;
+    @Mock private MediaRepository mediaRepository;
+    @Mock private BundleSubscriptionResponseMapper responseMapper;
     @Mock private JwtUtils jwtUtils;
 
     private Jwt jwt;
@@ -78,7 +84,8 @@ class BundleSubscriptionServiceUnitTest {
     void setUp() {
         service = new BundleSubscriptionServiceImpl(bundleService, pricingService, adCampaignRepository,
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
-                bundleSubscriptionItemRepository, jwtUtils);
+                bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
+                jwtUtils);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
 

@@ -5,9 +5,9 @@ import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampai
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
 import com.envisionad.webservice.business.dataaccesslayer.*;
 import com.envisionad.webservice.config.BaseIntegrationTest;
-import com.envisionad.webservice.reservation.dataaccesslayer.Reservation;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationStatus;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,12 +37,12 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
 
     private static final String BUSINESS_ID = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22";
     @Autowired
-    private ReservationRepository reservationRepository;
+    private BundleSubscriptionRepository bundleSubscriptionRepository;
 
     @BeforeEach
     void setUp() {
         // Clear all data from previous tests to avoid constraint violations
-        reservationRepository.deleteAll();
+        bundleSubscriptionRepository.deleteAll();
         adCampaignRepository.deleteAll();
         employeeRepository.deleteAll();
         businessRepository.deleteAll();
@@ -374,7 +374,7 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void deleteCampaign_notTiedToReservation_shouldDeleteSuccessfully() {
+    void deleteCampaign_notTiedToAnySubscription_shouldDeleteSuccessfully() {
         // Arrange
         AdCampaign adCampaign = new AdCampaign();
         adCampaign.setName("Winter Sale");
@@ -395,105 +395,36 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
         assertEquals(0, adCampaignRepository.count());
     }
 
+    /**
+     * D42: the delete guard survives the reservation retirement, re-pointed at live bundle
+     * subscriptions. ACTIVE blocks the delete.
+     */
     @Test
-    void deleteCampaign_tiedToConfirmedReservation_shouldReturnConflict() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Winter Sale");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
+    void deleteCampaign_tiedToActiveSubscription_shouldReturnConflict() {
+        String campaignId = persistCampaign("Winter Sale");
+        persistSubscription(campaignId, BundleSubscriptionStatus.ACTIVE);
 
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.CONFIRMED);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().plusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().isEqualTo(409); // Conflict status code
+        expectDeleteStatus(campaignId, 409);
     }
 
+    /** A failed payment does not release the campaign — PAST_DUE is still live. */
     @Test
-    void deleteCampaign_tiedToPendingReservation_shouldReturnConflict() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Winter Sale");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
+    void deleteCampaign_tiedToPastDueSubscription_shouldReturnConflict() {
+        String campaignId = persistCampaign("Winter Sale");
+        persistSubscription(campaignId, BundleSubscriptionStatus.PAST_DUE);
 
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.PENDING);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().plusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().isEqualTo(409); // Conflict status code
+        expectDeleteStatus(campaignId, 409);
     }
 
+    /**
+     * The bundle-era analogue of the old "expired reservation" case: once the subscription is
+     * CANCELED the campaign is free to delete again.
+     */
     @Test
-    void deleteCampaign_tiedToApprovedReservation_shouldReturnConflict() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Winter Sale");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
+    void deleteCampaign_tiedToCanceledSubscriptionOnly_shouldSucceed() {
+        String campaignId = persistCampaign("Summer Clearance");
+        persistSubscription(campaignId, BundleSubscriptionStatus.CANCELED);
 
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.APPROVED);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().plusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().isEqualTo(409); // Conflict status code
-    }
-
-    @Test
-    void deleteCampaign_tiedToExpiredReservation_shouldSucceed() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Summer Clearance");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
-
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.CONFIRMED);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().minusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
         webTestClient.delete()
                 .uri(uriBuilder -> uriBuilder
                         .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
@@ -503,4 +434,53 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().is2xxSuccessful();
     }
 
+    /**
+     * An INCOMPLETE row is an abandoned checkout, not a live subscription, so it must not lock
+     * the campaign. This is the case the trigger and the service guard both scope to
+     * ACTIVE/PAST_DUE precisely to avoid.
+     */
+    @Test
+    void deleteCampaign_tiedToIncompleteSubscriptionOnly_shouldSucceed() {
+        String campaignId = persistCampaign("Abandoned Checkout");
+        persistSubscription(campaignId, BundleSubscriptionStatus.INCOMPLETE);
+
+        webTestClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
+                        .build(businessId.getBusinessId(), campaignId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().is2xxSuccessful();
+    }
+
+    private String persistCampaign(String name) {
+        AdCampaign adCampaign = new AdCampaign();
+        adCampaign.setName(name);
+        adCampaign.setCampaignId(new AdCampaignIdentifier());
+        adCampaign.setBusinessId(businessId);
+        return adCampaignRepository.save(adCampaign).getCampaignId().getCampaignId();
+    }
+
+    private void persistSubscription(String campaignId, BundleSubscriptionStatus status) {
+        BundleSubscription subscription = new BundleSubscription();
+        subscription.setSubscriptionId(UUID.randomUUID().toString());
+        subscription.setBundleId(UUID.randomUUID().toString());
+        subscription.setAdvertiserBusinessId(businessId.getBusinessId());
+        subscription.setCampaignId(campaignId);
+        subscription.setStripeCheckoutSessionId("cs_test_" + UUID.randomUUID());
+        subscription.setStatus(status);
+        subscription.setMonthlyAmount(new java.math.BigDecimal("48.00"));
+        subscription.setScreenCount(15);
+        bundleSubscriptionRepository.save(subscription);
+    }
+
+    private void expectDeleteStatus(String campaignId, int expectedStatus) {
+        webTestClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
+                        .build(businessId.getBusinessId(), campaignId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isEqualTo(expectedStatus);
+    }
 }

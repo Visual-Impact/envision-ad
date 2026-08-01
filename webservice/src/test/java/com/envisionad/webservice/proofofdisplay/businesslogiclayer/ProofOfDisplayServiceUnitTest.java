@@ -12,7 +12,8 @@ import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.proofofdisplay.exceptions.AdvertiserEmailNotFoundException;
 import com.envisionad.webservice.proofofdisplay.presentationlayer.models.ProofOfDisplayRequest;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
-import com.envisionad.webservice.reservation.exceptions.ReservationNotFoundException;
+import com.envisionad.webservice.proofofdisplay.exceptions.MediaNotInActiveSubscriptionException;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
@@ -35,6 +36,10 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProofOfDisplayServiceUnitTest {
+
+    /** Mirrors the service: a PAST_DUE subscriber still gets proof of display (D40). */
+    private static final List<BundleSubscriptionStatus> LIVE_STATUSES =
+            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
 
     @InjectMocks
     private ProofOfDisplayService proofOfDisplayService;
@@ -83,7 +88,7 @@ class ProofOfDisplayServiceUnitTest {
     }
 
     @Mock
-    private ReservationRepository reservationRepository;
+    private BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
 
     @Test
     void sendProofEmail_success_sendsEmailWithUrls() {
@@ -119,7 +124,8 @@ class ProofOfDisplayServiceUnitTest {
         ArgumentCaptor<String> subjectCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> bodyCaptor = ArgumentCaptor.forClass(String.class);
 
-        when(reservationRepository.existsConfirmedReservationForMediaAndCampaign(mediaUuid, "camp-123"))
+        when(bundleSubscriptionItemRepository.existsForMediaAndCampaignWithSubscriptionStatusIn(
+                mediaUuid, "camp-123", LIVE_STATUSES))
                 .thenReturn(true);
 
         // Act
@@ -237,7 +243,8 @@ class ProofOfDisplayServiceUnitTest {
 
         when(employeeRepository.findAllByBusinessId_BusinessId("biz-999")).thenReturn(List.of(e1, e2));
 
-        when(reservationRepository.existsConfirmedReservationForMediaAndCampaign(mediaUuid, "camp-123"))
+        when(bundleSubscriptionItemRepository.existsForMediaAndCampaignWithSubscriptionStatusIn(
+                mediaUuid, "camp-123", LIVE_STATUSES))
                 .thenReturn(true);
 
         // Act + Assert
@@ -270,7 +277,8 @@ class ProofOfDisplayServiceUnitTest {
         when(employeeRepository.findAllByBusinessId_BusinessId("biz-999"))
                 .thenThrow(new RuntimeException("DB down"));
 
-        when(reservationRepository.existsConfirmedReservationForMediaAndCampaign(mediaUuid, "camp-123"))
+        when(bundleSubscriptionItemRepository.existsForMediaAndCampaignWithSubscriptionStatusIn(
+                mediaUuid, "camp-123", LIVE_STATUSES))
                 .thenReturn(true);
 
         // Act + Assert
@@ -279,7 +287,7 @@ class ProofOfDisplayServiceUnitTest {
     }
 
     @Test
-    void sendProofEmail_noConfirmedReservation_throws_andDoesNotSendEmail() {
+    void sendProofEmail_campaignNotOnAnyLiveSubscription_throws_andDoesNotSendEmail() {
         // Arrange
         ProofOfDisplayRequest request = new ProofOfDisplayRequest();
         request.setMediaId(mediaUuid.toString());
@@ -295,11 +303,12 @@ class ProofOfDisplayServiceUnitTest {
         AdCampaign campaign = mock(AdCampaign.class);
         when(adCampaignRepository.findByCampaignId_CampaignId("camp-123")).thenReturn(campaign);
 
-        when(reservationRepository.existsConfirmedReservationForMediaAndCampaign(mediaUuid, "camp-123"))
+        when(bundleSubscriptionItemRepository.existsForMediaAndCampaignWithSubscriptionStatusIn(
+                mediaUuid, "camp-123", LIVE_STATUSES))
                 .thenReturn(false);
 
         // Act + Assert
-        assertThrows(ReservationNotFoundException.class, () -> proofOfDisplayService.sendProofEmail(jwt, request));
+        assertThrows(MediaNotInActiveSubscriptionException.class, () -> proofOfDisplayService.sendProofEmail(jwt, request));
         verifyNoInteractions(emailService);
     }
 
@@ -353,7 +362,8 @@ class ProofOfDisplayServiceUnitTest {
         assertThrows(IllegalStateException.class, () -> proofOfDisplayService.sendProofEmail(jwt, request));
 
         verify(jwtUtils, never()).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
-        verify(reservationRepository, never()).existsConfirmedReservationForMediaAndCampaign(any(), any());
+        verify(bundleSubscriptionItemRepository, never())
+                .existsForMediaAndCampaignWithSubscriptionStatusIn(any(), any(), any());
         verify(emailService, never()).sendSimpleEmail(any(), any(), any());
     }
 

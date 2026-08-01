@@ -1,28 +1,11 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
-import com.envisionad.webservice.advertisement.businesslogiclayer.AdCampaignService;
-import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaign;
-import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaignRepository;
-import com.envisionad.webservice.advertisement.exceptions.AdCampaignNotFoundException;
-import com.envisionad.webservice.business.dataaccesslayer.Employee;
-import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
-import com.envisionad.webservice.config.Auth0Service;
-import com.envisionad.webservice.media.DataAccessLayer.Media;
-import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
-import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
-import com.envisionad.webservice.payment.dataaccesslayer.PaymentIntent;
-import com.envisionad.webservice.payment.dataaccesslayer.PaymentIntentRepository;
-import com.envisionad.webservice.payment.dataaccesslayer.PaymentStatus;
 import com.envisionad.webservice.payment.dataaccesslayer.StripeAccount;
 import com.envisionad.webservice.payment.dataaccesslayer.StripeAccountRepository;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotLinkedException;
-import com.envisionad.webservice.reservation.dataaccesslayer.Reservation;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationStatus;
-import com.envisionad.webservice.utils.EmailService;
 import com.stripe.model.Account;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
@@ -35,7 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -46,33 +28,21 @@ import java.util.Optional;
 @Service
 public class StripeWebhookService {
 
-    /** Stripe Checkout mode marking a bundle subscription rather than a legacy one-time payment. */
+    /**
+     * Stripe Checkout mode marking a bundle subscription. Retained after M6 removed the one-time
+     * payment flow, because the account still holds pre-cutover {@code mode=payment} events that
+     * must be ignored rather than mishandled if replayed.
+     */
     private static final String SUBSCRIPTION_MODE = "subscription";
 
-    private final PaymentIntentRepository paymentIntentRepository;
-    private final ReservationRepository reservationRepository;
-    private final EmailService emailService;
-    private final EmployeeRepository employeeRepository;
-    private final MediaRepository mediaRepository;
-    private final AdCampaignRepository adCampaignRepository;
-    private final AdCampaignService adCampaignService;
     private final StripeAccountRepository stripeAccountRepository;
-    private final Auth0Service auth0Service;
     private final BundleSubscriptionRepository bundleSubscriptionRepository;
     private final BundlePayoutService bundlePayoutService;
 
-
-    public StripeWebhookService(PaymentIntentRepository paymentIntentRepository,
-                                ReservationRepository reservationRepository, EmailService emailService, EmployeeRepository employeeRepository, MediaRepository mediaRepository, AdCampaignRepository adCampaignRepository, AdCampaignService adCampaignService, StripeAccountRepository stripeAccountRepository, Auth0Service auth0Service, BundleSubscriptionRepository bundleSubscriptionRepository, BundlePayoutService bundlePayoutService) {
-        this.paymentIntentRepository = paymentIntentRepository;
-        this.reservationRepository = reservationRepository;
-        this.emailService = emailService;
-        this.employeeRepository = employeeRepository;
-        this.mediaRepository = mediaRepository;
-        this.adCampaignRepository = adCampaignRepository;
-        this.adCampaignService = adCampaignService;
+    public StripeWebhookService(StripeAccountRepository stripeAccountRepository,
+                                BundleSubscriptionRepository bundleSubscriptionRepository,
+                                BundlePayoutService bundlePayoutService) {
         this.stripeAccountRepository = stripeAccountRepository;
-        this.auth0Service = auth0Service;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
         this.bundlePayoutService = bundlePayoutService;
     }
@@ -92,116 +62,20 @@ public class StripeWebhookService {
             return;
         }
 
-        // Subscription checkouts and the legacy one-time reservation checkouts arrive
-        // as the same event type and are told apart by mode. The brief puts this branch
-        // in WebhookController, but the controller would have to deserialize the event
-        // itself to see the mode — duplicating the work above — so it lives here where
-        // the Session is already in hand. (Decision D34.)
-        if (SUBSCRIPTION_MODE.equals(session.getMode())) {
-            handleSubscriptionCheckoutCompleted(session);
+        // Only subscription checkouts exist since M6 retired the weekly-reservation flow, but
+        // this deliberately stays a mode check rather than becoming an unconditional call.
+        // The Stripe account still holds historical mode=payment events from before the
+        // cutover, and anyone resending one must get a quiet no-op — falling through would
+        // hand it to the subscription handler, which cannot resolve it and would 500, putting
+        // Stripe into a retry cycle for an event that can never succeed.
+        if (!SUBSCRIPTION_MODE.equals(session.getMode())) {
+            log.info("Ignoring checkout.session.completed in mode '{}' for session {} — the "
+                            + "one-time reservation payment flow was removed in P1 M6",
+                    session.getMode(), session.getId());
             return;
         }
 
-        String sessionId = session.getId();
-        String paymentIntentId = session.getPaymentIntent();
-
-        log.info("Checkout session completed: sessionId={}, paymentIntentId={}",
-                sessionId, paymentIntentId);
-
-        // Update our payment record with the PaymentIntent ID
-        Optional<PaymentIntent> paymentOpt = paymentIntentRepository.findByStripeSessionId(sessionId);
-
-        if (paymentOpt.isEmpty()) {
-            log.warn("No payment record found for session: {}", sessionId);
-            return;
-        }
-
-        PaymentIntent payment = paymentOpt.get();
-        payment.setStripePaymentIntentId(paymentIntentId);
-        payment.setStatus(PaymentStatus.SUCCEEDED);
-        payment.setUpdatedAt(LocalDateTime.now());
-        paymentIntentRepository.save(payment);
-
-        log.info("Updated payment record: reservationId={}, status=SUCCEEDED",
-                payment.getReservationId());
-
-        // Update reservation status to CONFIRMED
-        updateReservationStatus(payment.getReservationId(), ReservationStatus.CONFIRMED);
-    }
-
-    @Transactional
-    public void handlePaymentIntentSucceeded(Event event) {
-        EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
-
-        if (dataObjectDeserializer.getObject().isEmpty()) {
-            log.error("Unable to deserialize payment_intent.succeeded event");
-            return;
-        }
-
-        StripeObject stripeObject = dataObjectDeserializer.getObject().get();
-        if (!(stripeObject instanceof com.stripe.model.PaymentIntent stripePaymentIntent)) {
-            log.error("Event object is not a PaymentIntent");
-            return;
-        }
-
-        String paymentIntentId = stripePaymentIntent.getId();
-
-        log.info("Payment intent succeeded: paymentIntentId={}", paymentIntentId);
-
-        // Find and update payment record
-        Optional<PaymentIntent> paymentOpt = paymentIntentRepository.findByStripePaymentIntentId(paymentIntentId);
-
-        if (paymentOpt.isPresent()) {
-            PaymentIntent payment = paymentOpt.get();
-            payment.setStatus(PaymentStatus.SUCCEEDED);
-            payment.setUpdatedAt(LocalDateTime.now());
-            paymentIntentRepository.save(payment);
-
-            log.info("Updated payment record from webhook: reservationId={}",
-                    payment.getReservationId());
-
-            // Update reservation status to CONFIRMED
-            updateReservationStatus(payment.getReservationId(), ReservationStatus.CONFIRMED);
-        } else {
-            log.warn("No payment record found for PaymentIntent: {}", paymentIntentId);
-        }
-    }
-
-    @Transactional
-    public void handlePaymentIntentFailed(Event event) {
-        EventDataObjectDeserializer dataObjectDeserializer = event.getDataObjectDeserializer();
-
-        if (dataObjectDeserializer.getObject().isEmpty()) {
-            log.error("Unable to deserialize payment_intent.payment_failed event");
-            return;
-        }
-
-        StripeObject stripeObject = dataObjectDeserializer.getObject().get();
-        if (!(stripeObject instanceof com.stripe.model.PaymentIntent stripePaymentIntent)) {
-            log.error("Event object is not a PaymentIntent");
-            return;
-        }
-
-        String paymentIntentId = stripePaymentIntent.getId();
-
-        log.info("Payment intent failed: paymentIntentId={}", paymentIntentId);
-
-        // Find and update payment record
-        Optional<PaymentIntent> paymentOpt = paymentIntentRepository.findByStripePaymentIntentId(paymentIntentId);
-
-        if (paymentOpt.isPresent()) {
-            PaymentIntent payment = paymentOpt.get();
-            payment.setStatus(PaymentStatus.FAILED);
-            payment.setUpdatedAt(LocalDateTime.now());
-            paymentIntentRepository.save(payment);
-
-            log.info("Marked payment as failed: reservationId={}", payment.getReservationId());
-
-            // Update reservation status to CANCELLED due to payment failure
-            updateReservationStatus(payment.getReservationId(), ReservationStatus.CANCELLED);
-        } else {
-            log.warn("No payment record found for PaymentIntent: {}", paymentIntentId);
-        }
+        handleSubscriptionCheckoutCompleted(session);
     }
 
     @Transactional
@@ -619,102 +493,4 @@ public class StripeWebhookService {
         return Optional.of(type.cast(object.get()));
     }
 
-    @Transactional
-    public void updateReservationStatus(String reservationId, ReservationStatus newStatus) {
-        Optional<Reservation> reservationOpt = reservationRepository.findByReservationId(reservationId);
-
-        if (reservationOpt.isEmpty()) {
-            log.warn("Reservation not found for payment update: {}", reservationId);
-            return;
-        }
-
-        Reservation reservation = reservationOpt.get();
-        ReservationStatus oldStatus = reservation.getStatus();
-
-        // Only update if status is changing
-        if (oldStatus != newStatus) {
-            reservation.setStatus(newStatus);
-            reservationRepository.save(reservation);
-            log.info("Updated reservation status: id={}, {} -> {}",
-                    reservationId, oldStatus, newStatus);
-            if (newStatus == ReservationStatus.CONFIRMED) {
-                Media media = mediaRepository.findById(reservation.getMediaId())
-                        .orElseThrow(() -> new MediaNotFoundException(reservation.getMediaId().toString()));
-                AdCampaign campaign = adCampaignRepository.findByCampaignId_CampaignId(reservation.getCampaignId());
-                if (campaign == null) {
-                    throw new AdCampaignNotFoundException(reservation.getCampaignId());
-                }
-                BigDecimal totalPrice = reservation.getTotalPrice();
-                if(totalPrice == null) {
-                    totalPrice = BigDecimal.ZERO;
-                }
-                sendNotificationEmails(media, reservation, campaign, totalPrice);
-            }
-        } else {
-            log.debug("Reservation already has status {}: {}", newStatus, reservationId);
-        }
-    }
-
-    private void sendNotificationEmails(Media media, Reservation reservation,
-                                        AdCampaign campaign, BigDecimal totalPrice) {
-        String mediaOwnerBusinessId = media.getBusinessId().toString();
-        List<Employee> mediaOwners = employeeRepository.findAllByBusinessId_BusinessId(mediaOwnerBusinessId);
-        List<String> mediaOwnerEmailAddresses = mediaOwners.stream()
-                .map(Employee::getUserId)
-                .filter(uid -> uid != null && !uid.isBlank())
-                .distinct()
-                .map(uid -> {
-                    try {
-                        return auth0Service.getUserEmailByUserId(uid);
-                    } catch (Exception e) {
-                        log.warn("Failed to fetch email for userId {} from Auth0: {}", uid, e.getMessage());
-                        return null;
-                    }
-                })
-                .filter(email -> email != null && !email.isEmpty())
-                .toList();
-
-        if (!mediaOwnerEmailAddresses.isEmpty()) {
-            for (String ownerEmailAddress : mediaOwnerEmailAddresses) {
-                sendReservationEmail(ownerEmailAddress, media, reservation, campaign, totalPrice);
-            }
-        } else {
-            log.warn("No email found for media owner in business: {}", mediaOwnerBusinessId);
-        }
-    }
-
-    private void sendReservationEmail(String ownerEmail, Media media, Reservation reservation,
-                                      AdCampaign campaign, BigDecimal totalPrice) {
-        try {
-            List<String> imageLinks = adCampaignService.getAllCampaignImageLinks(campaign.getCampaignId().getCampaignId());
-
-            String previewSection;
-            if (imageLinks == null || imageLinks.isEmpty()) {
-                previewSection = "No preview images available.";
-            } else {
-                StringBuilder sb = new StringBuilder("Preview Images:")
-                        .append(System.lineSeparator());
-                for (String link : imageLinks) {
-                    sb.append("- ")
-                            .append(link)
-                            .append(System.lineSeparator());
-                }
-                previewSection = sb.toString().trim();
-            }
-
-            String emailBody = String.format(
-                    "A new reservation has been created for your media%n" +
-                            "Media Name: %s%n" +
-                            "Ad Campaign Name: %s%n" +
-                            "Total Price: $%.2f%n" +
-                            "%s",
-                    media.getTitle(), campaign.getName(), totalPrice, previewSection
-            );
-            emailService.sendSimpleEmail(ownerEmail, "New Reservation Created", emailBody);
-        } catch (Exception e) {
-            // Log error instead of throwing exception to avoid failing reservation creation
-            log.error("Failed to send reservation notification email for reservation: {} to owner: {}",
-                    reservation.getReservationId(), ownerEmail, e);
-        }
-    }
 }

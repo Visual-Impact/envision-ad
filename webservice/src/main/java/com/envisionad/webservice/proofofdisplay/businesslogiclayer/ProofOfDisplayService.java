@@ -1,7 +1,8 @@
 package com.envisionad.webservice.proofofdisplay.businesslogiclayer;
 
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
-import com.envisionad.webservice.reservation.exceptions.ReservationNotFoundException;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
+import com.envisionad.webservice.proofofdisplay.exceptions.MediaNotInActiveSubscriptionException;
 import com.envisionad.webservice.utils.JwtUtils;
 import org.springframework.security.oauth2.jwt.Jwt;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaign;
@@ -29,8 +30,15 @@ public class ProofOfDisplayService {
     private final MediaRepository mediaRepository;
     private final AdCampaignRepository adCampaignRepository;
     private final JwtUtils jwtUtils;
-    private final ReservationRepository reservationRepository;
+    private final BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
     private final Auth0Service auth0Service;
+
+    /**
+     * A past-due subscriber is still owed proof of display for the cycle they are in — their
+     * screens keep running until the subscription is actually cancelled (decision D40).
+     */
+    private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
+            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
 
     public ProofOfDisplayService(
             EmailService emailService,
@@ -38,7 +46,7 @@ public class ProofOfDisplayService {
             MediaRepository mediaRepository,
             AdCampaignRepository adCampaignRepository,
             JwtUtils jwtUtils,
-            ReservationRepository reservationRepository,
+            BundleSubscriptionItemRepository bundleSubscriptionItemRepository,
             Auth0Service auth0Service
     ) {
         this.emailService = emailService;
@@ -46,7 +54,7 @@ public class ProofOfDisplayService {
         this.mediaRepository = mediaRepository;
         this.adCampaignRepository = adCampaignRepository;
         this.jwtUtils = jwtUtils;
-        this.reservationRepository = reservationRepository;
+        this.bundleSubscriptionItemRepository = bundleSubscriptionItemRepository;
         this.auth0Service = auth0Service;
     }
 
@@ -85,11 +93,15 @@ public class ProofOfDisplayService {
             jwtUtils.validateUserIsEmployeeOfBusiness(userId, mediaOwnerBusinessId);
 
 
-            boolean hasReservation =
-                    reservationRepository.existsConfirmedReservationForMediaAndCampaign(mediaId, campaignId);
+            // The campaign must actually be running on this screen: it must hold a live bundle
+            // subscription whose locked item set includes this media (M6, decision D40 — this
+            // replaced the CONFIRMED/PENDING reservation check when reservations were retired).
+            boolean campaignRunsOnThisMedia =
+                    bundleSubscriptionItemRepository.existsForMediaAndCampaignWithSubscriptionStatusIn(
+                            mediaId, campaignId, LIVE_SUBSCRIPTION_STATUSES);
 
-            if (!hasReservation) {
-                throw new ReservationNotFoundException(mediaId.toString(), campaignId);
+            if (!campaignRunsOnThisMedia) {
+                throw new MediaNotInActiveSubscriptionException(mediaId.toString(), campaignId);
             }
 
             // Resolve advertiser email via Auth0 Management API (always up-to-date)

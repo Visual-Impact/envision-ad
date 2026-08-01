@@ -3,11 +3,13 @@ package com.envisionad.webservice.advertisement.businesslogiclayer;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
 import com.envisionad.webservice.advertisement.dataaccesslayer.*;
+import com.envisionad.webservice.advertisement.datamapperlayer.AdRequestMapper;
 import com.envisionad.webservice.advertisement.datamapperlayer.AdResponseMapper;
 import com.envisionad.webservice.advertisement.datamapperlayer.AdCampaignResponseMapper;
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,9 +29,10 @@ import static org.mockito.Mockito.*;
 class AdCampaignServiceUnitTest {
 
     @Mock private AdCampaignRepository adCampaignRepository;
+    @Mock private AdRequestMapper adRequestMapper;
     @Mock private AdResponseMapper adResponseMapper;
     @Mock private AdCampaignResponseMapper adCampaignResponseMapper;
-    @Mock private ReservationRepository reservationRepository;
+    @Mock private BundleSubscriptionRepository bundleSubscriptionRepository;
 
     @Mock private Cloudinary cloudinary;
     @Mock private Uploader uploader;
@@ -64,7 +67,7 @@ class AdCampaignServiceUnitTest {
         String businessId = "business-123";
         Integer expectedCount = 5;
 
-        when(reservationRepository.countActiveCampaignsByAdvertiserId(
+        when(bundleSubscriptionRepository.countDistinctCampaignsByAdvertiserBusinessIdAndStatusIn(
                 eq(businessId),
                 any()
         )).thenReturn(expectedCount);
@@ -75,8 +78,8 @@ class AdCampaignServiceUnitTest {
         // Assert
         assertEquals(expectedCount, result);
 
-        verify(reservationRepository, times(1))
-                .countActiveCampaignsByAdvertiserId(eq(businessId), any());
+        verify(bundleSubscriptionRepository, times(1))
+                .countDistinctCampaignsByAdvertiserBusinessIdAndStatusIn(eq(businessId), any());
     }
 
 
@@ -348,7 +351,7 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void deleteAdCampaign_whenNotTiedToAnyReservations_deletesSuccessfully() {
+    void deleteAdCampaign_whenNotTiedToAnyLiveSubscription_deletesSuccessfully() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-1";
@@ -360,9 +363,9 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(reservationRepository.existsUpcomingByCampaignId(
+        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
                 eq(campaignId),
-                any(LocalDateTime.class)
+                any()
         )).thenReturn(false);
 
         when(adCampaignResponseMapper.entityToResponseModel(campaign)).thenReturn(null);
@@ -376,7 +379,7 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void deleteAdCampaign_whenNotTiedToReservationsAndHasCloudinaryAds_deletesAssetsAndCampaign() throws IOException {
+    void deleteAdCampaign_whenNotTiedToSubscriptionAndHasCloudinaryAds_deletesAssetsAndCampaign() throws IOException {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-cloudinary-1";
@@ -389,9 +392,9 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaignWithAd));
 
-        when(reservationRepository.existsUpcomingByCampaignId(
+        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
                 eq(campaignId),
-                any(LocalDateTime.class)
+                any()
         )).thenReturn(false);
 
         when(uploader.destroy(anyString(), anyMap())).thenReturn(Map.of("result", "ok"));
@@ -409,7 +412,7 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void deleteAdCampaign_whenTiedToConfirmedReservation_throwsException() {
+    void deleteAdCampaign_whenTiedToActiveSubscription_throwsException() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-2";
@@ -421,19 +424,19 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(reservationRepository.existsUpcomingByCampaignId(
+        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
                 eq(campaignId),
-                any(LocalDateTime.class)
+                any()
         )).thenReturn(true);
 
         // Act & Assert
-        assertThrows(CampaignIsTiedToReservationException.class,
+        assertThrows(CampaignIsTiedToSubscriptionException.class,
             () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
         verify(adCampaignRepository, never()).delete(any());
     }
 
     @Test
-    void deleteAdCampaign_whenTiedToPendingReservation_throwsException() {
+    void deleteAdCampaign_whenTiedToPastDueSubscription_throwsException() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-3";
@@ -445,18 +448,18 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(reservationRepository.existsUpcomingByCampaignId(
+        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
                 eq(campaignId),
-                any(LocalDateTime.class)
+                any()
         )).thenReturn(true);
         // Act & Assert
-        assertThrows(CampaignIsTiedToReservationException.class,
+        assertThrows(CampaignIsTiedToSubscriptionException.class,
             () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
         verify(adCampaignRepository, never()).delete(any());
     }
 
     @Test
-    void deleteAdCampaign_whenTiedToApprovedReservation_throwsException() {
+    void deleteAdCampaign_whenTiedToSecondLiveSubscription_throwsException() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-5";
@@ -468,19 +471,19 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(reservationRepository.existsUpcomingByCampaignId(
+        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
                 eq(campaignId),
-                any(LocalDateTime.class)
+                any()
         )).thenReturn(true);
 
         // Act & Assert
-        assertThrows(CampaignIsTiedToReservationException.class,
+        assertThrows(CampaignIsTiedToSubscriptionException.class,
             () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
         verify(adCampaignRepository, never()).delete(any());
     }
 
     @Test
-    void deleteAdCampaign_whenTiedToDeniedReservation_deletesSuccessfully() {
+    void deleteAdCampaign_whenOnlyTiedToCanceledSubscription_deletesSuccessfully() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-4";
@@ -492,9 +495,9 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(reservationRepository.existsUpcomingByCampaignId(
+        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
                 eq(campaignId),
-                any(LocalDateTime.class)
+                any()
         )).thenReturn(false);
 
         when(adCampaignResponseMapper.entityToResponseModel(campaign)).thenReturn(null);
@@ -503,15 +506,22 @@ class AdCampaignServiceUnitTest {
         service.deleteAdCampaign(advertiserToken, businessId, campaignId);
 
         // Assert
-        verify(reservationRepository).existsUpcomingByCampaignId(eq(campaignId), any(LocalDateTime.class));
+        verify(bundleSubscriptionRepository).existsByCampaignIdAndStatusIn(eq(campaignId), any());
         verify(adCampaignRepository).delete(campaign);
         verify(adCampaignResponseMapper).entityToResponseModel(campaign);
     }
 
+    /**
+     * D42: adding an ad to a campaign that is running on a live bundle subscription must
+     * SUCCEED. Under weekly reservations this was blocked; under a monthly subscription the
+     * advertiser is paying continuously and has to be able to change their creative mid-cycle.
+     * Asserted explicitly so that re-introducing the guard fails the build rather than passing
+     * silently.
+     */
     @Test
-    void addAdToCampaign_whenCampaignHasUpcomingOrOngoingReservations_throwsExceptionAndDoesNotSave() {
+    void addAdToCampaign_whenCampaignHasLiveSubscription_stillAddsTheAd() {
         // Arrange
-        String campaignId = "camp-reserved-1";
+        String campaignId = "camp-subscribed-1";
 
         AdCampaign campaign = new AdCampaign();
         campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
@@ -519,43 +529,42 @@ class AdCampaignServiceUnitTest {
 
         when(adCampaignRepository.findByCampaignId_CampaignId(campaignId))
                 .thenReturn(campaign);
-
-        // Blocked because there is at least one upcoming/ongoing reservation
-        when(reservationRepository.existsUpcomingByCampaignId(
-                eq(campaignId),
-                any(LocalDateTime.class)))
-                .thenReturn(true);
+        when(adRequestMapper.requestModelToEntity(any())).thenReturn(new Ad());
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(adResponseMapper.entityToResponseModel(any())).thenReturn(null);
 
         AdRequestModel adRequestModel = mock(AdRequestModel.class);
+        when(adRequestModel.getAdType()).thenReturn("IMAGE");
 
-        // Act \& Assert
-        assertThrows(CampaignIsTiedToReservationException.class,
-                () -> service.addAdToCampaign(campaignId, adRequestModel));
+        // Act
+        service.addAdToCampaign(campaignId, adRequestModel);
 
-        // No side effects
-        verify(adCampaignRepository, never()).save(any());
+        // Assert — the ad landed, and the subscription state was never even consulted.
+        verify(adCampaignRepository).save(campaign);
+        assertEquals(1, campaign.getAds().size());
+        verify(bundleSubscriptionRepository, never()).existsByCampaignIdAndStatusIn(any(), any());
     }
 
+    /**
+     * D42, the removal side: deleting an ad from a subscribed campaign must also succeed.
+     */
     @Test
-    void deleteAdFromCampaign_whenCampaignHasUpcomingOrOngoingReservations_throwsExceptionAndDoesNotDelete() throws IOException {
+    void deleteAdFromCampaign_whenCampaignHasLiveSubscription_stillDeletesTheAd() throws IOException {
         // Arrange
-        String campaignId = "camp-reserved-2";
+        String campaignId = "camp-subscribed-2";
         CampaignAndAdId data = campaignWithSingleAd(campaignId, null);
 
         when(adCampaignRepository.findByCampaignId_CampaignId(campaignId))
                 .thenReturn(data.campaign);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(adResponseMapper.entityToResponseModel(any())).thenReturn(null);
 
-        when(reservationRepository.existsUpcomingByCampaignId(
-                eq(campaignId),
-                any(LocalDateTime.class)))
-                .thenReturn(true);
+        // Act
+        service.deleteAdFromCampaign(campaignId, data.adId);
 
-        // Act \& Assert
-        assertThrows(CampaignIsTiedToReservationException.class,
-                () -> service.deleteAdFromCampaign(campaignId, data.adId));
-
-        // No persistence or Cloudinary side effects
-        verify(adCampaignRepository, never()).save(any());
-        verify(uploader, never()).destroy(anyString(), anyMap());
+        // Assert
+        verify(adCampaignRepository).save(data.campaign);
+        assertEquals(0, data.campaign.getAds().size());
+        verify(bundleSubscriptionRepository, never()).existsByCampaignIdAndStatusIn(any(), any());
     }
 }

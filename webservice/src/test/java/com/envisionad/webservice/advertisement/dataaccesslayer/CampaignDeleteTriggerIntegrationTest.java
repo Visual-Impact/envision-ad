@@ -16,9 +16,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Behaviour of the {@code prevent_active_campaign_delete()} guard as amended by
- * V20260717_001: a campaign that is the active campaign of a live bundle subscription
- * cannot be deleted.
+ * Behaviour of the {@code prevent_active_campaign_delete()} guard: a campaign that is the
+ * active campaign of a live bundle subscription cannot be deleted.
+ *
+ * <p>Introduced by V20260717_001 alongside a reservations clause; V20260801_001 (M6) stripped
+ * that clause when the table was dropped, leaving the bundle-subscription check as the whole
+ * guard.
  *
  * <p>The function and trigger are plpgsql and so are absent from the entity-generated
  * test schema; this class installs them, mirroring the migration, and removes them
@@ -31,22 +34,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class CampaignDeleteTriggerIntegrationTest extends BaseIntegrationTest {
 
     /**
-     * Kept in sync with V20260717_001. Executed as one whole statement — the $$-quoted
-     * body contains semicolons, so splitting the migration file on ';' would produce
-     * broken fragments.
+     * Kept in sync with V20260801_001 — the single-clause version left after M6 dropped
+     * {@code reservations}. Executed as one whole statement: the $$-quoted body contains
+     * semicolons, so splitting the migration file on ';' would produce broken fragments.
+     *
+     * <p>This constant has to be updated by hand whenever the migration changes, and nothing
+     * enforces that. It is the reason the M6 drop was also verified by a real Flyway run against
+     * a throwaway Postgres — the test schema is generated from JPA entities, so a migration is
+     * invisible to it either way.
      */
     private static final String CREATE_FUNCTION = """
             CREATE OR REPLACE FUNCTION prevent_active_campaign_delete() RETURNS TRIGGER AS
             $$
             BEGIN
-                IF EXISTS (SELECT 1
-                           FROM reservations
-                           WHERE campaign_id = OLD.campaign_id
-                             AND status IN ('CONFIRMED', 'APPROVED', 'PENDING')
-                             AND end_date >= NOW()) THEN
-                    RAISE EXCEPTION 'Cannot delete campaign %: it is tied to an active reservation', OLD.campaign_id
-                        USING ERRCODE = '23514';
-                END IF;
                 IF EXISTS (SELECT 1
                            FROM bundle_subscriptions
                            WHERE campaign_id = OLD.campaign_id

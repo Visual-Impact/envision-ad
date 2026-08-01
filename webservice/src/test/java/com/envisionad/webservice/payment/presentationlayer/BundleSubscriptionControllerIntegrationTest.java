@@ -286,6 +286,157 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         assertNotNull(reloaded.getCanceledAt());
     }
 
+    // ---------- list (M6) ----------
+
+    /**
+     * The list deliberately returns every status, INCOMPLETE included: an abandoned checkout
+     * occupies the buyer's one-live-subscription slot for that bundle (D22), and the advertiser
+     * cannot clear what they cannot see.
+     */
+    @Test
+    void listSubscriptions_returnsEveryStatusForTheBusiness() {
+        givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+        Bundle second = givenBundle(true);
+        givenSubscription(second.getBundleId(), businessId, BundleSubscriptionStatus.INCOMPLETE);
+        Bundle third = givenBundle(true);
+        givenSubscription(third.getBundleId(), businessId, BundleSubscriptionStatus.CANCELED);
+
+        getSubscriptions(businessId)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(3);
+    }
+
+    @Test
+    void listSubscriptions_carriesTheBundleNameAndLockedFigures() {
+        givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+
+        getSubscriptions(businessId)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[0].bundleNameEn").isEqualTo("Full Network")
+                .jsonPath("$[0].bundleNameFr").isEqualTo("Réseau complet")
+                .jsonPath("$[0].status").isEqualTo("ACTIVE")
+                .jsonPath("$[0].monthlyAmount").isEqualTo(4.00)
+                .jsonPath("$[0].screenCount").isEqualTo(1)
+                .jsonPath("$[0].campaignId").isEqualTo(campaign.getCampaignId().getCampaignId());
+    }
+
+    /**
+     * A NULL renewal date is reachable state, not a fault: checkout.session.completed activates a
+     * row without one and only invoice.paid sets it. The endpoint must serialise the absence
+     * rather than substituting a value.
+     */
+    @Test
+    void listSubscriptions_serialisesANullRenewalDate() {
+        givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+
+        getSubscriptions(businessId)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[0].currentPeriodEnd").doesNotExist()
+                .jsonPath("$[0].cancelAtPeriodEnd").isEqualTo(false);
+    }
+
+    /** A cancelled-but-not-yet-ended subscription is ACTIVE with the flag set — the UI needs both. */
+    @Test
+    void listSubscriptions_distinguishesCancelAtPeriodEndFromPlainActive() {
+        BundleSubscription subscription =
+                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+        subscription.setCancelAtPeriodEnd(true);
+        subscriptionRepository.save(subscription);
+
+        getSubscriptions(businessId)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[0].status").isEqualTo("ACTIVE")
+                .jsonPath("$[0].cancelAtPeriodEnd").isEqualTo(true);
+    }
+
+    @Test
+    void listSubscriptions_returnsEmptyWhenTheBusinessHasNone() {
+        getSubscriptions(businessId)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(0);
+    }
+
+    @Test
+    void listSubscriptions_forAnotherBusiness_returnsForbidden() {
+        getSubscriptions(UUID.randomUUID().toString())
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void listSubscriptions_withoutAToken_isRejected() {
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(BASE_URI).queryParam("businessId", businessId).build())
+                .exchange()
+                .expectStatus().value(status -> assertTrue(status == 401 || status == 403,
+                        "anonymous callers must be rejected, got " + status));
+    }
+
+    // ---------- live campaigns for proof of display (D40) ----------
+
+    @Test
+    void liveCampaigns_returnsCampaignsRunningOnTheOwnersScreen() {
+        UUID mediaId = givenMediaOwnedBy(businessId);
+        BundleSubscription subscription =
+                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+        givenSubscriptionItem(subscription.getSubscriptionId(), mediaId);
+
+        getLiveCampaigns(mediaId.toString())
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].campaignId").isEqualTo(campaign.getCampaignId().getCampaignId());
+    }
+
+    /** PAST_DUE still counts as running — the screens keep playing until cancellation (D40). */
+    @Test
+    void liveCampaigns_includesPastDueSubscriptions() {
+        UUID mediaId = givenMediaOwnedBy(businessId);
+        BundleSubscription subscription =
+                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.PAST_DUE);
+        givenSubscriptionItem(subscription.getSubscriptionId(), mediaId);
+
+        getLiveCampaigns(mediaId.toString())
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1);
+    }
+
+    @Test
+    void liveCampaigns_excludesCanceledAndIncompleteSubscriptions() {
+        UUID mediaId = givenMediaOwnedBy(businessId);
+        BundleSubscription canceled =
+                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.CANCELED);
+        givenSubscriptionItem(canceled.getSubscriptionId(), mediaId);
+        Bundle other = givenBundle(true);
+        BundleSubscription incomplete =
+                givenSubscription(other.getBundleId(), businessId, BundleSubscriptionStatus.INCOMPLETE);
+        givenSubscriptionItem(incomplete.getSubscriptionId(), mediaId);
+
+        getLiveCampaigns(mediaId.toString())
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(0);
+    }
+
+    @Test
+    void liveCampaigns_forAScreenOwnedByAnotherBusiness_returnsForbidden() {
+        UUID mediaId = givenMediaOwnedBy(UUID.randomUUID().toString());
+
+        getLiveCampaigns(mediaId.toString())
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void liveCampaigns_forAnUnknownScreen_returnsNotFound() {
+        getLiveCampaigns(UUID.randomUUID().toString())
+                .expectStatus().isNotFound();
+    }
+
     // ---------- fixtures ----------
 
     private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec postCancel(
@@ -374,5 +525,55 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         media.setPrice(new BigDecimal(price));
         media.setBusinessId(UUID.randomUUID());
         mediaRepository.save(media);
+    }
+
+    private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec getSubscriptions(
+            String forBusinessId) {
+        return webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(BASE_URI).queryParam("businessId", forBusinessId).build())
+                .headers(headers -> headers.setBearerAuth(TOKEN))
+                .exchange();
+    }
+
+    private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec getLiveCampaigns(
+            String mediaId) {
+        return webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(BASE_URI + "/live-campaigns")
+                        .queryParam("mediaId", mediaId).build())
+                .headers(headers -> headers.setBearerAuth(TOKEN))
+                .exchange();
+    }
+
+    private UUID givenMediaOwnedBy(String ownerBusinessId) {
+        MediaLocation location = new MediaLocation();
+        location.setName("Owned location");
+        location.setCountry("Canada");
+        location.setProvince("QC");
+        location.setCity("Montreal");
+        location.setStreet("456 Owner St");
+        location.setPostalCode("H2H 2H2");
+        location.setLatitude(45.5);
+        location.setLongitude(-73.5);
+        location.setBusinessId(UUID.fromString(ownerBusinessId));
+        MediaLocation savedLocation = mediaLocationRepository.save(location);
+
+        Media media = new Media();
+        media.setMediaLocation(savedLocation);
+        media.setTitle("Owned board");
+        media.setMediaOwnerName("Owner");
+        media.setTypeOfDisplay(TypeOfDisplay.DIGITAL);
+        media.setStatus(Status.ACTIVE);
+        media.setPrice(new BigDecimal("4.00"));
+        media.setBusinessId(UUID.fromString(ownerBusinessId));
+        return mediaRepository.save(media).getId();
+    }
+
+    private void givenSubscriptionItem(String subscriptionId, UUID mediaId) {
+        BundleSubscriptionItem item = new BundleSubscriptionItem();
+        item.setSubscriptionId(subscriptionId);
+        item.setMediaId(mediaId);
+        item.setMediaOwnerBusinessId(businessId);
+        item.setMonthlyAmount(new BigDecimal("4.00"));
+        subscriptionItemRepository.save(item);
     }
 }
