@@ -55,7 +55,6 @@
       "metrics": "Métriques",
       "media": "Médias",
       "displayedAds": "Annonces affichées",
-      "adRequests": "Publicités",
       "proof": "Soumettre Une Preuve",
       "locations": "Mes emplacements"
     },
@@ -67,8 +66,8 @@
     "advertiserTitle": "Annonceur",
     "advertiser": {
       "metricOverview": "Métriques",
-      "advertisements": "Publicités",
-      "myAds": "Mes Campagnes"
+      "myAds": "Mes Campagnes",
+      "subscriptions": "Abonnements"
     },
     "adminTitle": "Admin",
     "admin": {
@@ -136,7 +135,7 @@
         "title": "Créer une campagne",
         "description": "Configurez votre première campagne publicitaire pour commencer à atteindre votre audience."
       },
-      "reservation": {
+      "subscription": {
         "title": "Faire une réservation",
         "description": "Parcourez les emplacements médias disponibles et réservez votre premier espace publicitaire."
       }
@@ -167,10 +166,10 @@
         "hint": "Définissez votre audience cible, votre budget et vos créatifs pour commencer à diffuser vos publicités.",
         "cta": "Créer une campagne"
       },
-      "reservation": {
-        "prompt": "Réservez votre premier espace publicitaire",
-        "hint": "Parcourez les emplacements disponibles et réservez celui qui correspond le mieux à vos besoins.",
-        "cta": "Parcourir les emplacements"
+      "subscription": {
+        "prompt": "Abonnez-vous à un forfait",
+        "hint": "Choisissez un forfait d'écrans et commencez à diffuser. Annulable à tout moment.",
+        "cta": "Voir les forfaits"
       }
     },
     "trackComplete": {
@@ -331,8 +330,6 @@
     "scheduleTitle": "Horaire",
     "monthsTitle": "Mois",
     "hoursTitle": "Heures",
-    "reserveButton": "Réserver",
-    "reserveNote": "Vous ne serez pas facturé maintenant.",
     "pricePerWeek": "{price} par semaine",
     "priceUnavailable": "Prix non disponible",
     "loopDurationSeconds": "{seconds} secondes",
@@ -372,7 +369,9 @@
       "error": "Erreur",
       "approveFailed": "L’approbation du média a échoué",
       "denyFailed": "Le refus du média a échoué"
-    }
+    },
+    "browseBundlesButton": "Voir les forfaits",
+    "browseBundlesNote": "Les écrans sont vendus dans le cadre d'un abonnement mensuel à un forfait."
   },
   "mediacard": {
     "perWeek": "{price} par semaine",
@@ -1005,68 +1004,6 @@
       "confirmDeny": "Refuser"
     }
   },
-  "advertiserReservations": {
-    "page": {
-      "title": "Publicités",
-      "reservationCount": {
-        "singular": "réservation",
-        "plural": "réservations"
-      }
-    },
-    "tabs": {
-      "pending": "En attente",
-      "approved": "Approuvées",
-      "confirmed": "Confirmées",
-      "denied": "Refusées"
-    },
-    "status": {
-      "pending": "En attente",
-      "approved": "Approuvée",
-      "confirmed": "Confirmée",
-      "denied": "Refusée"
-    },
-    "viewReason": "Voir la raison",
-    "denialReasonLabel": "Raison du refus",
-    "denialDetailsLabel": "Détails supplémentaires",
-    "showOriginal": "Afficher l'original",
-    "showTranslation": "Afficher la traduction",
-    "translating": "Traduction en cours...",
-    "denialReasons": {
-      "contentPolicy": "Problèmes de contenu et politique",
-      "creativeTechnical": "Problèmes créatifs / techniques",
-      "legalCompliance": "Risques juridiques et de conformité",
-      "mediaOwnerRules": "Règles propres au propriétaire média",
-      "localVenue": "Restrictions du lieu local",
-      "other": "Autre"
-    },
-    "noReservations": "Aucune réservation trouvée pour ce statut.",
-    "payButton": "Payer",
-    "payment": {
-      "title": "Compléter le paiement",
-      "reviewTitle": "Vérifier votre réservation",
-      "campaign": "Campagne",
-      "dates": "Dates",
-      "totalCost": "Coût total",
-      "cancel": "Annuler",
-      "proceedToPay": "Procéder au paiement",
-      "errorTitle": "Erreur de paiement",
-      "initFailed": "Échec de l'initialisation du paiement. Veuillez réessayer.",
-      "missingKey": "Erreur de configuration du paiement. Veuillez contacter le support.",
-      "successTitle": "Paiement réussi !",
-      "successMessage": "Votre paiement a été traité avec succès. La réservation est maintenant confirmée.",
-      "done": "Terminé"
-    },
-    "notifications": {
-      "loadFailed": {
-        "title": "Erreur",
-        "message": "Échec du chargement des réservations"
-      },
-      "paymentSuccess": {
-        "title": "Paiement terminé",
-        "message": "Votre réservation a été confirmée avec succès"
-      }
-    }
-  },
   "adCampaigns": {
     "page": {
       "title": "Mes campagnes",
@@ -1286,54 +1223,6 @@
         "saveFailed": "Échec de l’enregistrement de la galerie. Veuillez réessayer.",
         "removeFailed": "Impossible de supprimer l’image. Veuillez réessayer."
       }
-    }
-  },
-  "reserveModal": {
-    "title": "Réserver : {title}",
-    "reservation": "Réservation",
-    "dates": "Sélectionner des dates",
-    "checkout": "Vérification",
-    "payment": "Paiement",
-    "selectCampaign": "Sélectionner une campagne",
-    "chooseCampaign": "Choisissez une de vos campagnes",
-    "selectStartDateNote": "Sélectionnez une date de début. Les dates de fin sont limitées aux mêmes jours de la semaine.",
-    "endDateWeekday": "La date de fin doit être le même jour de la semaine que la date de début.",
-    "processingPayment": "Traitement de votre paiement...",
-    "pleaseWait": "Veuillez patienter pendant que nous finalisons votre réservation",
-    "errors": {
-      "selectCampaign": "Veuillez sélectionner une campagne pour continuer",
-      "selectDate": "Veuillez sélectionner une date de début et de fin valides",
-      "missingPaymentInfo": "Informations de paiement requises manquantes",
-      "reservationFailed": "Échec de la réservation. Veuillez réessayer plus tard.",
-      "paymentRequired": "Le paiement doit être complété en premier",
-      "reservationConflict": "Une réservation pour {campaignName} existe déjà durant cette période ({startDate} - {endDate}). Choisissez d'autres dates."
-    },
-    "errorTitle": "Erreur de réservation",
-    "missingPermissionErrorMessage": "Permission manquante pour réserver ce média.",
-    "campaignNotFoundErrorMessage": "Campagne introuvable.",
-    "mediaIdMissing": "L'identifiant du média est manquant.",
-    "successTitle": "Réservation réussie !",
-    "successMessage": "Réservation confirmée !",
-    "successMessageLong": "Votre créneau publicitaire a été réservé avec succès. Vous pouvez le consulter dans votre calendrier.",
-    "duplicateTitle": "Doublon",
-    "duplicateMessage": "Réservé déjà pour ces dates.",
-    "failedReserve": "Échec de la réservation.",
-    "networkError": "Erreur réseau.",
-    "doneButton": "Terminé",
-    "cancelButton": "Annuler",
-    "backButton": "Retour",
-    "nextStepButton": "Étape suivante",
-    "confirmPayButton": "Confirmer & Payer",
-    "reviewTitle": "Vérifier la réservation",
-    "confirmButton": "Confirmer la réservation",
-    "dateSelection": {
-      "selected": "Sélectionné : {start} à {end} ({weeks, plural, one {# semaine} other {# semaines}})"
-    },
-    "labels": {
-      "media": "Média",
-      "campaign": "Campagne",
-      "dates": "Dates",
-      "totalCost": "Coût total"
     }
   },
   "paymentForm": {
@@ -1861,5 +1750,41 @@
   "privacyPage": {
     "title": "Politique de confidentialité",
     "placeholder": "Notre politique de confidentialité est en cours de finalisation et sera publiée ici prochainement. En attendant, si vous avez des questions sur la gestion de vos données, veuillez nous contacter."
+  },
+  "bundleSubscriptions": {
+    "page": {
+      "title": "Mes abonnements",
+      "subtitle": "Les forfaits auxquels vous êtes abonné, leur coût et leur date de renouvellement.",
+      "empty": "Vous n'avez encore aucun abonnement à un forfait.",
+      "emptyCta": "Voir les forfaits",
+      "loadError": "Impossible de charger vos abonnements.",
+      "screens": "{count, plural, =1 {# écran} other {# écrans}}",
+      "perMonth": "/mois",
+      "renewsOn": "Renouvellement le {date}",
+      "endsOn": "Accès jusqu'au {date}",
+      "renewalUnknown": "Date de renouvellement pas encore définie",
+      "campaign": "Campagne : {name}",
+      "campaignUnknown": "Campagne indisponible",
+      "bundleUnavailable": "Forfait n'est plus disponible",
+      "cancel": "Annuler l'abonnement",
+      "cancelling": "Annulation…",
+      "cancelSuccess": "L'abonnement prendra fin à la clôture de la période de facturation en cours.",
+      "cancelError": "Impossible d'annuler l'abonnement. Veuillez réessayer.",
+      "confirmTitle": "Annuler cet abonnement ?",
+      "confirmBody": "Vos publicités restent diffusées jusqu'à la fin de la période déjà payée. Aucun remboursement n'est effectué et l'abonnement ne sera pas renouvelé.",
+      "confirmAction": "Oui, annuler",
+      "confirmDismiss": "Conserver"
+    },
+    "status": {
+      "ACTIVE": "Actif",
+      "PAST_DUE": "Paiement échoué",
+      "CANCELED": "Annulé",
+      "INCOMPLETE": "Paiement non finalisé",
+      "cancelAtPeriodEnd": "Prend fin à la période"
+    },
+    "statusHint": {
+      "PAST_DUE": "Nous n'avons pas pu prélever le dernier paiement. Mettez votre carte à jour dans Stripe pour conserver ce forfait.",
+      "INCOMPLETE": "Vous avez commencé ce paiement sans le finaliser. Il empêche un nouvel abonnement au même forfait tant qu'il n'est pas annulé."
+    }
   }
 }

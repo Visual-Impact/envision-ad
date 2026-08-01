@@ -10,7 +10,7 @@ import {
     IconDiscountCheck,
     IconChartDots,
     IconFileDescription,
-    IconSpeakerphone,
+    IconRepeat,
     IconTag,
     IconStack2,
     IconSettings,
@@ -82,15 +82,6 @@ export default function SideBar() {
                 active={!!pathname?.endsWith("/media-owner/proof")}
             />
         ),
-        permissions.includes("update:reservation") && (
-            <SideBarLink
-                key="advertisements"
-                href="/dashboard/media-owner/advertisements"
-                label={t("media-owner.adRequests")}
-                icon={IconSpeakerphone}
-                active={!!pathname?.includes("/dashboard/media-owner/advertisements")}
-            />
-        ),
     ].filter(Boolean) : [];
 
     const advertiserNavItems = organization?.roles?.advertiser ? [
@@ -112,13 +103,16 @@ export default function SideBar() {
                 active={!!pathname?.endsWith("/advertiser/campaigns")}
             />
         ),
-        permissions.includes("readAll:reservation") && (
+        // Gated on read:campaign rather than a new Auth0 permission — it is already the
+        // advertiser-role marker, and D21 established that this flow should not be made
+        // hostage to a tenant change.
+        permissions.includes("read:campaign") && (
             <SideBarLink
-                key="advertisements"
-                href="/dashboard/advertiser/advertisements"
-                label={t("advertiser.advertisements")}
-                icon={IconSpeakerphone}
-                active={!!pathname?.endsWith("/advertiser/advertisements")}
+                key="subscriptions"
+                href="/dashboard/advertiser/subscriptions"
+                label={t("advertiser.subscriptions")}
+                icon={IconRepeat}
+                active={!!pathname?.endsWith("/advertiser/subscriptions")}
             />
         ),
     ].filter(Boolean) : [];

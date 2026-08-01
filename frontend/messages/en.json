@@ -55,7 +55,6 @@
       "metrics": "Metrics",
       "media": "Media",
       "displayedAds": "Displayed Ads",
-      "adRequests": "Advertisements",
       "proof": "Submit Proof",
       "locations": "My Locations"
     },
@@ -67,8 +66,8 @@
     "advertiserTitle": "Advertiser",
     "advertiser": {
       "metricOverview": "Metrics",
-      "advertisements": "Advertisements",
-      "myAds": "My Campaigns"
+      "myAds": "My Campaigns",
+      "subscriptions": "Subscriptions"
     },
     "adminTitle": "Admin",
     "admin": {
@@ -136,7 +135,7 @@
         "title": "Create a campaign",
         "description": "Set up your first advertising campaign to start reaching your audience."
       },
-      "reservation": {
+      "subscription": {
         "title": "Make a reservation",
         "description": "Browse available media locations and book your first ad slot."
       }
@@ -167,10 +166,10 @@
         "hint": "Define your target audience, budget, and creative to start advertising on the platform.",
         "cta": "Create campaign"
       },
-      "reservation": {
-        "prompt": "Book your first ad slot",
-        "hint": "Browse available media locations and reserve the one that best fits your campaign needs.",
-        "cta": "Browse locations"
+      "subscription": {
+        "prompt": "Subscribe to a bundle",
+        "hint": "Pick a bundle of screens and start advertising. Cancel any time.",
+        "cta": "Browse bundles"
       }
     },
     "trackComplete": {
@@ -330,8 +329,6 @@
     "scheduleTitle": "Schedule",
     "monthsTitle": "Months",
     "hoursTitle": "Hours",
-    "reserveButton": "Reserve",
-    "reserveNote": "You won’t be charged yet.",
     "pricePerWeek": "{price} per week",
     "priceUnavailable": "Price not available",
     "loopDurationSeconds": "{seconds} seconds",
@@ -371,7 +368,9 @@
       "error": "Error",
       "approveFailed": "Media approval has failed",
       "denyFailed": "Media deny has failed"
-    }
+    },
+    "browseBundlesButton": "Browse bundles",
+    "browseBundlesNote": "Screens are sold as part of a monthly bundle subscription."
   },
   "mediacard": {
     "perWeek": "{price} per week",
@@ -965,68 +964,6 @@
       "confirmDeny": "Deny"
     }
   },
-  "advertiserReservations": {
-    "page": {
-      "title": "Advertisements",
-      "reservationCount": {
-        "singular": "reservation",
-        "plural": "reservations"
-      }
-    },
-    "tabs": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "confirmed": "Confirmed",
-      "denied": "Denied"
-    },
-    "status": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "confirmed": "Confirmed",
-      "denied": "Denied"
-    },
-    "viewReason": "View Reason",
-    "denialReasonLabel": "Reason for Denial",
-    "denialDetailsLabel": "Additional Details",
-    "showOriginal": "Show Original",
-    "showTranslation": "Show Translation",
-    "translating": "Translating...",
-    "denialReasons": {
-      "contentPolicy": "Content & Policy Issues",
-      "creativeTechnical": "Creative / Technical Problems",
-      "legalCompliance": "Legal & Compliance Risk",
-      "mediaOwnerRules": "Media Owner's Own Rules",
-      "localVenue": "Local Venue Restrictions",
-      "other": "Other"
-    },
-    "noReservations": "No reservations found for this status.",
-    "payButton": "Pay",
-    "payment": {
-      "title": "Complete Payment",
-      "reviewTitle": "Review Your Reservation",
-      "campaign": "Campaign",
-      "dates": "Dates",
-      "totalCost": "Total Cost",
-      "cancel": "Cancel",
-      "proceedToPay": "Proceed to Payment",
-      "errorTitle": "Payment Error",
-      "initFailed": "Failed to initialize payment. Please try again.",
-      "missingKey": "Payment configuration error. Please contact support.",
-      "successTitle": "Payment Successful!",
-      "successMessage": "Your payment has been processed successfully. The reservation is now confirmed.",
-      "done": "Done"
-    },
-    "notifications": {
-      "loadFailed": {
-        "title": "Error",
-        "message": "Failed to load reservations"
-      },
-      "paymentSuccess": {
-        "title": "Payment Complete",
-        "message": "Your reservation has been confirmed successfully"
-      }
-    }
-  },
   "adCampaigns": {
     "page": {
       "title": "My Campaigns",
@@ -1286,54 +1223,6 @@
         "saveFailed": "Failed to save gallery. Please try again.",
         "removeFailed": "Could not delete the image. Please try again."
       }
-    }
-  },
-  "reserveModal": {
-    "title": "Reserve: {title}",
-    "reservation": "Reservation",
-    "dates": "Select dates",
-    "checkout": "Checkout",
-    "payment": "Payment",
-    "selectCampaign": "Select Campaign",
-    "chooseCampaign": "Choose one of your campaigns",
-    "selectStartDateNote": "Select a Start Date. End dates are restricted to weekly intervals.",
-    "endDateWeekday": "End date must be on the same weekday as start date.",
-    "processingPayment": "Processing your payment...",
-    "pleaseWait": "Please wait while we complete your reservation",
-    "errors": {
-      "selectCampaign": "Please select a campaign to proceed",
-      "selectDate": "Please select a valid start and end date",
-      "missingPaymentInfo": "Missing required payment information",
-      "reservationFailed": "Reservation failed. Please try again later.",
-      "paymentRequired": "Payment must be completed first",
-      "reservationConflict": "A reservation for {campaignName} already exists during this period ({startDate} - {endDate}). Please choose different dates."
-    },
-    "errorTitle": "Error",
-    "mediaIdMissing": "Media ID is missing",
-    "missingPermissionErrorMessage": "You do not have permission to create reservations for this campaign",
-    "campaignNotFoundErrorMessage": "Media or campaign not found",
-    "successTitle": "Reservation Successful!",
-    "successMessage": "Reservation Confirmed!",
-    "successMessageLong": "Your ad slot has been successfully booked. You can view it in your dashboard schedule.",
-    "duplicateTitle": "Duplicate",
-    "duplicateMessage": "Already reserved for these dates.",
-    "failedReserve": "Failed to reserve.",
-    "networkError": "Network error occurred.",
-    "doneButton": "Done",
-    "cancelButton": "Cancel",
-    "backButton": "Back",
-    "nextStepButton": "Next step",
-    "confirmPayButton": "Confirm & Pay",
-    "reviewTitle": "Review Reservation",
-    "confirmButton": "Confirm Reservation",
-    "dateSelection": {
-      "selected": "Selected: {start} to {end} ({weeks} weeks)"
-    },
-    "labels": {
-      "media": "Media",
-      "campaign": "Campaign",
-      "dates": "Dates",
-      "totalCost": "Total Cost"
     }
   },
   "paymentForm": {
@@ -1860,5 +1749,41 @@
   "privacyPage": {
     "title": "Privacy Policy",
     "placeholder": "Our privacy policy is being finalized and will be published here soon. In the meantime, if you have any questions about how we handle your data, please contact us."
+  },
+  "bundleSubscriptions": {
+    "page": {
+      "title": "My subscriptions",
+      "subtitle": "Bundles you subscribe to, what they cost, and when they renew.",
+      "empty": "You have no bundle subscriptions yet.",
+      "emptyCta": "Browse bundles",
+      "loadError": "Could not load your subscriptions.",
+      "screens": "{count, plural, =1 {# screen} other {# screens}}",
+      "perMonth": "/month",
+      "renewsOn": "Renews on {date}",
+      "endsOn": "Access ends on {date}",
+      "renewalUnknown": "Renewal date not set yet",
+      "campaign": "Campaign: {name}",
+      "campaignUnknown": "Campaign unavailable",
+      "bundleUnavailable": "Bundle no longer available",
+      "cancel": "Cancel subscription",
+      "cancelling": "Cancelling…",
+      "cancelSuccess": "Subscription will end at the close of the current billing period.",
+      "cancelError": "Could not cancel the subscription. Please try again.",
+      "confirmTitle": "Cancel this subscription?",
+      "confirmBody": "Your ads keep running until the end of the period you have already paid for. Nothing is refunded, and the subscription will not renew.",
+      "confirmAction": "Yes, cancel it",
+      "confirmDismiss": "Keep it"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "PAST_DUE": "Payment failed",
+      "CANCELED": "Cancelled",
+      "INCOMPLETE": "Checkout not finished",
+      "cancelAtPeriodEnd": "Cancels at period end"
+    },
+    "statusHint": {
+      "PAST_DUE": "We could not take the last payment. Update your card in Stripe to keep this bundle running.",
+      "INCOMPLETE": "You started this checkout but never completed payment. It blocks a new subscription to the same bundle until you cancel it."
+    }
   }
 }

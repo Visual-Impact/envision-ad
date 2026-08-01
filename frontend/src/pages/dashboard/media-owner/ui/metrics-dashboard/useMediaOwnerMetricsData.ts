@@ -3,91 +3,52 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAllMediaLocations } from "@/features/media-location-management/api/getAllMediaLocations";
 import { getPaymentsDashboardData } from "@/features/payment";
-import { getAllReservationByMediaOwnerBusinessId } from "@/features/reservation-management/api";
 import type { MediaLocation } from "@/entities/media-location/model/mediaLocation";
 import {
-    type EarningsTrendPoint,
     type MetricsKpi,
     type PayoutHistoryRow,
 } from "@/pages/dashboard/media-owner/model/mockMetrics";
 import type {
     DateRangeMap,
     OverviewPeriod,
-    ReservationResponseDTO,
 } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/types";
 import {
-    applyActiveCampaignCountToKpis,
-    buildEarningsTrendByCreatedAt,
     buildEarningsDashboardData,
     buildEarningsKpis,
 } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/earnings-utils";
-import { buildOverviewMetricsData } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/overview-utils";
 import { buildPaginationInfo } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/pagination-utils";
 import { mapPayoutsToRows } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/payout-utils";
 import { useOrganization } from "@/app/providers";
-import { buildMediaScreensTimelineData } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/reservation-utils";
 
 const PAYOUTS_PER_PAGE = 10;
-const REVENUE_BY_MEDIA_PER_PAGE = 5;
-const ACTIVE_CAMPAIGN_DETAILS_PER_PAGE = 3;
 
+/**
+ * Media-owner metrics.
+ *
+ * P1 M6 (decision D41) narrowed this to what a bundle subscription can actually answer. The
+ * reservation-derived sections — the screens-booked timeline, revenue by location, revenue by
+ * media location, and active-campaign details — were all keyed on a per-reservation
+ * `startDate`/`endDate` and a single `mediaId`. A subscription has no date range and spans many
+ * screens at once, and the per-screen split lives in `bundle_subscription_items`, which no
+ * endpoint exposes for a media owner. Rebuilding those charts on that data is tracked for M7.
+ *
+ * What survives is sourced from real money movement: earnings KPIs and payout history come from
+ * the backend dashboard endpoint, which M6 re-pointed at the `bundle_payouts` ledger.
+ */
 export function useMediaOwnerMetricsData() {
     const [overviewPeriod, setOverviewPeriodState] = useState<OverviewPeriod>("weekly");
     const [dateRange, setDateRangeState] = useState<DateRangeMap>([null, null]);
     const [mediaLocations, setMediaLocations] = useState<MediaLocation[]>([]);
     const [selectedMediaLocationId, setSelectedMediaLocationId] = useState<string | null>(null);
-    const [revenueByMediaLocationPage, setRevenueByMediaLocationPage] = useState(1);
     const { organization } = useOrganization();
-    const [mediaOwnerReservations, setMediaOwnerReservations] = useState<ReservationResponseDTO[]>([]);
-    const [earningsKpis, setEarningsKpis] = useState<MetricsKpi[]>(() => buildEarningsKpis([], 0));
+    const [kpis, setKpis] = useState<MetricsKpi[]>(() => buildEarningsKpis([], 0));
 
-    const [activeCampaignDetailsPage, setActiveCampaignDetailsPage] = useState(1);
     const [payoutHistoryRows, setPayoutHistoryRows] = useState<PayoutHistoryRow[]>([]);
     const [payoutPage, setPayoutPage] = useState(1);
-
-    const overviewMetricsData = useMemo(
-        () => buildOverviewMetricsData(mediaOwnerReservations, mediaLocations, overviewPeriod, dateRange),
-        [mediaOwnerReservations, mediaLocations, overviewPeriod, dateRange]
-    );
-
-    const kpis = useMemo(
-        () => applyActiveCampaignCountToKpis(earningsKpis, overviewMetricsData.activeCampaignCount),
-        [earningsKpis, overviewMetricsData.activeCampaignCount]
-    );
-
-    const earningsTrend = useMemo<EarningsTrendPoint[]>(
-        () => buildEarningsTrendByCreatedAt(mediaOwnerReservations, overviewPeriod, dateRange, mediaLocations),
-        [mediaOwnerReservations, overviewPeriod, dateRange, mediaLocations]
-    );
-
-    const mediaScreensTimelineData = useMemo(() => {
-        const location = mediaLocations.find((loc) => loc.id === selectedMediaLocationId);
-        return buildMediaScreensTimelineData(
-            mediaOwnerReservations,
-            location,
-            overviewPeriod,
-            dateRange
-        );
-    }, [mediaOwnerReservations, mediaLocations, selectedMediaLocationId, overviewPeriod, dateRange]);
 
     const payoutPagination = useMemo(
         () => buildPaginationInfo({ rows: payoutHistoryRows, page: payoutPage, rowsPerPage: PAYOUTS_PER_PAGE }),
         [payoutHistoryRows, payoutPage]
-    );
-
-    const revenueByMediaLocationPagination = useMemo(
-        () =>
-            buildPaginationInfo({
-                rows: overviewMetricsData.revenueByMediaLocation,
-                page: revenueByMediaLocationPage,
-                rowsPerPage: REVENUE_BY_MEDIA_PER_PAGE,
-            }),
-        [overviewMetricsData.revenueByMediaLocation, revenueByMediaLocationPage]
-    );
-
-    const activeCampaignDetailsPagination = useMemo(
-        () => buildPaginationInfo({ rows: overviewMetricsData.activeCampaignDetails, page: activeCampaignDetailsPage, rowsPerPage: ACTIVE_CAMPAIGN_DETAILS_PER_PAGE }),
-        [overviewMetricsData.activeCampaignDetails, activeCampaignDetailsPage]
     );
 
     useEffect(() => {
@@ -99,10 +60,9 @@ export function useMediaOwnerMetricsData() {
             try {
                 if (!organization?.businessId) return;
 
-                const [dashboardDataResult, reservationsResult, locationsResult] =
+                const [dashboardDataResult, locationsResult] =
                     await Promise.allSettled([
                         getPaymentsDashboardData(organization.businessId, "monthly"),
-                        getAllReservationByMediaOwnerBusinessId(organization.businessId),
                         getAllMediaLocations(organization.businessId)
                     ]);
 
@@ -112,30 +72,14 @@ export function useMediaOwnerMetricsData() {
                     const payouts = Array.isArray(dashboardDataResult.value.payouts)
                         ? dashboardDataResult.value.payouts : [];
                     const earningsDashboardData = buildEarningsDashboardData(payouts, 0);
-                    setEarningsKpis(earningsDashboardData.kpis);
+                    setKpis(earningsDashboardData.kpis);
                     setPayoutHistoryRows(mapPayoutsToRows(payouts));
                     setPayoutPage(1);
                 } else {
                     console.error("Failed to load payout history", dashboardDataResult.reason);
-                    setEarningsKpis(buildEarningsKpis([], 0));
+                    setKpis(buildEarningsKpis([], 0));
                     setPayoutHistoryRows([]);
                     setPayoutPage(1);
-                }
-
-                if (reservationsResult.status === "fulfilled") {
-                    setMediaOwnerReservations(Array.isArray(reservationsResult.value) ? reservationsResult.value : []);
-                    setMediaOwnerReservations(
-                        Array.isArray(reservationsResult.value)
-                            ? reservationsResult.value
-                            : []
-                    );
-                    setRevenueByMediaLocationPage(1);
-                    setActiveCampaignDetailsPage(1);
-                } else {
-                    console.error("Failed to load media owner reservations", reservationsResult.reason);
-                    setMediaOwnerReservations([]);
-                    setRevenueByMediaLocationPage(1);
-                    setActiveCampaignDetailsPage(1);
                 }
 
                 if (locationsResult.status === "fulfilled") {
@@ -151,12 +95,9 @@ export function useMediaOwnerMetricsData() {
             } catch (error) {
                 if (!isCancelled) {
                     console.error("Failed to load media owner metrics", error);
-                    setEarningsKpis(buildEarningsKpis([], 0));
+                    setKpis(buildEarningsKpis([], 0));
                     setPayoutHistoryRows([]);
-                    setMediaOwnerReservations([]);
                     setMediaLocations([]);
-                    setRevenueByMediaLocationPage(1);
-                    setActiveCampaignDetailsPage(1);
                     setPayoutPage(1);
                 }
             }
@@ -170,15 +111,11 @@ export function useMediaOwnerMetricsData() {
     const setOverviewPeriod = (period: OverviewPeriod) => {
         setOverviewPeriodState(period);
         setPayoutPage(1);
-        setRevenueByMediaLocationPage(1);
-        setActiveCampaignDetailsPage(1);
     };
 
     const setDateRange = (range: DateRangeMap) => {
         setDateRangeState(range);
         setPayoutPage(1);
-        setRevenueByMediaLocationPage(1);
-        setActiveCampaignDetailsPage(1);
     };
 
     return {
@@ -187,25 +124,12 @@ export function useMediaOwnerMetricsData() {
         dateRange,
         setDateRange,
         kpis,
-        earningsTrend,
-        overviewMetricsData,
         payoutHistoryRows: payoutPagination.rows,
         payoutPage: payoutPagination.currentPage,
         payoutTotalPages: payoutPagination.totalPages,
         setPayoutPage,
-        revenueByMediaLocationRows: revenueByMediaLocationPagination.rows,
-        revenueByMediaLocationPage: revenueByMediaLocationPagination.currentPage,
-        revenueByMediaLocationTotalPages: revenueByMediaLocationPagination.totalPages,
-        revenueByMediaLocationRowsPerPage: REVENUE_BY_MEDIA_PER_PAGE,
-        setRevenueByMediaLocationPage,
-        activeCampaignDetailsRows: activeCampaignDetailsPagination.rows,
-        activeCampaignDetailsPage: activeCampaignDetailsPagination.currentPage,
-        activeCampaignDetailsTotalPages: activeCampaignDetailsPagination.totalPages,
-        activeCampaignDetailsRowsPerPage: ACTIVE_CAMPAIGN_DETAILS_PER_PAGE,
-        setActiveCampaignDetailsPage,
         selectedMediaLocationId,
         setSelectedMediaLocationId,
-        mediaScreensTimelineData,
         mediaLocations,
     };
 }
