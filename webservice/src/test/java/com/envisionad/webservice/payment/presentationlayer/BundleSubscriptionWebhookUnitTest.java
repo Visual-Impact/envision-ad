@@ -1,16 +1,9 @@
 package com.envisionad.webservice.payment.presentationlayer;
 
-import com.envisionad.webservice.advertisement.businesslogiclayer.AdCampaignService;
-import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaignRepository;
-import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
-import com.envisionad.webservice.config.Auth0Service;
-import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.payment.businesslogiclayer.BundlePayoutService;
 import com.envisionad.webservice.payment.businesslogiclayer.StripeWebhookService;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotLinkedException;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
-import com.envisionad.webservice.utils.EmailService;
 import com.stripe.model.*;
 import com.stripe.model.checkout.Session;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,23 +45,14 @@ class BundleSubscriptionWebhookUnitTest {
 
     private StripeWebhookService service;
 
-    @Mock private PaymentIntentRepository paymentIntentRepository;
-    @Mock private ReservationRepository reservationRepository;
-    @Mock private EmailService emailService;
-    @Mock private EmployeeRepository employeeRepository;
-    @Mock private MediaRepository mediaRepository;
-    @Mock private AdCampaignRepository adCampaignRepository;
-    @Mock private AdCampaignService adCampaignService;
     @Mock private StripeAccountRepository stripeAccountRepository;
-    @Mock private Auth0Service auth0Service;
     @Mock private BundleSubscriptionRepository bundleSubscriptionRepository;
     @Mock private BundlePayoutService bundlePayoutService;
 
     @BeforeEach
     void setUp() {
-        service = new StripeWebhookService(paymentIntentRepository, reservationRepository, emailService,
-                employeeRepository, mediaRepository, adCampaignRepository, adCampaignService,
-                stripeAccountRepository, auth0Service, bundleSubscriptionRepository, bundlePayoutService);
+        service = new StripeWebhookService(
+                stripeAccountRepository, bundleSubscriptionRepository, bundlePayoutService);
     }
 
     // --- checkout.session.completed (mode=subscription) ---------------------
@@ -86,17 +70,24 @@ class BundleSubscriptionWebhookUnitTest {
         assertEquals(BundleSubscriptionStatus.ACTIVE, saved.getStatus());
     }
 
-    /** Legacy one-time reservation checkouts must keep flowing to the old handler. */
+    /**
+     * A replayed pre-M6 {@code mode=payment} checkout must be ignored outright.
+     * <p>
+     * The one-time reservation payment flow is gone, but the Stripe account still holds its
+     * historical events and they can be resent. Falling through to the subscription handler
+     * would fail to resolve the session and throw, which tells Stripe to retry an event that
+     * can never succeed — so the handler must no-op instead.
+     */
     @Test
-    void whenPaymentModeCheckoutCompletes_thenBundleHandlingIsNotInvoked() {
+    void whenLegacyPaymentModeCheckoutIsReplayed_thenItIsIgnoredEntirely() {
         Session session = new Session();
         session.setId(SESSION_ID);
         session.setMode("payment");
-        when(paymentIntentRepository.findByStripeSessionId(SESSION_ID)).thenReturn(Optional.empty());
 
         service.handleCheckoutSessionCompleted(eventOf(session));
 
         verifyNoInteractions(bundleSubscriptionRepository);
+        verifyNoInteractions(bundlePayoutService);
     }
 
     @Test

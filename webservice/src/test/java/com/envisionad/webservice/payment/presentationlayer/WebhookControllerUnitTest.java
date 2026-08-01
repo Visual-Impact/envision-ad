@@ -62,57 +62,6 @@ class WebhookControllerUnitTest {
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals("Webhook handled", response.getBody());
             verify(webhookService, times(1)).handleCheckoutSessionCompleted(mockEvent);
-            verify(webhookService, never()).handlePaymentIntentSucceeded(any());
-            verify(webhookService, never()).handlePaymentIntentFailed(any());
-        }
-    }
-
-    @Test
-    void handleStripeWebhook_shouldProcessPaymentIntentSucceeded() {
-        // Given
-        String payload = "{\"type\":\"payment_intent.succeeded\"}";
-        Event mockEvent = mock(Event.class);
-        when(mockEvent.getType()).thenReturn("payment_intent.succeeded");
-
-        try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
-                    .thenReturn(mockEvent);
-
-            doNothing().when(webhookService).handlePaymentIntentSucceeded(mockEvent);
-
-            // When
-            ResponseEntity<String> response = webhookController.handleStripeWebhook(payload, VALID_SIGNATURE);
-
-            // Then
-            assertNotNull(response);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals("Webhook handled", response.getBody());
-            verify(webhookService, times(1)).handlePaymentIntentSucceeded(mockEvent);
-            verify(webhookService, never()).handleCheckoutSessionCompleted(any());
-        }
-    }
-
-    @Test
-    void handleStripeWebhook_shouldProcessPaymentIntentFailed() {
-        // Given
-        String payload = "{\"type\":\"payment_intent.payment_failed\"}";
-        Event mockEvent = mock(Event.class);
-        when(mockEvent.getType()).thenReturn("payment_intent.payment_failed");
-
-        try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
-                    .thenReturn(mockEvent);
-
-            doNothing().when(webhookService).handlePaymentIntentFailed(mockEvent);
-
-            // When
-            ResponseEntity<String> response = webhookController.handleStripeWebhook(payload, VALID_SIGNATURE);
-
-            // Then
-            assertNotNull(response);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals("Webhook handled", response.getBody());
-            verify(webhookService, times(1)).handlePaymentIntentFailed(mockEvent);
         }
     }
 
@@ -135,8 +84,6 @@ class WebhookControllerUnitTest {
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals("Webhook handled", response.getBody());
             verify(webhookService, never()).handleCheckoutSessionCompleted(any());
-            verify(webhookService, never()).handlePaymentIntentSucceeded(any());
-            verify(webhookService, never()).handlePaymentIntentFailed(any());
         }
     }
 
@@ -188,16 +135,16 @@ class WebhookControllerUnitTest {
     @Test
     void handleStripeWebhook_shouldHandleNullPointerException() {
         // Given
-        String payload = "{\"type\":\"payment_intent.succeeded\"}";
+        String payload = "{\"type\":\"invoice.paid\"}";
         Event mockEvent = mock(Event.class);
-        when(mockEvent.getType()).thenReturn("payment_intent.succeeded");
+        when(mockEvent.getType()).thenReturn("invoice.paid");
 
         try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
             webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
                     .thenReturn(mockEvent);
 
-            doThrow(new NullPointerException("Payment intent not found"))
-                    .when(webhookService).handlePaymentIntentSucceeded(mockEvent);
+            doThrow(new NullPointerException("Subscription not found"))
+                    .when(webhookService).handleInvoicePaid(mockEvent);
 
             // When
             ResponseEntity<String> response = webhookController.handleStripeWebhook(payload, VALID_SIGNATURE);

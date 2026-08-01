@@ -66,14 +66,6 @@ public class WebhookController {
                     webhookService.handleSubscriptionUpdated(event);
                     break;
 
-                case "payment_intent.succeeded":
-                    webhookService.handlePaymentIntentSucceeded(event);
-                    break;
-
-                case "payment_intent.payment_failed":
-                    webhookService.handlePaymentIntentFailed(event);
-                    break;
-
                 case "account.updated":
                     webhookService.handleAccountUpdated(event);
                     break;

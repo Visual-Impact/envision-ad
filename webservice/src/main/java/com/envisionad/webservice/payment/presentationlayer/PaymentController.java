@@ -1,7 +1,6 @@
 package com.envisionad.webservice.payment.presentationlayer;
 
 import com.envisionad.webservice.payment.businesslogiclayer.StripeService;
-import com.envisionad.webservice.payment.presentationlayer.models.PaymentIntentRequestModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -35,22 +34,9 @@ public class PaymentController {
         return ResponseEntity.ok(resp);
     }
 
-    @PostMapping("/create-payment-intent")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, String>> createCheckoutSession(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestBody PaymentIntentRequestModel request) throws Exception {
-
-        Map<String, String> result = stripeService.createAuthorizedCheckoutSession(
-                jwt,
-                request.getCampaignId(),
-                request.getMediaId(),
-                request.getReservationId(),
-                request.getStartDate(),
-                request.getEndDate());
-
-        return ResponseEntity.ok(result);
-    }
+    // POST /create-payment-intent was removed in P1 M6 (brief req. 18). It opened a one-time,
+    // single-owner Stripe Checkout session for a weekly reservation; bundles are sold only as
+    // monthly subscriptions now, via POST /api/v1/bundle-subscriptions.
 
     @GetMapping("/dashboard")
     @PreAuthorize("isAuthenticated()")

@@ -9,7 +9,6 @@ import com.envisionad.webservice.business.exceptions.*;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
-import com.envisionad.webservice.reservation.exceptions.*;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.proofofdisplay.exceptions.AdvertiserEmailNotFoundException;
+import com.envisionad.webservice.proofofdisplay.exceptions.MediaNotInActiveSubscriptionException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import static org.springframework.http.HttpStatus.*;
@@ -90,18 +90,6 @@ public class GlobalControllerHandler {
     }
 
     @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler(BadReservationRequestException.class)
-    public HttpErrorInfo handleInvalidReservationException(BadReservationRequestException ex) {
-        return createHttpErrorInfo(BAD_REQUEST, ex);
-    }
-
-    @ResponseStatus(BAD_REQUEST)
-    @ExceptionHandler(InsufficientLoopDurationException.class)
-    public HttpErrorInfo handleInsufficientLoopDurationException(InsufficientLoopDurationException ex) {
-        return createHttpErrorInfo(BAD_REQUEST, ex);
-    }
-
-    @ResponseStatus(BAD_REQUEST)
     @ExceptionHandler(IllegalArgumentException.class)
     public HttpErrorInfo handleIllegalArgumentException(IllegalArgumentException ex) {
         return createHttpErrorInfo(BAD_REQUEST, ex);
@@ -134,12 +122,6 @@ public class GlobalControllerHandler {
     @ResponseStatus(NOT_FOUND)
     @ExceptionHandler(MediaNotFoundException.class)
     public HttpErrorInfo handleMediaNotFoundException(MediaNotFoundException ex) {
-        return createHttpErrorInfo(NOT_FOUND, ex);
-    }
-
-    @ResponseStatus(NOT_FOUND)
-    @ExceptionHandler(ReservationNotFoundException.class)
-    public HttpErrorInfo handleReservationNotFoundException(ReservationNotFoundException ex) {
         return createHttpErrorInfo(NOT_FOUND, ex);
     }
 
@@ -213,12 +195,6 @@ public class GlobalControllerHandler {
         return createHttpErrorInfo(FORBIDDEN, ex);
     }
 
-    @ResponseStatus(CONFLICT)
-    @ExceptionHandler(ReservationAlreadyProcessedException.class)
-    public HttpErrorInfo handleReservationAlreadyProcessedException(ReservationAlreadyProcessedException ex) {
-        return createHttpErrorInfo(CONFLICT, ex);
-    }
-
     @ResponseStatus(BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public HttpErrorInfo handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
@@ -234,33 +210,14 @@ public class GlobalControllerHandler {
     }
 
     @ResponseStatus(CONFLICT)
-    @ExceptionHandler(CampaignIsTiedToReservationException.class)
-    public HttpErrorInfo handleCampaignIsTiedToReservationException(CampaignIsTiedToReservationException ex) {
+    @ExceptionHandler(CampaignIsTiedToSubscriptionException.class)
+    public HttpErrorInfo handleCampaignIsTiedToSubscriptionException(CampaignIsTiedToSubscriptionException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
     }
 
     @ResponseStatus(CONFLICT)
-    @ExceptionHandler(CampaignHasConfirmedReservationException.class)
-    public HttpErrorInfo handleCampaignHasConfirmedReservationException(CampaignHasConfirmedReservationException ex) {
-        return createHttpErrorInfo(CONFLICT, ex);
-    }
-
-    @ResponseStatus(CONFLICT)
-    @ExceptionHandler(CampaignHasPendingReservationException.class)
-    public HttpErrorInfo handleCampaignHasPendingReservationException(CampaignHasPendingReservationException ex) {
-        return createHttpErrorInfo(CONFLICT, ex);
-    }
-
-    @ResponseStatus(CONFLICT)
-    @ExceptionHandler(CampaignHasApprovedReservationException.class)
-    public HttpErrorInfo handleCampaignHasApprovedReservationException(CampaignHasApprovedReservationException ex) {
-        return createHttpErrorInfo(CONFLICT, ex);
-    }
-
-
-    @ResponseStatus(CONFLICT)
-    @ExceptionHandler(ReservationConflictException.class)
-    public HttpErrorInfo handleReservationConflictException(ReservationConflictException ex) {
+    @ExceptionHandler(MediaNotInActiveSubscriptionException.class)
+    public HttpErrorInfo handleMediaNotInActiveSubscriptionException(MediaNotInActiveSubscriptionException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
     }
 
