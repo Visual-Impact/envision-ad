@@ -5,7 +5,7 @@ import {
     Center, Stack, Title, Text, Button, Group, Loader,
     ThemeIcon, Badge, Divider, Paper, Box, Alert, SimpleGrid,
 } from "@mantine/core";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMediaQuery } from "@mantine/hooks";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { notifications } from "@mantine/notifications";
@@ -21,8 +21,7 @@ import {
 } from "@tabler/icons-react";
 import { getAllMediaLocations } from "@/features/media-location-management/api";
 import { getAllAdCampaigns } from "@/features/ad-campaign-management/api";
-import { getAllReservationByAdvertiserBusinessId } from "@/features/reservation-management/api";
-import { ReservationStatus } from "@/entities/reservation";
+import { getBundleSubscriptions } from "@/features/bundle-subscription";
 import { useRouter, Link } from "@/shared/lib/i18n/navigation";
 
 interface StripeStatus {
@@ -33,7 +32,7 @@ interface StripeStatus {
 }
 
 type StepStatus = "complete" | "current" | "upcoming";
-type StepKey = "organization" | "stripe" | "media" | "campaign" | "reservation";
+type StepKey = "organization" | "stripe" | "media" | "campaign" | "subscription";
 
 interface Step {
     number: number;
@@ -44,6 +43,7 @@ interface Step {
 
 export default function OnboardingPage() {
     const t = useTranslations("onboarding");
+    const locale = useLocale();
     const { user } = useUser();
     const { organization, refreshOrganization, loading: orgLoading } = useOrganization();
     const { permissions, refreshPermissions, loading: permissionsLoading } = usePermissions();
@@ -121,7 +121,7 @@ export default function OnboardingPage() {
 
     const [hasMedia, setHasMedia] = useState(false);
     const [hasCampaign, setHasCampaign] = useState(false);
-    const [hasReservation, setHasReservation] = useState(false);
+    const [hasSubscription, setHasSubscription] = useState(false);
 
     useEffect(() => {
         if (!organization || !isMediaOwner) return;
@@ -142,12 +142,16 @@ export default function OnboardingPage() {
 
     useEffect(() => {
         if (!organization || !isAdvertiser) return;
-        getAllReservationByAdvertiserBusinessId(organization.businessId)
-            .then((reservations) => {
-                const anyConfirmed = reservations.some((r) => r.status === ReservationStatus.CONFIRMED);
-                setHasReservation(anyConfirmed);
+        getBundleSubscriptions(organization.businessId)
+            .then((subscriptions) => {
+                // PAST_DUE counts as onboarded: the advertiser has completed the flow, they just
+                // have a payment problem. INCOMPLETE does not — that is an abandoned checkout.
+                const anyLive = subscriptions.some(
+                    (s) => s.status === "ACTIVE" || s.status === "PAST_DUE"
+                );
+                setHasSubscription(anyLive);
             })
-            .catch((e) => console.error("Failed to fetch reservations", e));
+            .catch((e) => console.error("Failed to fetch bundle subscriptions", e));
     }, [organization, isAdvertiser]);
 
     const hasOrganization = !!organization;
@@ -157,7 +161,7 @@ export default function OnboardingPage() {
         stripe: !!isStripeOnboarded,
         media: hasMedia,
         campaign: hasCampaign,
-        reservation: hasReservation,
+        subscription: hasSubscription,
     };
 
     const iconMap: Record<StepKey, React.ReactNode> = {
@@ -165,11 +169,11 @@ export default function OnboardingPage() {
         stripe: <IconCreditCard size="1.25rem" />,
         media: <IconPhoto size="1.25rem" />,
         campaign: <IconSpeakerphone size="1.25rem" />,
-        reservation: <IconCalendar size="1.25rem" />,
+        subscription: <IconCalendar size="1.25rem" />,
     };
 
     const mediaOwnerKeys: StepKey[] = ["stripe", "media"];
-    const advertiserKeys: StepKey[] = ["campaign", "reservation"];
+    const advertiserKeys: StepKey[] = ["campaign", "subscription"];
 
     const buildFlatKeys = (): StepKey[] => {
         const keys: StepKey[] = ["organization"];
@@ -281,12 +285,16 @@ export default function OnboardingPage() {
                 </Button>
             </Stack>
         );
-        if (stepKey === "reservation") return (
+        if (stepKey === "subscription") return (
             <Stack gap="sm">
-                <Text fw={500}>{t("actions.reservation.prompt")}</Text>
-                <Text size="sm" c="dimmed">{t("actions.reservation.hint")}</Text>
-                <Button fullWidth variant="gradient" component={Link} href="/browse">
-                    {t("actions.reservation.cta")}
+                <Text fw={500}>{t("actions.subscription.prompt")}</Text>
+                <Text size="sm" c="dimmed">{t("actions.subscription.hint")}</Text>
+                {/*
+                  Bundle discovery is a home-page section (D17), not a route, and the typed Link
+                  href has no `hash` field — so this is a plain locale-prefixed anchor.
+                */}
+                <Button fullWidth variant="gradient" component="a" href={`/${locale}#bundles`}>
+                    {t("actions.subscription.cta")}
                 </Button>
             </Stack>
         );

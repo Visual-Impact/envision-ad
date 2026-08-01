@@ -5,11 +5,10 @@ export const ROUTE_PERMISSIONS: Record<string, string | undefined> = {
     '/dashboard/media-owner/proof': 'read:media',
     '/dashboard/media-owner/metrics': 'read:media',
     '/dashboard/media-owner/locations': 'read:media',
-    '/dashboard/media-owner/advertisements': 'update:reservation',
 
     '/dashboard/advertiser/metrics': 'read:campaign',
     '/dashboard/advertiser/campaigns': 'read:campaign',
-    '/dashboard/advertiser/advertisements': 'readAll:reservation',
+    '/dashboard/advertiser/subscriptions': 'read:campaign',
 
     '/dashboard/admin/media/pending': 'update:verification',
     '/dashboard/admin/organization/verification': 'update:verification',

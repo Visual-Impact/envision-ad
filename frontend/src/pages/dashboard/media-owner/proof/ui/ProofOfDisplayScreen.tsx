@@ -5,15 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMediaList } from "@/pages/dashboard/media-owner/hooks/useMediaList";
 import ProofMediaTable from "./tables/ProofMediaTable";
 import SubmitProofStepperModal from "./modals/SubmitProofStepperModal";
-import { getMediaReservations } from "@/features/reservation-management/api";
+import { getLiveCampaignsForMedia } from "@/features/bundle-subscription";
 import { useTranslations } from "next-intl";
 
 type CountsMap = Record<string, number>;
-
-interface Reservation {
-    status?: string;
-    campaignId?: string;
-}
 
 function chunk<T>(arr: T[], size: number): T[][] {
     const res: T[][] = [];
@@ -59,16 +54,12 @@ export default function ProofOfDisplayScreen() {
                 const results = await Promise.all(
                     batch.map(async (id) => {
                         try {
-                            const reservations = await getMediaReservations(id) as Reservation[];
+                            // The endpoint returns only campaigns on a live subscription
+                            // covering this screen, already distinct — the status filtering and
+                            // de-duplication this used to do client-side now happen server-side.
+                            const liveCampaigns = await getLiveCampaignsForMedia(id);
 
-                            const uniqueCampaigns = new Set(
-                                reservations
-                                    .filter((r) => r.status === "CONFIRMED" || r.status === "PENDING")
-                                    .map((r) => r.campaignId)
-                                    .filter(Boolean)
-                            );
-
-                            return [id, uniqueCampaigns.size] as const;
+                            return [id, liveCampaigns.length] as const;
                         } catch {
                             return [id, 0] as const;
                         }

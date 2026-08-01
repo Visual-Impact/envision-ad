@@ -417,11 +417,19 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     }
 
     /**
-     * The bundle-era analogue of the old "expired reservation" case: once the subscription is
-     * CANCELED the campaign is free to delete again.
+     * The bundle-era analogue of the old "expired reservation" case: the app-layer guard and the
+     * trigger both scope to ACTIVE/PAST_DUE, so neither blocks once the subscription is CANCELED.
+     *
+     * <p>⚠️ This asserts the <em>guard's</em> scope, not end-to-end deletability. In a
+     * Flyway-built database {@code bundle_subscriptions.campaign_id} is
+     * {@code ON DELETE RESTRICT}, which is stricter than the trigger: a campaign referenced by
+     * ANY subscription row — CANCELED included — cannot actually be deleted. Verified directly
+     * against a real migrated schema. This test passes here only because the entity-generated
+     * test schema has no foreign keys (decision D5), so it must not be read as proof that the
+     * delete succeeds in production.
      */
     @Test
-    void deleteCampaign_tiedToCanceledSubscriptionOnly_shouldSucceed() {
+    void deleteCampaign_tiedToCanceledSubscriptionOnly_isNotBlockedByTheGuard() {
         String campaignId = persistCampaign("Summer Clearance");
         persistSubscription(campaignId, BundleSubscriptionStatus.CANCELED);
 
@@ -435,12 +443,12 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     }
 
     /**
-     * An INCOMPLETE row is an abandoned checkout, not a live subscription, so it must not lock
-     * the campaign. This is the case the trigger and the service guard both scope to
-     * ACTIVE/PAST_DUE precisely to avoid.
+     * An INCOMPLETE row is an abandoned checkout, not a live subscription, so the guard does not
+     * treat it as blocking. Same caveat as the CANCELED case above: the real schema's
+     * {@code ON DELETE RESTRICT} foreign key still refuses the delete.
      */
     @Test
-    void deleteCampaign_tiedToIncompleteSubscriptionOnly_shouldSucceed() {
+    void deleteCampaign_tiedToIncompleteSubscriptionOnly_isNotBlockedByTheGuard() {
         String campaignId = persistCampaign("Abandoned Checkout");
         persistSubscription(campaignId, BundleSubscriptionStatus.INCOMPLETE);
 
