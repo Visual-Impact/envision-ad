@@ -351,7 +351,7 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void deleteAdCampaign_whenNotTiedToAnyLiveSubscription_deletesSuccessfully() {
+    void deleteAdCampaign_whenNoSubscriptionReferencesIt_deletesSuccessfully() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-1";
@@ -363,10 +363,8 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
-                eq(campaignId),
-                any()
-        )).thenReturn(false);
+        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
+                .thenReturn(false);
 
         when(adCampaignResponseMapper.entityToResponseModel(campaign)).thenReturn(null);
 
@@ -379,7 +377,7 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void deleteAdCampaign_whenNotTiedToSubscriptionAndHasCloudinaryAds_deletesAssetsAndCampaign() throws IOException {
+    void deleteAdCampaign_whenNoSubscriptionReferencesItAndHasCloudinaryAds_deletesAssetsAndCampaign() throws IOException {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-cloudinary-1";
@@ -392,10 +390,8 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaignWithAd));
 
-        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
-                eq(campaignId),
-                any()
-        )).thenReturn(false);
+        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
+                .thenReturn(false);
 
         when(uploader.destroy(anyString(), anyMap())).thenReturn(Map.of("result", "ok"));
 
@@ -412,7 +408,7 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void deleteAdCampaign_whenTiedToActiveSubscription_throwsException() {
+    void deleteAdCampaign_whenASubscriptionReferencesIt_throwsException() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-2";
@@ -424,10 +420,8 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
-                eq(campaignId),
-                any()
-        )).thenReturn(true);
+        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
+                .thenReturn(true);
 
         // Act & Assert
         assertThrows(CampaignIsTiedToSubscriptionException.class,
@@ -435,55 +429,13 @@ class AdCampaignServiceUnitTest {
         verify(adCampaignRepository, never()).delete(any());
     }
 
+    /**
+     * D47: a CANCELED subscription blocks the delete just as firmly as a live one. The guard is
+     * status-agnostic because it mirrors the ON DELETE RESTRICT foreign key — cancelling does not
+     * release the campaign, since the subscription's billing history still points at it.
+     */
     @Test
-    void deleteAdCampaign_whenTiedToPastDueSubscription_throwsException() {
-        // Arrange
-        String businessId = "biz-1";
-        String campaignId = "camp-3";
-        AdCampaign campaign = new AdCampaign();
-        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
-        campaign.setAds(new ArrayList<>());
-
-        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
-        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
-        doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
-
-        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
-                eq(campaignId),
-                any()
-        )).thenReturn(true);
-        // Act & Assert
-        assertThrows(CampaignIsTiedToSubscriptionException.class,
-            () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
-        verify(adCampaignRepository, never()).delete(any());
-    }
-
-    @Test
-    void deleteAdCampaign_whenTiedToSecondLiveSubscription_throwsException() {
-        // Arrange
-        String businessId = "biz-1";
-        String campaignId = "camp-5";
-        AdCampaign campaign = new AdCampaign();
-        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
-        campaign.setAds(new ArrayList<>());
-
-        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
-        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
-        doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
-
-        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
-                eq(campaignId),
-                any()
-        )).thenReturn(true);
-
-        // Act & Assert
-        assertThrows(CampaignIsTiedToSubscriptionException.class,
-            () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
-        verify(adCampaignRepository, never()).delete(any());
-    }
-
-    @Test
-    void deleteAdCampaign_whenOnlyTiedToCanceledSubscription_deletesSuccessfully() {
+    void deleteAdCampaign_whenOnlyTiedToACanceledSubscription_stillThrows() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-4";
@@ -495,20 +447,14 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(
-                eq(campaignId),
-                any()
-        )).thenReturn(false);
+        // The row is CANCELED, but the guard no longer asks — any row at all returns true.
+        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
+                .thenReturn(true);
 
-        when(adCampaignResponseMapper.entityToResponseModel(campaign)).thenReturn(null);
-
-        // Act
-        service.deleteAdCampaign(advertiserToken, businessId, campaignId);
-
-        // Assert
-        verify(bundleSubscriptionRepository).existsByCampaignIdAndStatusIn(eq(campaignId), any());
-        verify(adCampaignRepository).delete(campaign);
-        verify(adCampaignResponseMapper).entityToResponseModel(campaign);
+        // Act & Assert
+        assertThrows(CampaignIsTiedToSubscriptionException.class,
+                () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
+        verify(adCampaignRepository, never()).delete(any());
     }
 
     /**
@@ -542,7 +488,7 @@ class AdCampaignServiceUnitTest {
         // Assert — the ad landed, and the subscription state was never even consulted.
         verify(adCampaignRepository).save(campaign);
         assertEquals(1, campaign.getAds().size());
-        verify(bundleSubscriptionRepository, never()).existsByCampaignIdAndStatusIn(any(), any());
+        verify(bundleSubscriptionRepository, never()).existsByCampaignId(any());
     }
 
     /**
@@ -565,6 +511,6 @@ class AdCampaignServiceUnitTest {
         // Assert
         verify(adCampaignRepository).save(data.campaign);
         assertEquals(0, data.campaign.getAds().size());
-        verify(bundleSubscriptionRepository, never()).existsByCampaignIdAndStatusIn(any(), any());
+        verify(bundleSubscriptionRepository, never()).existsByCampaignId(any());
     }
 }

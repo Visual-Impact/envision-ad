@@ -1,10 +1,16 @@
 package com.envisionad.webservice.advertisement.exceptions;
 
 /**
- * Thrown when a campaign cannot be deleted because it is the active campaign of a live
- * bundle subscription (P1 M6, decision D42 — renamed from
- * {@code CampaignIsTiedToReservationException} when the weekly-reservation system was
- * retired).
+ * Thrown when a campaign cannot be deleted because a bundle subscription references it
+ * (P1 M6, decision D42 — renamed from {@code CampaignIsTiedToReservationException} when the
+ * weekly-reservation system was retired).
+ * <p>
+ * <strong>Any</strong> subscription blocks the delete, not just a live one (D47). The campaign
+ * is the subscription's record of what actually ran on those screens, so
+ * {@code bundle_subscriptions.campaign_id} is {@code ON DELETE RESTRICT} and the database
+ * refuses regardless of status; this exception exists so the advertiser gets that explanation
+ * rather than a generic constraint error. Cancelling a subscription therefore does not release
+ * its campaign — an archive/hide action is the intended answer, and belongs to P6.
  * <p>
  * Only the delete path raises this. Adding and removing ads on a subscribed campaign is
  * deliberately allowed: an advertiser paying monthly must be able to change their creative
@@ -15,7 +21,8 @@ package com.envisionad.webservice.advertisement.exceptions;
  */
 public class CampaignIsTiedToSubscriptionException extends RuntimeException {
     public CampaignIsTiedToSubscriptionException(String campaignId) {
-        super("Operation not allowed because campaign is the active campaign of a live bundle subscription: "
-                + campaignId);
+        super("Campaign " + campaignId + " cannot be deleted: a bundle subscription references it. "
+                + "Cancelling the subscription does not release the campaign — its billing history "
+                + "keeps pointing at it.");
     }
 }

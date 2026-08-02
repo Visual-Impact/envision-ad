@@ -417,48 +417,29 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     }
 
     /**
-     * The bundle-era analogue of the old "expired reservation" case: the app-layer guard and the
-     * trigger both scope to ACTIVE/PAST_DUE, so neither blocks once the subscription is CANCELED.
+     * D47: cancelling does not release the campaign. The guard is status-agnostic because it
+     * mirrors the {@code ON DELETE RESTRICT} foreign key, which refuses the delete whatever the
+     * subscription's status — so the advertiser gets this explanatory 409 rather than the
+     * catch-all's generic "conflicting database state" message.
      *
-     * <p>⚠️ This asserts the <em>guard's</em> scope, not end-to-end deletability. In a
-     * Flyway-built database {@code bundle_subscriptions.campaign_id} is
-     * {@code ON DELETE RESTRICT}, which is stricter than the trigger: a campaign referenced by
-     * ANY subscription row — CANCELED included — cannot actually be deleted. Verified directly
-     * against a real migrated schema. This test passes here only because the entity-generated
-     * test schema has no foreign keys (decision D5), so it must not be read as proof that the
-     * delete succeeds in production.
+     * <p>Before D47 this asserted a 2xx, and passed only because the entity-generated test schema
+     * has no foreign keys (D5). Against a real migrated schema that delete has always failed.
      */
     @Test
-    void deleteCampaign_tiedToCanceledSubscriptionOnly_isNotBlockedByTheGuard() {
+    void deleteCampaign_tiedToCanceledSubscriptionOnly_stillReturnsConflict() {
         String campaignId = persistCampaign("Summer Clearance");
         persistSubscription(campaignId, BundleSubscriptionStatus.CANCELED);
 
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().is2xxSuccessful();
+        expectDeleteStatus(campaignId, 409);
     }
 
-    /**
-     * An INCOMPLETE row is an abandoned checkout, not a live subscription, so the guard does not
-     * treat it as blocking. Same caveat as the CANCELED case above: the real schema's
-     * {@code ON DELETE RESTRICT} foreign key still refuses the delete.
-     */
+    /** An abandoned checkout pins the campaign for the same reason a cancelled one does (D47). */
     @Test
-    void deleteCampaign_tiedToIncompleteSubscriptionOnly_isNotBlockedByTheGuard() {
+    void deleteCampaign_tiedToIncompleteSubscriptionOnly_stillReturnsConflict() {
         String campaignId = persistCampaign("Abandoned Checkout");
         persistSubscription(campaignId, BundleSubscriptionStatus.INCOMPLETE);
 
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().is2xxSuccessful();
+        expectDeleteStatus(campaignId, 409);
     }
 
     private String persistCampaign(String name) {

@@ -21,12 +21,6 @@ import java.util.stream.Collectors;
 @Service
 public class BundleServiceImpl implements BundleService {
 
-    /** A bundle cannot be deleted while any subscription sits in one of these. */
-    private static final List<BundleSubscriptionStatus> BLOCKING_STATUSES = List.of(
-            BundleSubscriptionStatus.INCOMPLETE,
-            BundleSubscriptionStatus.ACTIVE,
-            BundleSubscriptionStatus.PAST_DUE);
-
     private final BundleRepository bundleRepository;
     private final BundleExcludedMediaRepository excludedMediaRepository;
     private final BundleSubscriptionRepository subscriptionRepository;
@@ -116,7 +110,12 @@ public class BundleServiceImpl implements BundleService {
             throw new BundleHasActiveSubscriptionsException(bundleId, blocking);
         }
 
-        // Canceled-only history cascades away with the bundle, as do its exclusions.
+        // Only a bundle nobody has ever subscribed to is deletable (D47). This comment
+        // previously claimed canceled-only history "cascades away with the bundle", following
+        // brief req. 5 — both were wrong: bundle_subscriptions.bundle_id carries no ON DELETE
+        // clause, so Postgres defaults to NO ACTION and refuses the delete. Verified against a
+        // real migrated schema; the test schema has no foreign keys (D5) and cannot show it.
+        // Exclusions do genuinely cascade — that FK is ON DELETE CASCADE.
         bundleRepository.delete(bundle);
     }
 
@@ -159,8 +158,15 @@ public class BundleServiceImpl implements BundleService {
         excludedMediaRepository.deleteByIdBundleIdAndIdMediaId(bundleId, mediaId);
     }
 
+    /**
+     * Every subscription blocks the delete, whatever its status (D47) — matching the foreign key
+     * rather than the narrower rule req. 5 described. Also feeds
+     * {@code BundleResponseModel.activeSubscriptionCount}, which is what lets the admin delete
+     * modal disable itself and explain why; widening both from one place keeps the warning and
+     * the actual outcome from drifting apart.
+     */
     @Override
     public long countBlockingSubscriptions(String bundleId) {
-        return subscriptionRepository.countByBundleIdAndStatusIn(bundleId, BLOCKING_STATUSES);
+        return subscriptionRepository.countByBundleId(bundleId);
     }
 }

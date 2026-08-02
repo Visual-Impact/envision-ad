@@ -231,7 +231,13 @@ public class AdCampaignServiceImpl implements AdCampaignService {
                 businessId, LIVE_SUBSCRIPTION_STATUSES);
     }
 
+    /**
+     * Matches the foreign key, not the trigger (D47). {@code bundle_subscriptions.campaign_id} is
+     * {@code ON DELETE RESTRICT}, so <em>any</em> subscription row pins the campaign — a cancelled
+     * one just as firmly as a live one. Checking only live statuses would let the delete through
+     * the service and fail at the database with a generic message.
+     */
     private boolean campaignIsTiedToSubscription(String campaignId) {
-        return bundleSubscriptionRepository.existsByCampaignIdAndStatusIn(campaignId, LIVE_SUBSCRIPTION_STATUSES);
+        return bundleSubscriptionRepository.existsByCampaignId(campaignId);
     }
 }

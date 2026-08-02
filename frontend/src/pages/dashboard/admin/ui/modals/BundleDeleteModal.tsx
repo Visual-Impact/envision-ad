@@ -21,6 +21,10 @@ export function BundleDeleteModal({ opened, onClose, onConfirm, bundle }: Bundle
     if (!bundle) return null;
 
     // The server rejects this with a 409 regardless; warning here saves the round trip.
+    // Since D47 the count covers every status, not just live ones — cancelled subscriptions
+    // still pin the bundle, because bundle_subscriptions.bundle_id has no ON DELETE clause and
+    // Postgres refuses the delete. The field keeps its `activeSubscriptionCount` name for wire
+    // compatibility, but "active" no longer describes what it counts.
     const isBlocked = bundle.activeSubscriptionCount > 0;
     const name = locale === "fr" ? bundle.nameFr : bundle.nameEn;
 

@@ -351,19 +351,45 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         assertTrue(bundleRepository.findByBundleId(bundle.getBundleId()).isPresent());
     }
 
+    /**
+     * D47: canceled history blocks the delete too. Brief req. 5 said such a bundle was deletable
+     * and that its history would cascade away — but {@code bundle_subscriptions.bundle_id} has no
+     * {@code ON DELETE} clause, so Postgres refuses. Verified against a real migrated schema.
+     * This test asserted a 204 before D47 and passed only because the entity-generated test
+     * schema has no foreign keys (D5).
+     */
     @Test
-    void deleteBundle_withOnlyCanceledSubscriptions_succeeds() {
+    void deleteBundle_withOnlyCanceledSubscriptions_isAlsoBlocked() {
         Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
         givenSubscription(bundle, BundleSubscriptionStatus.CANCELED);
 
         webTestClient.delete().uri(BASE_URI + "/" + bundle.getBundleId())
                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                 .exchange()
-                .expectStatus().isNoContent();
+                .expectStatus().isEqualTo(409);
+
+        assertTrue(bundleRepository.findByBundleId(bundle.getBundleId()).isPresent());
     }
 
     @Test
-    void activeSubscriptionCount_isReportedOnTheResponse() {
+    void deleteBundle_withNoSubscriptionsAtAll_succeeds() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.delete().uri(BASE_URI + "/" + bundle.getBundleId())
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        assertTrue(bundleRepository.findByBundleId(bundle.getBundleId()).isEmpty());
+    }
+
+    /**
+     * The count drives the admin delete modal's disabled state and its explanation, so it has to
+     * agree with the guard exactly. Since D47 widened the guard to every status, this counts both
+     * rows — a bundle showing "1" while the delete fails would be worse than the old wording.
+     */
+    @Test
+    void subscriptionCount_onTheResponse_countsEveryStatus() {
         Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
         givenSubscription(bundle, BundleSubscriptionStatus.ACTIVE);
         givenSubscription(bundle, BundleSubscriptionStatus.CANCELED);
@@ -372,7 +398,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(BundleResponseModel.class)
-                .value(body -> assertEquals(1, body.getActiveSubscriptionCount()));
+                .value(body -> assertEquals(2, body.getActiveSubscriptionCount()));
     }
 
     private void givenSubscription(Bundle bundle, BundleSubscriptionStatus status) {

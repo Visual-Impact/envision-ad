@@ -171,9 +171,9 @@ class BundleServiceUnitTest {
     }
 
     @Test
-    void deleteBundle_succeedsWhenNoLiveSubscriptions() {
+    void deleteBundle_succeedsWhenNoSubscriptionHasEverReferencedIt() {
         when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
-        when(subscriptionRepository.countByBundleIdAndStatusIn(eq(BUNDLE_ID), anyCollection())).thenReturn(0L);
+        when(subscriptionRepository.countByBundleId(BUNDLE_ID)).thenReturn(0L);
 
         bundleService.deleteBundle(BUNDLE_ID);
 
@@ -181,9 +181,9 @@ class BundleServiceUnitTest {
     }
 
     @Test
-    void deleteBundle_isBlockedByLiveSubscriptions() {
+    void deleteBundle_isBlockedBySubscriptions() {
         when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
-        when(subscriptionRepository.countByBundleIdAndStatusIn(eq(BUNDLE_ID), anyCollection())).thenReturn(3L);
+        when(subscriptionRepository.countByBundleId(BUNDLE_ID)).thenReturn(3L);
 
         BundleHasActiveSubscriptionsException thrown = assertThrows(
                 BundleHasActiveSubscriptionsException.class,
@@ -193,24 +193,22 @@ class BundleServiceUnitTest {
         verify(bundleRepository, never()).delete(any());
     }
 
+    /**
+     * D47: the guard counts every subscription, whatever its status. It used to scope to
+     * INCOMPLETE/ACTIVE/PAST_DUE on the strength of brief req. 5's "canceled-only history
+     * cascades away with the bundle" — but {@code bundle_subscriptions.bundle_id} has no
+     * {@code ON DELETE} clause, so Postgres refuses that delete. Verified against a real
+     * migrated schema; invisible here because the test schema has no foreign keys (D5).
+     */
     @Test
-    void deleteBundle_guardsOnTheLiveStatusesOnly() {
+    void deleteBundle_isBlockedByCanceledHistoryToo() {
         when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
-        when(subscriptionRepository.countByBundleIdAndStatusIn(eq(BUNDLE_ID), anyCollection())).thenReturn(0L);
+        when(subscriptionRepository.countByBundleId(BUNDLE_ID)).thenReturn(1L);
 
-        bundleService.deleteBundle(BUNDLE_ID);
+        assertThrows(BundleHasActiveSubscriptionsException.class,
+                () -> bundleService.deleteBundle(BUNDLE_ID));
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<BundleSubscriptionStatus>> statuses =
-                ArgumentCaptor.forClass(List.class);
-        verify(subscriptionRepository).countByBundleIdAndStatusIn(eq(BUNDLE_ID), statuses.capture());
-
-        assertEquals(
-                Set.of(BundleSubscriptionStatus.INCOMPLETE,
-                        BundleSubscriptionStatus.ACTIVE,
-                        BundleSubscriptionStatus.PAST_DUE),
-                Set.copyOf(statuses.getValue()),
-                "CANCELED history must not block deletion");
+        verify(bundleRepository, never()).delete(any());
     }
 
     @Test
