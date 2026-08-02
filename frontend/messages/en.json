@@ -1627,7 +1627,7 @@
     "delete": {
       "title": "Delete Bundle",
       "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
-      "blockedWarning": "This bundle has {count} active subscription(s) and cannot be deleted. Cancel them first.",
+      "blockedWarning": "This bundle is referenced by {count} subscription(s), so it cannot be deleted. Cancelling them will not help — their billing history keeps pointing at this bundle.",
       "confirm": "Delete",
       "cancel": "Cancel"
     },

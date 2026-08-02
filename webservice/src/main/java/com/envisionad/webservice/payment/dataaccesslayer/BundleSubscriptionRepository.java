@@ -34,12 +34,26 @@ public interface BundleSubscriptionRepository extends JpaRepository<BundleSubscr
             String bundleId, Collection<BundleSubscriptionStatus> statuses);
 
     /**
-     * The campaign-delete guard (M6, decision D42). Mirrors the {@code bundle_subscriptions}
-     * clause of the {@code prevent_active_campaign_delete()} trigger so the app layer returns a
-     * clean 409 before the database raises a constraint violation.
+     * The bundle-delete guard (M6, decision D47). Status-agnostic for the same reason as
+     * {@link #existsByCampaignId}: {@code bundle_subscriptions.bundle_id} carries no
+     * {@code ON DELETE} clause, so Postgres defaults to NO ACTION and refuses to delete a bundle
+     * that any subscription still references. The brief's req. 5 and this service's own comment
+     * both claimed canceled-only history cascaded away — verified false against a real migrated
+     * schema.
      */
-    boolean existsByCampaignIdAndStatusIn(
-            String campaignId, Collection<BundleSubscriptionStatus> statuses);
+    long countByBundleId(String bundleId);
+
+    /**
+     * The campaign-delete guard (M6, decisions D42 and D47).
+     * <p>
+     * Deliberately status-agnostic, because it mirrors the <em>foreign key</em> rather than the
+     * trigger. {@code bundle_subscriptions.campaign_id} is {@code ON DELETE RESTRICT}, so a
+     * campaign referenced by any row — CANCELED and INCOMPLETE included — cannot be deleted at
+     * all. Scoping this to live statuses (as it briefly did) let such a delete past the service
+     * only to die at the constraint, surfacing as the catch-all's generic "conflicting database
+     * state" 409 instead of an explanation.
+     */
+    boolean existsByCampaignId(String campaignId);
 
     /**
      * Advertiser dashboard's "active campaigns" tile. DISTINCT matters: one campaign can back

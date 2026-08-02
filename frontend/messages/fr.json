@@ -1628,7 +1628,7 @@
     "delete": {
       "title": "Supprimer le forfait",
       "message": "Voulez-vous vraiment supprimer « {name} » ? Cette action est irréversible.",
-      "blockedWarning": "Ce forfait compte {count} abonnement(s) actif(s) et ne peut pas être supprimé. Annulez-les d'abord.",
+      "blockedWarning": "Ce forfait est référencé par {count} abonnement(s) et ne peut donc pas être supprimé. Les annuler n'y changera rien — leur historique de facturation continue de pointer vers ce forfait.",
       "confirm": "Supprimer",
       "cancel": "Annuler"
     },
