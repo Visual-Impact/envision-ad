@@ -128,10 +128,16 @@ export default function AdminMetricsPage() {
         <Divider />
 
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
+          {/*
+            This tile reports MRR, not cumulative revenue (P1 M6, decision D43). Before bundles
+            it summed every CONFIRMED reservation's total_price — a lifetime figure. Its bundle
+            successor sums monthly_amount across ACTIVE/PAST_DUE subscriptions, which is a
+            run-rate: the same number appears again next month rather than accumulating.
+          */}
           <MetricCard
-              label={t("cards.totalRevenue")}
+              label={t("cards.monthlyRecurringRevenue")}
               value={`$${Number(data.totalPlatformRevenue ?? 0).toFixed(2)}`}
-              description={t("cards.totalRevenueDesc")}
+              description={t("cards.monthlyRecurringRevenueDesc")}
               icon={<IconCurrencyDollar size={18} />}
           />
           <MetricCard
