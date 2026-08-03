@@ -2,10 +2,12 @@ package com.envisionad.webservice.bundle.mappinglayer;
 
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePriceQuote;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
+import com.envisionad.webservice.bundle.dataaccesslayer.BundleRuleType;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleCandidateMediaResponseModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundlePriceQuoteResponseModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleResponseModel;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 /**
  * Hand-written rather than MapStruct because the response carries computed extras
@@ -25,9 +28,15 @@ public class BundleResponseMapper {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
+    /**
+     * @param ruleVenue the venue a VENUE-rule bundle points at, or null — which means
+     *                  either "not a VENUE bundle" or "that venue row is gone". Both
+     *                  fall back to the raw rule value for the display label.
+     */
     public BundleResponseModel entityToResponseModel(Bundle bundle,
             BundlePriceQuote quote,
-            long activeSubscriptionCount) {
+            long activeSubscriptionCount,
+            Venue ruleVenue) {
         BundleResponseModel response = new BundleResponseModel();
         response.setBundleId(bundle.getBundleId());
         response.setNameEn(bundle.getNameEn());
@@ -39,6 +48,8 @@ public class BundleResponseMapper {
         response.setBadgeColor(bundle.getBadgeColor());
         response.setRuleType(bundle.getRuleType());
         response.setRuleValue(bundle.getRuleValue());
+        response.setRuleValueLabelEn(ruleValueLabel(bundle, ruleVenue, Venue::getNameEn));
+        response.setRuleValueLabelFr(ruleValueLabel(bundle, ruleVenue, Venue::getNameFr));
         response.setActive(bundle.isActive());
         response.setScreenCount(quote.eligibleMedias().size());
         // basePrice is the undiscounted sum and finalPrice is what the advertiser
@@ -52,6 +63,23 @@ public class BundleResponseMapper {
                 discountedPerScreenPrice(perScreenPrice(quote), bundle.getDiscountPercent()));
         response.setActiveSubscriptionCount(activeSubscriptionCount);
         return response;
+    }
+
+    /**
+     * The rule value as a human would read it, in one language. CITY and REGION are
+     * free text on the media row with nothing to translate, so both languages get the
+     * same string back — leaving the French one null would blank the rule cell for a
+     * French admin, which is the whole bug this field exists to fix. Only VENUE has a
+     * per-language name to resolve, and only when the venue row still exists.
+     */
+    private String ruleValueLabel(Bundle bundle, Venue ruleVenue, Function<Venue, String> venueName) {
+        if (bundle.getRuleValue() == null) {
+            return null;
+        }
+        if (bundle.getRuleType() == BundleRuleType.VENUE && ruleVenue != null) {
+            return venueName.apply(ruleVenue);
+        }
+        return bundle.getRuleValue();
     }
 
     /**

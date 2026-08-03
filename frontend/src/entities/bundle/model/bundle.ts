@@ -10,8 +10,15 @@ export interface Bundle {
     idealForFr?: string;
     badgeColor: string;
     ruleType: BundleRuleType;
-    /** Null when ruleType is FULL_NETWORK. */
+    /** Null when ruleType is FULL_NETWORK. For VENUE this is the venue's id, not its name. */
     ruleValue?: string | null;
+    /**
+     * ruleValue as a human reads it — the venue's name for VENUE, the raw city/region
+     * string otherwise, null for FULL_NETWORK. Read-only: writes still send ruleValue.
+     * Falls back to the raw id server-side when a VENUE rule points at a deleted venue.
+     */
+    ruleValueLabelEn?: string | null;
+    ruleValueLabelFr?: string | null;
     active: boolean;
     /** Eligible screens after exclusions. */
     screenCount: number;
