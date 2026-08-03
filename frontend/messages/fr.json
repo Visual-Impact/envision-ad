@@ -1681,11 +1681,14 @@
         "cities": "Villes",
         "venueTypes": "Types de lieux"
       },
-      "subline": "{price} × {count} écrans",
-      "sublineNoPrice": "{count} écrans",
+      "subline": "{price} × {count, plural, =1 {# écran} other {# écrans}}",
+      "sublineNoPrice": "{count, plural, =1 {# écran} other {# écrans}}",
       "idealFor": "Idéal pour :",
       "subscribe": "S'abonner",
       "noScreens": "Ce forfait n'a aucun écran disponible pour le moment.",
+      "noOrganization": "Rejoignez ou créez une organisation pour vous abonner à un forfait.",
+      "alreadySubscribed": "Abonné",
+      "manageSubscription": "Gérer l'abonnement",
       "eyebrow": "Couverture complète",
       "perScreenHook": "{price} par écran",
       "reassurance": "Annulable à tout moment · sans frais d’installation",
@@ -1698,7 +1701,7 @@
       ],
       "networkFrequency": "Toutes les 2–3 min, toute la journée",
       "discountBadge": "−{percent} %",
-      "sublineDiscounted": "{now} × {count} écrans (au lieu de {was})",
+      "sublineDiscounted": "{now} × {count, plural, =1 {# écran} other {# écrans}} (au lieu de {was})",
       "perScreenHookDiscounted": "{now} par écran — au lieu de {was}"
     },
     "features": {
@@ -1765,7 +1768,7 @@
       "renewalUnknown": "Date de renouvellement pas encore définie",
       "campaign": "Campagne : {name}",
       "campaignUnknown": "Campagne indisponible",
-      "bundleUnavailable": "Forfait n'est plus disponible",
+      "bundleUnavailable": "Le forfait n'est plus disponible",
       "cancel": "Annuler l'abonnement",
       "cancelling": "Annulation…",
       "cancelSuccess": "L'abonnement prendra fin à la clôture de la période de facturation en cours.",
@@ -1780,7 +1783,7 @@
       "PAST_DUE": "Paiement échoué",
       "CANCELED": "Annulé",
       "INCOMPLETE": "Paiement non finalisé",
-      "cancelAtPeriodEnd": "Prend fin à la période"
+      "cancelAtPeriodEnd": "Prend fin à la période en cours"
     },
     "statusHint": {
       "PAST_DUE": "Nous n'avons pas pu prélever le dernier paiement. Mettez votre carte à jour dans Stripe pour conserver ce forfait.",

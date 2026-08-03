@@ -13,7 +13,16 @@ export default class HomePage {
     }
 
     //Locators - non-authenticated user
-    loginLink = () => this.page.getByRole('button', { name: 'Sign In' });
+    // Desktop renders Sign In as a plain <a href> (role "link"); the mobile drawer wraps
+    // it in a Button too (role "button"). getByRole('button', ...) alone only matched the
+    // mobile case once the desktop markup switched to an anchor, hanging every desktop spec
+    // at login. Both nodes stay in the DOM regardless of viewport — the closed drawer is
+    // moved off-canvas, not unmounted, and isn't reliably `:visible`-filterable across
+    // browser engines — so this picks the role explicitly rather than matching either.
+    loginLink = (mobile: boolean) =>
+        mobile
+            ? this.page.getByRole('button', { name: 'Sign In' })
+            : this.page.getByRole('link', { name: 'Sign In' });
     signupLink = () => this.page.getByRole('button', { name: 'Register' });
     languageButton = () => this.page.getByRole('button', { name: 'Switch language' });
     homeLink = () => this.page.getByRole('link', { name: 'Home' });
@@ -38,7 +47,7 @@ export default class HomePage {
         if (mobile) {
             await this.hamburgerMenuButton().click();
         }
-        await this.loginLink().click();
+        await this.loginLink(mobile).click();
     }
 
     public async clickLogoutLink(username: string) {

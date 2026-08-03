@@ -1680,11 +1680,14 @@
         "cities": "Cities",
         "venueTypes": "Venue types"
       },
-      "subline": "{price} × {count} screens",
-      "sublineNoPrice": "{count} screens",
+      "subline": "{price} × {count, plural, =1 {# screen} other {# screens}}",
+      "sublineNoPrice": "{count, plural, =1 {# screen} other {# screens}}",
       "idealFor": "Ideal for:",
       "subscribe": "Subscribe",
       "noScreens": "This bundle has no available screens right now.",
+      "noOrganization": "Join or create an organization to subscribe to a bundle.",
+      "alreadySubscribed": "Subscribed",
+      "manageSubscription": "Manage subscription",
       "eyebrow": "Complete coverage",
       "perScreenHook": "{price} per screen",
       "reassurance": "Cancel anytime · no setup fees",
@@ -1697,7 +1700,7 @@
       ],
       "networkFrequency": "Every 2–3 minutes, all day",
       "discountBadge": "−{percent}%",
-      "sublineDiscounted": "{now} × {count} screens (was {was})",
+      "sublineDiscounted": "{now} × {count, plural, =1 {# screen} other {# screens}} (was {was})",
       "perScreenHookDiscounted": "{now} per screen — was {was}"
     },
     "features": {

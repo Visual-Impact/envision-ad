@@ -6,11 +6,17 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Bundle, BundleRuleType } from "@/entities/bundle";
 import { getAllBundles } from "@/features/bundle-management/api";
+import { getBundleSubscriptions } from "@/features/bundle-subscription/api";
 import { BundleSubscribeModal } from "@/widgets/BundleSubscribeModal";
 import { useOrganization } from "@/app/providers/OrganizationProvider";
 import { BundleCard } from "@/widgets/Cards/BundleCard";
 import { BundleCardLarge } from "@/widgets/Cards/BundleCardLarge";
 import classes from "./BundlesSection.module.css";
+
+// Statuses that occupy a business's one-live-subscription-per-bundle slot (brief
+// req. 13) — CANCELED does not, since resubscribing to a bundle after cancelling
+// is explicitly allowed.
+const LIVE_STATUSES = new Set(["INCOMPLETE", "ACTIVE", "PAST_DUE"]);
 
 type TabValue = BundleRuleType;
 
@@ -36,6 +42,7 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
     const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
     const [activeTab, setActiveTab] = useState<TabValue>("FULL_NETWORK");
     const [subscribingTo, setSubscribingTo] = useState<Bundle | null>(null);
+    const [subscribedBundleIds, setSubscribedBundleIds] = useState<Set<string>>(new Set());
 
     // Load once and filter tabs client-side — the active bundle set is small, so a
     // refetch per tab would be wasteful. Inlined async IIFE with a cancelled guard
@@ -63,6 +70,44 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
             cancelled = true;
         };
     }, [t]);
+
+    // Card-level "already subscribed" state (D46) — a cheap authenticated fetch so a
+    // business doesn't have to hit the subscribe 409 to learn it already holds a bundle.
+    // Silently skipped/cleared without an organization; failure here shouldn't block
+    // browsing, so it's not surfaced as a page-level error like the bundles fetch above.
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            if (!organization) {
+                if (!cancelled) {
+                    setSubscribedBundleIds(new Set());
+                }
+                return;
+            }
+
+            try {
+                const subscriptions = await getBundleSubscriptions(organization.businessId);
+                if (!cancelled) {
+                    setSubscribedBundleIds(
+                        new Set(
+                            subscriptions
+                                .filter((s) => LIVE_STATUSES.has(s.status))
+                                .map((s) => s.bundleId),
+                        ),
+                    );
+                }
+            } catch {
+                if (!cancelled) {
+                    setSubscribedBundleIds(new Set());
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization]);
 
     const visibleBundles = useMemo(
         () => bundles.filter((b) => b.ruleType === activeTab),
@@ -119,11 +164,16 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
                                             bundle={bundle}
                                             stats={stats}
                                             onSubscribe={onSubscribe}
+                                            alreadySubscribed={subscribedBundleIds.has(bundle.bundleId)}
                                         />
                                     </GridCol>
                                 ) : (
                                     <GridCol key={bundle.bundleId} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                                        <BundleCard bundle={bundle} onSubscribe={onSubscribe} />
+                                        <BundleCard
+                                            bundle={bundle}
+                                            onSubscribe={onSubscribe}
+                                            alreadySubscribed={subscribedBundleIds.has(bundle.bundleId)}
+                                        />
                                     </GridCol>
                                 ),
                             )}
