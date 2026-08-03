@@ -14,7 +14,7 @@ import {
     TextInput,
 } from "@mantine/core";
 import { IconAlertTriangle } from "@tabler/icons-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { Bundle, BundleRequestDTO, BundleRuleType } from "@/entities/bundle";
 import { Venue } from "@/entities/venue";
@@ -37,6 +37,7 @@ interface BundleFormModalProps {
 
 export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: BundleFormModalProps) {
     const t = useTranslations("bundleManagement.form");
+    const locale = useLocale();
 
     const [nameEn, setNameEn] = useState("");
     const [nameFr, setNameFr] = useState("");
@@ -206,7 +207,10 @@ export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: Bun
                             placeholder={t("venuePlaceholder")}
                             value={ruleValue || null}
                             onChange={(value) => setRuleValue(value ?? "")}
-                            data={venues.map((venue) => ({ value: venue.venueId, label: venue.nameEn }))}
+                            data={venues.map((venue) => ({
+                                value: venue.venueId,
+                                label: locale === "fr" ? venue.nameFr : venue.nameEn,
+                            }))}
                             error={errors.ruleValue}
                             searchable
                             required

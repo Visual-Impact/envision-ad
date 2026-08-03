@@ -90,6 +90,28 @@ class VenueServiceUnitTest {
     }
 
     @Test
+    void findVenueByVenueId_existingVenue_returnsIt() {
+        when(venueRepository.findByVenueId("test-venue-id")).thenReturn(Optional.of(testVenue));
+
+        assertEquals("Barbershop", venueService.findVenueByVenueId("test-venue-id").orElseThrow().getNameEn());
+    }
+
+    @Test
+    void findVenueByVenueId_nonExistingVenue_isEmptyRatherThanThrowing() {
+        when(venueRepository.findByVenueId("bad-id")).thenReturn(Optional.empty());
+
+        assertTrue(venueService.findVenueByVenueId("bad-id").isEmpty());
+    }
+
+    @Test
+    void findVenueByVenueId_nullId_isEmptyWithoutHittingTheRepository() {
+        // A FULL_NETWORK bundle carries no rule value; callers shouldn't have to guard.
+        assertTrue(venueService.findVenueByVenueId(null).isEmpty());
+
+        verify(venueRepository, never()).findByVenueId(any());
+    }
+
+    @Test
     void createVenue_savesAndReturnsVenue() {
         when(venueRepository.save(any(Venue.class))).thenReturn(testVenue);
 

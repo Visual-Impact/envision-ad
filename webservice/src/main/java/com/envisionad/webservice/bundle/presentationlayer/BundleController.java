@@ -13,6 +13,8 @@ import com.envisionad.webservice.bundle.presentationlayer.models.BundleRequestMo
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleResponseModel;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.utils.JwtUtils;
+import com.envisionad.webservice.venue.businesslogiclayer.VenueService;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,17 +35,20 @@ public class BundleController {
     private final BundlePricingService pricingService;
     private final BundleRequestMapper requestMapper;
     private final BundleResponseMapper responseMapper;
+    private final VenueService venueService;
     private final JwtUtils jwtUtils;
 
     public BundleController(BundleService bundleService,
             BundlePricingService pricingService,
             BundleRequestMapper requestMapper,
             BundleResponseMapper responseMapper,
+            VenueService venueService,
             JwtUtils jwtUtils) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
         this.requestMapper = requestMapper;
         this.responseMapper = responseMapper;
+        this.venueService = venueService;
         this.jwtUtils = jwtUtils;
     }
 
@@ -139,6 +144,19 @@ public class BundleController {
     private BundleResponseModel toResponseModel(Bundle bundle) {
         BundlePriceQuote quote = pricingService.quote(bundle.getBundleId(), null);
         long activeSubscriptions = bundleService.countBlockingSubscriptions(bundle.getBundleId());
-        return responseMapper.entityToResponseModel(bundle, quote, activeSubscriptions);
+        return responseMapper.entityToResponseModel(bundle, quote, activeSubscriptions,
+                ruleVenue(bundle));
+    }
+
+    /**
+     * The venue behind a VENUE-rule bundle, so the response can carry a name instead
+     * of the raw {@code venue_id} the rule stores. Null for every other rule type and
+     * for a venue that has since been deleted; the mapper falls back to the raw value.
+     */
+    private Venue ruleVenue(Bundle bundle) {
+        if (bundle.getRuleType() != BundleRuleType.VENUE) {
+            return null;
+        }
+        return venueService.findVenueByVenueId(bundle.getRuleValue()).orElse(null);
     }
 }

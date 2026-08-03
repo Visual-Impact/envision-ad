@@ -8,6 +8,7 @@ import com.envisionad.webservice.venue.presentationlayer.models.VenueRequestMode
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class VenueServiceImpl implements VenueService {
@@ -30,8 +31,16 @@ public class VenueServiceImpl implements VenueService {
 
     @Override
     public Venue getVenueByVenueId(String venueId) {
-        return venueRepository.findByVenueId(venueId)
+        return findVenueByVenueId(venueId)
                 .orElseThrow(() -> new VenueNotFoundException(venueId));
+    }
+
+    @Override
+    public Optional<Venue> findVenueByVenueId(String venueId) {
+        if (venueId == null) {
+            return Optional.empty();
+        }
+        return venueRepository.findByVenueId(venueId);
     }
 
     @Override
