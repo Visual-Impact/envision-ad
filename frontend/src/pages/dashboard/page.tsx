@@ -105,8 +105,7 @@ export default function OnboardingPage() {
             }
         } catch (e) {
             console.error("Failed to connect to Stripe", e);
-            const apiMessage = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setStripeError(apiMessage || t("actions.stripe.errors.connectFailed"));
+            setStripeError(t("actions.stripe.errors.connectFailed"));
         } finally {
             setIsConnecting(false);
         }
