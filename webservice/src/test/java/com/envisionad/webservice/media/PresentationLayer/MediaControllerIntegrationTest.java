@@ -9,6 +9,7 @@ import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.media.DataAccessLayer.Status;
 import com.envisionad.webservice.media.DataAccessLayer.TypeOfDisplay;
 import com.envisionad.webservice.media.PresentationLayer.Models.MediaRequestModel;
+import com.envisionad.webservice.media.PresentationLayer.Models.MediaStatusPatchRequestModel;
 import com.envisionad.webservice.media.PresentationLayer.Models.ScheduleModel;
 import com.envisionad.webservice.media.PresentationLayer.Models.WeeklyScheduleEntry;
 import com.envisionad.webservice.payment.dataaccesslayer.StripeAccount;
@@ -16,6 +17,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.StripeAccountRepository
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -277,5 +279,43 @@ class MediaControllerIntegrationTest extends BaseIntegrationTest {
                                 .expectStatus().isNoContent();
 
                 assertEquals(0, mediaRepository.count());
+        }
+
+        @Test
+        void patchMediaStatus_WhenInvalidTransition_ShouldReturnConflict() {
+                MediaStatusPatchRequestModel request = new MediaStatusPatchRequestModel();
+                request.setStatus(Status.PENDING); // seeded media is ACTIVE; ACTIVE->PENDING is disallowed
+
+                webTestClient.patch()
+                                .uri(BASE_URI_MEDIA + "/{id}/status", this.mediaId)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .headers(headers -> headers.setBearerAuth("mock-token"))
+                                .body(BodyInserters.fromValue(request))
+                                .exchange()
+                                .expectStatus().isEqualTo(HttpStatus.CONFLICT)
+                                .expectBody()
+                                .jsonPath("$.message").isEqualTo("Invalid status transition: ACTIVE -> PENDING");
+        }
+
+        @Test
+        void patchMediaStatus_WhenRejectedReactivated_ShouldReturnConflict() {
+                Media media = mediaRepository.findById(UUID.fromString(this.mediaId)).orElseThrow();
+                media.setStatus(Status.REJECTED);
+                mediaRepository.save(media);
+
+                MediaStatusPatchRequestModel request = new MediaStatusPatchRequestModel();
+                request.setStatus(Status.ACTIVE);
+
+                webTestClient.patch()
+                                .uri(BASE_URI_MEDIA + "/{id}/status", this.mediaId)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .headers(headers -> headers.setBearerAuth("mock-token"))
+                                .body(BodyInserters.fromValue(request))
+                                .exchange()
+                                .expectStatus().isEqualTo(HttpStatus.CONFLICT)
+                                .expectBody()
+                                .jsonPath("$.message").isEqualTo("Rejected media cannot be re-activated. Please create a new media item instead.");
         }
 }

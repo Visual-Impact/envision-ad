@@ -10,8 +10,11 @@ import com.envisionad.webservice.media.DataAccessLayer.Status;
 import com.envisionad.webservice.media.DataAccessLayer.TypeOfDisplay;
 import com.envisionad.webservice.media.MapperLayer.MediaResponseMapper;
 import com.envisionad.webservice.media.PresentationLayer.Models.MediaRequestModel;
+import com.envisionad.webservice.media.PresentationLayer.Models.MediaStatusPatchRequestModel;
 import com.envisionad.webservice.media.PresentationLayer.Models.ScheduleModel;
 import com.envisionad.webservice.media.PresentationLayer.Models.WeeklyScheduleEntry;
+import com.envisionad.webservice.media.exceptions.InvalidMediaStatusTransitionException;
+import com.envisionad.webservice.media.exceptions.MediaRejectedReactivationException;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.utils.MathFunctions;
 import org.junit.jupiter.api.BeforeEach;
@@ -914,6 +917,34 @@ class MediaServiceUnitTest {
                 media.setActiveDays(1);
 
                 return media;
+        }
+
+        @Test
+        void patchMediaStatusById_WhenRejectedReactivated_ShouldThrowMediaRejectedReactivationException() {
+                // Arrange
+                media1.setStatus(Status.REJECTED);
+                when(mediaRepository.findById(media1.getId())).thenReturn(Optional.of(media1));
+                MediaStatusPatchRequestModel request = new MediaStatusPatchRequestModel();
+                request.setStatus(Status.ACTIVE);
+
+                // Act & Assert
+                MediaRejectedReactivationException ex = assertThrows(MediaRejectedReactivationException.class,
+                        () -> mediaService.patchMediaStatusById(mockJwt, media1.getId().toString(), request));
+                assertEquals("Rejected media cannot be re-activated. Please create a new media item instead.", ex.getMessage());
+        }
+
+        @Test
+        void patchMediaStatusById_WhenTransitionNotAllowed_ShouldThrowInvalidMediaStatusTransitionException() {
+                // Arrange
+                media1.setStatus(Status.ACTIVE);
+                when(mediaRepository.findById(media1.getId())).thenReturn(Optional.of(media1));
+                MediaStatusPatchRequestModel request = new MediaStatusPatchRequestModel();
+                request.setStatus(Status.PENDING);
+
+                // Act & Assert
+                InvalidMediaStatusTransitionException ex = assertThrows(InvalidMediaStatusTransitionException.class,
+                        () -> mediaService.patchMediaStatusById(mockJwt, media1.getId().toString(), request));
+                assertEquals("Invalid status transition: ACTIVE -> PENDING", ex.getMessage());
         }
 
 }
