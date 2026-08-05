@@ -35,7 +35,7 @@ public class BundleResponseMapper {
         response.setRuleValue(bundle.getRuleValue());
         response.setActive(bundle.isActive());
         response.setScreenCount(quote.eligibleMedias().size());
-        response.setBasePrice(quote.finalPrice());
+        response.setBasePrice(quote.basePrice());
         response.setActiveSubscriptionCount(activeSubscriptionCount);
         return response;
     }

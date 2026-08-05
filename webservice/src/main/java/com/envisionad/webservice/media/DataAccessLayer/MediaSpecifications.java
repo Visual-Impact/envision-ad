@@ -106,7 +106,7 @@ public class MediaSpecifications {
             Join<Media, MediaLocation> location = root.join("mediaLocation", JoinType.INNER);
             return cb.equal(
                     cb.lower(cb.trim(location.get(field))),
-                    value.trim().toLowerCase());
+                    value.trim().toLowerCase(java.util.Locale.ROOT));
         };
     }
 
