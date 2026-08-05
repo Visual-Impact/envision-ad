@@ -79,6 +79,37 @@ public class MediaSpecifications {
         };
     }
 
+    public static Specification<Media> venueIdEquals(String venueId) {
+        return (root, query, cb) -> venueId == null || venueId.isBlank() ? null
+                : cb.equal(root.get("venueId"), venueId.trim());
+    }
+
+    /**
+     * Bundle CITY rule matching: compares against the media's location city
+     * case-insensitively and ignoring surrounding whitespace on both sides, since
+     * neither value comes from a controlled taxonomy.
+     */
+    public static Specification<Media> cityEqualsIgnoreCase(String city) {
+        return locationFieldEqualsIgnoreCase("city", city);
+    }
+
+    /** Bundle REGION rule matching — same semantics as {@link #cityEqualsIgnoreCase}. */
+    public static Specification<Media> regionEqualsIgnoreCase(String region) {
+        return locationFieldEqualsIgnoreCase("region", region);
+    }
+
+    private static Specification<Media> locationFieldEqualsIgnoreCase(String field, String value) {
+        return (root, query, cb) -> {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            Join<Media, MediaLocation> location = root.join("mediaLocation", JoinType.INNER);
+            return cb.equal(
+                    cb.lower(cb.trim(location.get(field))),
+                    value.trim().toLowerCase(java.util.Locale.ROOT));
+        };
+    }
+
     public static Specification<Media> withinBounds(List<Double> bounds) {
         return (root, query, cb) -> {
             if (bounds == null || bounds.size() != 4) {

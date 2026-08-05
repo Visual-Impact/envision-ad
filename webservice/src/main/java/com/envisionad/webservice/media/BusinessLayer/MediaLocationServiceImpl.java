@@ -39,6 +39,7 @@ public class MediaLocationServiceImpl implements MediaLocationService {
     private static final int STREET_MAX_LENGTH = 255;
     private static final int CITY_MAX_LENGTH = 100;
     private static final int PROVINCE_MAX_LENGTH = 100;
+    private static final int REGION_MAX_LENGTH = 100;
     private static final int COUNTRY_MAX_LENGTH = 100;
     private static final int POSTAL_CODE_MAX_LENGTH = 20;
     private static final Pattern POSTAL_CODE_PATTERN = Pattern.compile("^[A-Za-z0-9][A-Za-z0-9\\s-]{1,19}$");
@@ -633,6 +634,9 @@ public class MediaLocationServiceImpl implements MediaLocationService {
         String province = normalize(mediaLocation.getProvince());
         String country = normalize(mediaLocation.getCountry());
         String postalCode = normalize(mediaLocation.getPostalCode());
+        // Optional, and deliberately not part of the geocoding candidates below —
+        // it exists only for bundle REGION rule matching.
+        String region = normalize(mediaLocation.getRegion());
 
         validateRequiredAndLength(street, "street", "Street is required.", STREET_MAX_LENGTH,
                 "Street must be 255 characters or fewer.", fieldErrors);
@@ -649,6 +653,10 @@ public class MediaLocationServiceImpl implements MediaLocationService {
             fieldErrors.put("postalCode", "Postal code format is invalid.");
         }
 
+        if (region != null && region.length() > REGION_MAX_LENGTH) {
+            fieldErrors.put("region", "Region must be 100 characters or fewer.");
+        }
+
         if (!fieldErrors.isEmpty()) {
             throw new MediaLocationValidationException(
                     "Please provide a valid address including street, city, province/state, country, and postal code.",
@@ -660,6 +668,7 @@ public class MediaLocationServiceImpl implements MediaLocationService {
         mediaLocation.setProvince(province);
         mediaLocation.setCountry(country);
         mediaLocation.setPostalCode(postalCode);
+        mediaLocation.setRegion(region);
     }
 
     private void validateRequiredAndLength(String value,

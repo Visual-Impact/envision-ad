@@ -94,6 +94,10 @@ export const routing = defineRouting({
       en: "/dashboard/admin/venues",
       fr: "/tableau-de-bord/admin/lieux",
     },
+    "/dashboard/admin/bundles": {
+      en: "/dashboard/admin/bundles",
+      fr: "/tableau-de-bord/admin/forfaits",
+    },
     "/dashboard/admin/settings": {
       en: "/dashboard/admin/settings",
       fr: "/tableau-de-bord/admin/parametres",

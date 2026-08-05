@@ -1,6 +1,8 @@
 package com.envisionad.webservice.utils;
 
 import com.envisionad.webservice.advertisement.exceptions.*;
+import com.envisionad.webservice.bundle.exceptions.BundleHasActiveSubscriptionsException;
+import com.envisionad.webservice.bundle.exceptions.BundleNotFoundException;
 import com.envisionad.webservice.business.exceptions.*;
 import com.envisionad.webservice.reservation.exceptions.*;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
@@ -146,6 +148,19 @@ public class GlobalControllerHandler {
     @ExceptionHandler(VenueNotFoundException.class)
     public HttpErrorInfo handleVenueNotFoundException(VenueNotFoundException ex) {
         return createHttpErrorInfo(NOT_FOUND, ex);
+    }
+
+    @ResponseStatus(NOT_FOUND)
+    @ExceptionHandler(BundleNotFoundException.class)
+    public HttpErrorInfo handleBundleNotFoundException(BundleNotFoundException ex) {
+        return createHttpErrorInfo(NOT_FOUND, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(BundleHasActiveSubscriptionsException.class)
+    public HttpErrorInfo handleBundleHasActiveSubscriptionsException(
+            BundleHasActiveSubscriptionsException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
     }
 
     @ResponseStatus(FORBIDDEN)

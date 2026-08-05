@@ -12,6 +12,7 @@ import {
     IconFileDescription,
     IconSpeakerphone,
     IconTag,
+    IconStack2,
     IconSettings,
 } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
@@ -157,6 +158,15 @@ export default function SideBar() {
                 label={t("admin.venues")}
                 icon={IconTag}
                 active={!!pathname?.includes("/dashboard/admin/venues")}
+            />
+        ),
+        permissions.includes("manage:bundles") && (
+            <SideBarLink
+                key="bundles"
+                href="/dashboard/admin/bundles"
+                label={t("admin.bundles")}
+                icon={IconStack2}
+                active={!!pathname?.includes("/dashboard/admin/bundles")}
             />
         ),
         permissions.includes("manage:settings") && (
