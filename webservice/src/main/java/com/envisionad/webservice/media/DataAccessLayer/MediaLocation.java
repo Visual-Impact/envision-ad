@@ -33,6 +33,13 @@ public class MediaLocation {
     @Column(nullable = false)
     private String city;
 
+    /**
+     * Free-text region, optional. Bundle REGION rules match against this the same
+     * way CITY rules match against {@link #city}. Deliberately not a taxonomy.
+     */
+    @Column(name = "region", length = 100)
+    private String region;
+
     @Column(nullable = false)
     private String street;
 

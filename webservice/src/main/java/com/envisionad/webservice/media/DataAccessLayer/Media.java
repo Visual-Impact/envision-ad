@@ -51,6 +51,11 @@ public class Media {
     @Column(name = "height")
     private Double height;
 
+    /**
+     * Monthly price per screen (CAD), billed via Stripe Billing subscriptions.
+     * Superseded weekly-reservation pricing — the column was reinterpreted rather
+     * than renamed, so read sites that predate bundles still say "price".
+     */
     @Column(name = "price")
     private BigDecimal price;
 

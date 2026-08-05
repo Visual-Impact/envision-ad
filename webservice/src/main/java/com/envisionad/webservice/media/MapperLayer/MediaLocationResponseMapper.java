@@ -24,6 +24,7 @@ public class MediaLocationResponseMapper {
         model.setCountry(entity.getCountry());
         model.setProvince(entity.getProvince());
         model.setCity(entity.getCity());
+        model.setRegion(entity.getRegion());
         model.setStreet(entity.getStreet());
         model.setPostalCode(entity.getPostalCode());
         model.setLatitude(entity.getLatitude());

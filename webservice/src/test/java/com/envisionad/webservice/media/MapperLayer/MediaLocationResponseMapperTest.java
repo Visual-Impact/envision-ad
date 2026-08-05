@@ -43,6 +43,7 @@ class MediaLocationResponseMapperTest {
         entity.setCountry("Canada");
         entity.setProvince("QC");
         entity.setCity("Montreal");
+        entity.setRegion("Montérégie");
         entity.setStreet("123 Main St");
         entity.setPostalCode("H1H 1H1");
         entity.setLatitude(45.5017);
@@ -63,6 +64,7 @@ class MediaLocationResponseMapperTest {
         assertEquals("Canada", result.getCountry());
         assertEquals("QC", result.getProvince());
         assertEquals("Montreal", result.getCity());
+        assertEquals("Montérégie", result.getRegion());
         assertEquals("123 Main St", result.getStreet());
         assertEquals("H1H 1H1", result.getPostalCode());
         assertEquals(45.5017, result.getLatitude());

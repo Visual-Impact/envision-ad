@@ -18,6 +18,7 @@ class MediaLocationRequestMapperUnitTest {
         requestModel.setName("New Location Name");
         requestModel.setStreet("123 Test St");
         requestModel.setCity("Test City");
+        requestModel.setRegion("Test Region");
         requestModel.setProvince("Test Province");
         requestModel.setCountry("Test Country");
         requestModel.setPostalCode("12345");
@@ -30,6 +31,7 @@ class MediaLocationRequestMapperUnitTest {
         assertEquals("New Location Name", entity.getName());
         assertEquals("123 Test St", entity.getStreet());
         assertEquals("Test City", entity.getCity());
+        assertEquals("Test Region", entity.getRegion());
         assertEquals("Test Province", entity.getProvince());
         assertEquals("Test Country", entity.getCountry());
         assertEquals("12345", entity.getPostalCode());
