@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -38,7 +37,7 @@ public class BundleResponseMapper {
         response.setRuleValue(bundle.getRuleValue());
         response.setActive(bundle.isActive());
         response.setScreenCount(quote.eligibleMedias().size());
-        response.setBasePrice(quote.finalPrice());
+        response.setBasePrice(quote.basePrice());
         response.setPerScreenPrice(perScreenPrice(quote));
         response.setActiveSubscriptionCount(activeSubscriptionCount);
         return response;
