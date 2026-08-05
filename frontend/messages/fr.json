@@ -1776,7 +1776,8 @@
       "confirmTitle": "Annuler cet abonnement ?",
       "confirmBody": "Vos publicités restent diffusées jusqu'à la fin de la période déjà payée. Aucun remboursement n'est effectué et l'abonnement ne sera pas renouvelé.",
       "confirmAction": "Oui, annuler",
-      "confirmDismiss": "Conserver"
+      "confirmDismiss": "Conserver",
+      "subscriptionEnded": "Abonnement terminé"
     },
     "status": {
       "ACTIVE": "Actif",

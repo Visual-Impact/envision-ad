@@ -25,6 +25,8 @@ Envision Ad is a B2B marketplace platform connecting media owners (who have phys
 ### Full Stack (Docker)
 - **Start all services:** `doppler run -- docker-compose up` (requires Doppler CLI configured)
 - **Backend only (no frontend):** `docker-compose -f docker-compose-no-frontend.yml up`
+- **Container runtime is OrbStack**, not Docker Desktop — same `docker`/`docker-compose` CLI, same commands above.
+- **Local dev Postgres runs natively on the host.** Neither `docker-compose.yml` nor `docker-compose-no-frontend.yml` defines a `postgres` service — both webservice containers reach it via `SPRING_DATASOURCE_URL` pointed at `host.docker.internal:5432`. Query the real dev DB via `psql -h localhost -p 5432 -U envision_admin -d envision_ad_db`.
 
 ## Knowledge Graph
 
@@ -89,7 +91,7 @@ Each domain module follows the same internal structure:
 - Lombok for boilerplate reduction
 - MapStruct for object mapping (annotation processor with Lombok binding)
 - PostgreSQL 15 with JSONB support (hibernate-types-60)
-- Spring profiles: `local` (Docker Postgres), `prod` (AWS RDS)
+- Spring profiles: `local` (host-native Postgres, reached via `host.docker.internal:5432` — see the OrbStack/Postgres note above), `prod` (AWS RDS)
 - Schema managed via Flyway migrations in `src/main/resources/db/migration/` (`ddl-auto: none`, `baseline-on-migrate: true`). There is no `schema.sql`.
 - Tests run against a real PostgreSQL 15 database via Testcontainers (`config/TestcontainersConfig.java`, wired in through `@ServiceConnection`); integration tests extend `config/BaseIntegrationTest`. Test profile disables Flyway and uses `ddl-auto: create`, so the test schema is generated from the JPA entities. Requires a running Docker daemon.
 - JaCoCo enforces 90% code coverage at build time

@@ -1,25 +1,4 @@
 services:
-  postgres:
-    image: postgres:15
-    container_name: envision_ad_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${SPRING_DATASOURCE_DBNAME}
-      POSTGRES_USER: ${SPRING_DATASOURCE_USERNAME}
-      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - appnet
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME} -d ${SPRING_DATASOURCE_DBNAME} -h localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    ports:
-      - "5432:5432"
-
   pgadmin:
     image: dpage/pgadmin4
     container_name: envision_ad_pgadmin
@@ -29,8 +8,6 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
       - "5050:80"
-    depends_on:
-      - postgres
     networks:
       - appnet
 
@@ -51,8 +28,8 @@ services:
       AUTH0_MGMT_CLIENT_ID: "${AUTH0_MGMT_CLIENT_ID}"
       AUTH0_MGMT_CLIENT_SECRET: "${AUTH0_MGMT_CLIENT_SECRET}"
       AUTH0_MGMT_DOMAIN: "${AUTH0_MGMT_DOMAIN}"
-      # Spring datasource - use postgres service name (not localhost) inside Docker network
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/${SPRING_DATASOURCE_DBNAME}"
+      # Spring datasource - Postgres runs natively on the host, reached via host.docker.internal
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://host.docker.internal:5432/${SPRING_DATASOURCE_DBNAME}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD}"
       #     EMAIL
@@ -64,9 +41,6 @@ services:
       STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
       STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
       STRIPE_CONNECT_CLIENT_ID: "${STRIPE_CONNECT_CLIENT_ID}"
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
       interval: 30s
@@ -81,5 +55,3 @@ networks:
   appnet:
     driver: bridge
 
-volumes:
-  pgdata:

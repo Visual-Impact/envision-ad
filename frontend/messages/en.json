@@ -1043,7 +1043,7 @@
         },
         "error": {
           "title": "Error",
-          "tiedReservationMessage": "Failed to delete campaign because it still has upcoming or ongoing reservations. Please wait until all reservations for this campaign have ended before deleting.",
+          "tiedReservationMessage": "Failed to delete campaign because it still has an ongoing subscription. Please wait until the subscription for this campaign have ended before deleting.",
           "genericMessage": "Failed to delete campaign"
         }
       },
@@ -1775,7 +1775,8 @@
       "confirmTitle": "Cancel this subscription?",
       "confirmBody": "Your ads keep running until the end of the period you have already paid for. Nothing is refunded, and the subscription will not renew.",
       "confirmAction": "Yes, cancel it",
-      "confirmDismiss": "Keep it"
+      "confirmDismiss": "Keep it",
+      "subscriptionEnded": "Subscription ended"
     },
     "status": {
       "ACTIVE": "Active",
