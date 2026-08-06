@@ -36,6 +36,7 @@ export function BundleTable({ bundles, onEdit, onManageExclusions, onDelete }: B
                             <Table.Th miw={140}>{t("rule")}</Table.Th>
                             <Table.Th miw={80}>{t("screens")}</Table.Th>
                             <Table.Th miw={110}>{t("monthlyPrice")}</Table.Th>
+                            <Table.Th miw={90}>{t("discount")}</Table.Th>
                             <Table.Th miw={110}>{t("subscriptions")}</Table.Th>
                             <Table.Th miw={80}>{t("status")}</Table.Th>
                             <Table.Th miw={130}>{t("actions")}</Table.Th>
@@ -70,7 +71,16 @@ export function BundleTable({ bundles, onEdit, onManageExclusions, onDelete }: B
                                         <Text>{bundle.screenCount}</Text>
                                     </Table.Td>
                                     <Table.Td>
-                                        <Text>{formatCurrency(bundle.basePrice ?? 0, { locale })}</Text>
+                                        <Text>{formatCurrency(bundle.finalPrice ?? 0, { locale })}</Text>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        {bundle.discountPercent > 0 ? (
+                                            <Badge color="red" variant="light" size="sm">
+                                                −{bundle.discountPercent}%
+                                            </Badge>
+                                        ) : (
+                                            <Text c="dimmed">—</Text>
+                                        )}
                                     </Table.Td>
                                     <Table.Td>
                                         <Text>{bundle.activeSubscriptionCount}</Text>
@@ -112,7 +122,7 @@ export function BundleTable({ bundles, onEdit, onManageExclusions, onDelete }: B
                             ))
                         ) : (
                             <Table.Tr>
-                                <Table.Td colSpan={8}>
+                                <Table.Td colSpan={9}>
                                     <Text ta="center" c="dimmed" py="xl">
                                         {t("noBundles")}
                                     </Text>

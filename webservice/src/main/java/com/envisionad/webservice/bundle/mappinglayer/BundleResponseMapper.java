@@ -9,6 +9,7 @@ import com.envisionad.webservice.media.DataAccessLayer.Media;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -21,6 +22,8 @@ import java.util.UUID;
  */
 @Component
 public class BundleResponseMapper {
+
+    private static final BigDecimal HUNDRED = new BigDecimal("100");
 
     public BundleResponseModel entityToResponseModel(Bundle bundle,
             BundlePriceQuote quote,
@@ -38,10 +41,32 @@ public class BundleResponseMapper {
         response.setRuleValue(bundle.getRuleValue());
         response.setActive(bundle.isActive());
         response.setScreenCount(quote.eligibleMedias().size());
+        // basePrice is the undiscounted sum and finalPrice is what the advertiser
+        // pays; they only diverge once a bundle carries a discount, which is exactly
+        // what the card's "was / now" comparison needs.
         response.setBasePrice(quote.basePrice());
+        response.setFinalPrice(quote.finalPrice());
+        response.setDiscountPercent(bundle.getDiscountPercent());
         response.setPerScreenPrice(perScreenPrice(quote));
+        response.setDiscountedPerScreenPrice(
+                discountedPerScreenPrice(perScreenPrice(quote), bundle.getDiscountPercent()));
         response.setActiveSubscriptionCount(activeSubscriptionCount);
         return response;
+    }
+
+    /**
+     * The per-screen figure after the bundle's discount, or null when there is no
+     * discount or no honest per-screen price to discount. Computed from the same
+     * percentage the pricing pipeline applies, so the card's per-screen comparison
+     * can never drift from the headline total.
+     */
+    private BigDecimal discountedPerScreenPrice(BigDecimal perScreenPrice, int discountPercent) {
+        if (perScreenPrice == null || discountPercent <= 0) {
+            return null;
+        }
+        BigDecimal multiplier = HUNDRED.subtract(BigDecimal.valueOf(discountPercent))
+                .divide(HUNDRED, 4, RoundingMode.HALF_UP);
+        return perScreenPrice.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
     }
 
     /**

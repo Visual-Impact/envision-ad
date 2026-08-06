@@ -25,19 +25,24 @@ public class BundlePricingServiceImpl implements BundlePricingService {
      */
     private final List<MediaEligibilityFilter> eligibilityFilters;
 
-    /** Applied to the summed base price, in order. v1 is identity. */
+    /**
+     * Applied to the summed base price, in order. Same explicit-list rule as the
+     * filters above: order is declared here, never inferred from bean discovery.
+     */
     private final List<BundlePricingModifier> pricingModifiers;
 
     public BundlePricingServiceImpl(BundleService bundleService,
             ActiveStatusExclusionFilter activeStatusExclusionFilter,
             ManualExclusionFilter manualExclusionFilter,
-            NoOpDiscountModifier noOpDiscountModifier) {
+            NoOpDiscountModifier noOpDiscountModifier,
+            BundleDiscountModifier bundleDiscountModifier) {
         this.bundleService = bundleService;
         this.eligibilityFilters = List.of(
                 activeStatusExclusionFilter,
                 manualExclusionFilter);
         this.pricingModifiers = List.of(
-                noOpDiscountModifier);
+                noOpDiscountModifier,
+                bundleDiscountModifier);
     }
 
     @Override

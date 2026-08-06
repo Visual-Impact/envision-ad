@@ -6,6 +6,8 @@ import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaExceptio
 import com.envisionad.webservice.bundle.exceptions.BundleNotActiveException;
 import com.envisionad.webservice.bundle.exceptions.BundleNotFoundException;
 import com.envisionad.webservice.business.exceptions.*;
+import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
+import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
 import com.envisionad.webservice.reservation.exceptions.*;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
@@ -175,6 +177,20 @@ public class GlobalControllerHandler {
     @ResponseStatus(CONFLICT)
     @ExceptionHandler(BundleNoEligibleMediaException.class)
     public HttpErrorInfo handleBundleNoEligibleMediaException(BundleNoEligibleMediaException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(NOT_FOUND)
+    @ExceptionHandler(BundleSubscriptionNotFoundException.class)
+    public HttpErrorInfo handleBundleSubscriptionNotFoundException(
+            BundleSubscriptionNotFoundException ex) {
+        return createHttpErrorInfo(NOT_FOUND, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(BundleSubscriptionAlreadyPaidException.class)
+    public HttpErrorInfo handleBundleSubscriptionAlreadyPaidException(
+            BundleSubscriptionAlreadyPaidException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
     }
 

@@ -44,4 +44,18 @@ public class BundleSubscriptionController {
                 new BundleSubscriptionCheckoutResponseModel(
                         result.clientSecret(), result.sessionId(), result.subscriptionId()));
     }
+
+    /**
+     * Cancels at the end of the current billing period, never immediately. Ownership
+     * is validated in the service against the subscription's own advertiser business.
+     */
+    @PostMapping("/{subscriptionId}/cancel")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> cancelBundleSubscription(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String subscriptionId) throws StripeException {
+
+        bundleSubscriptionService.cancelSubscription(jwt, subscriptionId);
+        return ResponseEntity.noContent().build();
+    }
 }

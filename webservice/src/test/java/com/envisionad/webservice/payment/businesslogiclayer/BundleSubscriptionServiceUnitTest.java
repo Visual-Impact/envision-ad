@@ -12,11 +12,16 @@ import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
+import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
+import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.utils.JwtUtils;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
+import com.stripe.model.Subscription;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
+import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -272,8 +277,14 @@ class BundleSubscriptionServiceUnitTest {
                 BUNDLE_ID, BUSINESS_ID, Set.of(BundleSubscriptionStatus.INCOMPLETE)))
                 .thenReturn(Optional.of(abandoned));
 
+        // Built before the static stubbing starts: creating a mock inside a
+        // MockedStatic.when(...) argument leaves Mockito mid-stubbing and blows up.
+        Session staleSession = givenOpenSession();
+
         try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
             ArgumentCaptor<SessionCreateParams> params = ArgumentCaptor.forClass(SessionCreateParams.class);
+            // The retry now retires the abandoned session before opening a replacement.
+            sessions.when(() -> Session.retrieve("cs_test_stale")).thenReturn(staleSession);
             sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
                     .thenReturn(givenStripeSession());
 
@@ -444,6 +455,14 @@ class BundleSubscriptionServiceUnitTest {
         return customer;
     }
 
+    /** An abandoned-but-still-open session, as the retry path expects to find. */
+    private Session givenOpenSession() throws StripeException {
+        Session session = mock(Session.class);
+        when(session.getStatus()).thenReturn("open");
+        when(session.expire()).thenReturn(session);
+        return session;
+    }
+
     private Session givenStripeSession() {
         Session session = new Session();
         session.setId(SESSION_ID);
@@ -457,5 +476,141 @@ class BundleSubscriptionServiceUnitTest {
         media.setBusinessId(ownerBusinessId);
         media.setPrice(price == null ? null : new BigDecimal(price));
         return media;
+    }
+
+    // ---------- retry: retiring the abandoned session (M5) ----------
+
+    /**
+     * The ghost-subscription fix. Leaving the abandoned session live let it be
+     * completed after the fact, minting a Stripe subscription with no local row —
+     * live data showed three of them sharing one local subscriptionId, billing one
+     * customer three times over.
+     */
+    @Test
+    void whenRetryingAnAbandonedCheckout_thenThePreviousSessionIsExpiredFirst() throws StripeException {
+        givenValidPreconditions();
+        givenQuote(List.of(givenMedia(UUID.randomUUID(), "4.00")), "4.00");
+        givenExistingStripeCustomer();
+        givenAbandonedAttempt("cs_test_old", "open");
+
+        // A mock rather than a spy: expire() on a real Session would call Stripe.
+        Session previous = mock(Session.class);
+        when(previous.getStatus()).thenReturn("open");
+        when(previous.expire()).thenReturn(previous);
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.retrieve("cs_test_old")).thenReturn(previous);
+            sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+
+            assertDoesNotThrow(() -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID));
+
+            verify(previous).expire();
+        }
+    }
+
+    /**
+     * If the "abandoned" session was in fact completed, the buyer has already paid and
+     * their activating webhook simply has not landed. Opening a second session would
+     * charge them twice for one bundle.
+     */
+    @Test
+    void whenTheAbandonedSessionWasActuallyPaid_thenTheRetryIsRefusedRatherThanChargingAgain() {
+        givenValidPreconditions();
+        givenQuote(List.of(givenMedia(UUID.randomUUID(), "4.00")), "4.00");
+        givenAbandonedAttempt("cs_test_paid", "complete");
+
+        Session previous = mock(Session.class);
+        when(previous.getStatus()).thenReturn("complete");
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.retrieve("cs_test_paid")).thenReturn(previous);
+
+            assertThrows(BundleSubscriptionAlreadyPaidException.class,
+                    () -> service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID));
+
+            sessions.verify(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)),
+                    never());
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
+    // ---------- cancel: the one path that reaches Stripe (M5) ----------
+
+    /**
+     * Always {@code cancel_at_period_end}, never an immediate cancel — the advertiser
+     * keeps the screens they paid for until the period ends.
+     */
+    @Test
+    void whenCancelingAnActiveSubscription_thenStripeIsAskedToCancelAtPeriodEndOnly() throws StripeException {
+        BundleSubscription active = givenLiveSubscription("sub_stripe_live");
+        when(bundleSubscriptionRepository.findBySubscriptionId("sub-local-1"))
+                .thenReturn(Optional.of(active));
+
+        Subscription stripeSub = mock(Subscription.class);
+        when(stripeSub.update(any(SubscriptionUpdateParams.class))).thenReturn(stripeSub);
+
+        try (MockedStatic<Subscription> subscriptions = mockStatic(Subscription.class)) {
+            subscriptions.when(() -> Subscription.retrieve("sub_stripe_live")).thenReturn(stripeSub);
+            ArgumentCaptor<SubscriptionUpdateParams> params =
+                    ArgumentCaptor.forClass(SubscriptionUpdateParams.class);
+
+            assertDoesNotThrow(() -> service.cancelSubscription(jwt, "sub-local-1"));
+
+            verify(stripeSub).update(params.capture());
+            assertEquals(Boolean.TRUE, params.getValue().getCancelAtPeriodEnd());
+        }
+
+        // Mirrored locally so the advertiser sees it before the webhook lands.
+        ArgumentCaptor<BundleSubscription> saved = ArgumentCaptor.forClass(BundleSubscription.class);
+        verify(bundleSubscriptionRepository).save(saved.capture());
+        assertTrue(saved.getValue().isCancelAtPeriodEnd());
+        assertEquals(BundleSubscriptionStatus.ACTIVE, saved.getValue().getStatus(),
+                "status only becomes CANCELED when Stripe reports the period ended");
+    }
+
+    @Test
+    void whenCancelingAnUnknownSubscription_thenNotFound() {
+        when(bundleSubscriptionRepository.findBySubscriptionId("nope")).thenReturn(Optional.empty());
+
+        assertThrows(BundleSubscriptionNotFoundException.class,
+                () -> service.cancelSubscription(jwt, "nope"));
+    }
+
+    private BundleSubscription givenLiveSubscription(String stripeSubscriptionId) {
+        BundleSubscription subscription = new BundleSubscription();
+        subscription.setSubscriptionId("sub-local-1");
+        subscription.setBundleId(BUNDLE_ID);
+        subscription.setAdvertiserBusinessId(BUSINESS_ID);
+        subscription.setCampaignId(CAMPAIGN_ID);
+        subscription.setStripeCheckoutSessionId(SESSION_ID);
+        subscription.setStripeSubscriptionId(stripeSubscriptionId);
+        subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
+        subscription.setMonthlyAmount(new BigDecimal("4.00"));
+        subscription.setScreenCount(1);
+        return subscription;
+    }
+
+    private void givenAbandonedAttempt(String previousSessionId, String previousStatus) {
+        BundleSubscription incomplete = new BundleSubscription();
+        incomplete.setSubscriptionId("sub-local-retry");
+        incomplete.setBundleId(BUNDLE_ID);
+        incomplete.setAdvertiserBusinessId(BUSINESS_ID);
+        incomplete.setCampaignId(CAMPAIGN_ID);
+        incomplete.setStripeCheckoutSessionId(previousSessionId);
+        incomplete.setStatus(BundleSubscriptionStatus.INCOMPLETE);
+        incomplete.setMonthlyAmount(new BigDecimal("4.00"));
+        incomplete.setScreenCount(1);
+
+        // Both lookups need stubbing: with one of them explicit, strict stubs treat the
+        // other's arguments as an unexpected call rather than falling back to empty.
+        when(bundleSubscriptionRepository.findByBundleIdAndAdvertiserBusinessIdAndStatusIn(
+                BUNDLE_ID, BUSINESS_ID,
+                Set.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE)))
+                .thenReturn(Optional.empty());
+        when(bundleSubscriptionRepository.findByBundleIdAndAdvertiserBusinessIdAndStatusIn(
+                BUNDLE_ID, BUSINESS_ID, Set.of(BundleSubscriptionStatus.INCOMPLETE)))
+                .thenReturn(Optional.of(incomplete));
     }
 }

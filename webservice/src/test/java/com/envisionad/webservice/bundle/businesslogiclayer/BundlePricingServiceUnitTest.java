@@ -3,6 +3,7 @@ package com.envisionad.webservice.bundle.businesslogiclayer;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleExcludedMedia;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleExcludedMediaRepository;
+import com.envisionad.webservice.bundle.dataaccesslayer.BundleRepository;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleRuleType;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.Status;
@@ -39,6 +40,14 @@ class BundlePricingServiceUnitTest {
     @Mock
     private BundleExcludedMediaRepository excludedMediaRepository;
 
+    /**
+     * Feeds {@link BundleDiscountModifier}. Left unstubbed in most tests: Mockito
+     * returns {@code Optional.empty()} for Optional-returning methods, which the
+     * modifier reads as "no discount", so the pre-discount expectations still hold.
+     */
+    @Mock
+    private BundleRepository bundleRepository;
+
     private BundlePricingServiceImpl pricingService;
     private Bundle bundle;
 
@@ -48,7 +57,8 @@ class BundlePricingServiceUnitTest {
                 bundleService,
                 new ActiveStatusExclusionFilter(),
                 new ManualExclusionFilter(excludedMediaRepository),
-                new NoOpDiscountModifier());
+                new NoOpDiscountModifier(),
+                new BundleDiscountModifier(bundleRepository));
 
         bundle = new Bundle();
         bundle.setBundleId(BUNDLE_ID);
@@ -127,6 +137,42 @@ class BundlePricingServiceUnitTest {
     }
 
     @Test
+    void discountSplitsBasePriceFromFinalPrice() {
+        // The card's "was / now" comparison depends on these two staying distinct.
+        bundle.setDiscountPercent(20);
+        givenRuleMatched(List.of(
+                media(UUID.randomUUID(), Status.ACTIVE, "4.00"),
+                media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
+        givenNoExclusions();
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(java.util.Optional.of(bundle));
+
+        BundlePriceQuote quote = pricingService.quote(BUNDLE_ID, "business-1");
+
+        assertEquals(new BigDecimal("8.00"), quote.basePrice(), "base stays the undiscounted sum");
+        assertEquals(new BigDecimal("6.40"), quote.finalPrice(), "final is 20% off");
+    }
+
+    @Test
+    void discountAppliesAfterTheEligibilityFilters() {
+        // Excluded/inactive screens must not be paid for even at a discount.
+        UUID excludedId = UUID.randomUUID();
+        bundle.setDiscountPercent(50);
+        givenRuleMatched(List.of(
+                media(UUID.randomUUID(), Status.ACTIVE, "4.00"),
+                media(excludedId, Status.ACTIVE, "4.00"),
+                media(UUID.randomUUID(), Status.INACTIVE, "100.00")));
+        when(excludedMediaRepository.findAllByIdBundleId(BUNDLE_ID))
+                .thenReturn(List.of(new BundleExcludedMedia(BUNDLE_ID, excludedId)));
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(java.util.Optional.of(bundle));
+
+        BundlePriceQuote quote = pricingService.quote(BUNDLE_ID, "business-1");
+
+        assertEquals(1, quote.eligibleMedias().size());
+        assertEquals(new BigDecimal("4.00"), quote.basePrice());
+        assertEquals(new BigDecimal("2.00"), quote.finalPrice());
+    }
+
+    @Test
     void activeStatusFilterRunsBeforePricing() {
         givenRuleMatched(List.of(
                 media(UUID.randomUUID(), Status.ACTIVE, "4.00"),
@@ -179,7 +225,7 @@ class BundlePricingServiceUnitTest {
         // assert the wiring now rather than discovering it missing two projects later.
         ManualExclusionFilter spyFilter = spy(new ManualExclusionFilter(excludedMediaRepository));
         BundlePricingServiceImpl service = new BundlePricingServiceImpl(
-                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new NoOpDiscountModifier());
+                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
 
         givenRuleMatched(List.of(media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
         givenNoExclusions();
@@ -196,7 +242,7 @@ class BundlePricingServiceUnitTest {
     void nullAdvertiserBusinessIdIsThreadedThroughForAnonymousBrowsing() {
         ManualExclusionFilter spyFilter = spy(new ManualExclusionFilter(excludedMediaRepository));
         BundlePricingServiceImpl service = new BundlePricingServiceImpl(
-                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new NoOpDiscountModifier());
+                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
 
         givenRuleMatched(List.of(media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
         givenNoExclusions();
@@ -214,7 +260,7 @@ class BundlePricingServiceUnitTest {
         ActiveStatusExclusionFilter statusFilter = spy(new ActiveStatusExclusionFilter());
         ManualExclusionFilter exclusionFilter = spy(new ManualExclusionFilter(excludedMediaRepository));
         BundlePricingServiceImpl service = new BundlePricingServiceImpl(
-                bundleService, statusFilter, exclusionFilter, new NoOpDiscountModifier());
+                bundleService, statusFilter, exclusionFilter, new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
 
         givenRuleMatched(List.of(
                 media(UUID.randomUUID(), Status.ACTIVE, "4.00"),

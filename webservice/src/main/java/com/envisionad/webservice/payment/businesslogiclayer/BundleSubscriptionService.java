@@ -15,4 +15,17 @@ public interface BundleSubscriptionService {
      */
     SubscriptionCheckoutResult createSubscriptionCheckout(
             Jwt jwt, String bundleId, String campaignId, String businessId) throws StripeException;
+
+    /**
+     * Cancels a subscription at the end of the current billing period — never
+     * immediately. The advertiser keeps the bundle's screens until
+     * {@code current_period_end}, there is no refund, and the media owners keep what
+     * they were already paid for the cycle. Stripe fires
+     * {@code customer.subscription.deleted} at period end, which flips the local
+     * status to CANCELED.
+     *
+     * <p>Idempotent: cancelling an already-cancelled subscription succeeds quietly
+     * rather than erroring.
+     */
+    void cancelSubscription(Jwt jwt, String subscriptionId) throws StripeException;
 }
