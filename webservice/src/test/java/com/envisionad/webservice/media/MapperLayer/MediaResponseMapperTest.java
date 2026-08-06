@@ -77,6 +77,43 @@ class MediaResponseMapperTest {
     }
 
     @Test
+    void entityToResponseModel_WithMediaLocation_ShouldMapRegionAndBusinessId() {
+        UUID locationBusinessId = UUID.randomUUID();
+
+        MediaLocation location = new MediaLocation();
+        location.setId(UUID.randomUUID());
+        location.setName("Test Location");
+        location.setRegion("Montérégie");
+        location.setBusinessId(locationBusinessId);
+
+        Media media = new Media();
+        media.setId(UUID.randomUUID());
+        media.setMediaLocation(location);
+
+        MediaResponseModel response = mapper.entityToResponseModel(media);
+
+        assertNotNull(response.getMediaLocation());
+        assertEquals("Montérégie", response.getMediaLocation().getRegion());
+        assertEquals(locationBusinessId, response.getMediaLocation().getBusinessId());
+    }
+
+    @Test
+    void entityToResponseModel_WithMediaLocationWithoutRegion_ShouldMapNullRegion() {
+        MediaLocation location = new MediaLocation();
+        location.setId(UUID.randomUUID());
+        location.setName("Test Location");
+
+        Media media = new Media();
+        media.setId(UUID.randomUUID());
+        media.setMediaLocation(location);
+
+        MediaResponseModel response = mapper.entityToResponseModel(media);
+
+        assertNotNull(response.getMediaLocation());
+        assertNull(response.getMediaLocation().getRegion());
+    }
+
+    @Test
     void entityToResponseModel_WithPreviewConfiguration_ShouldMapPreviewConfiguration() {
         String previewConfig = "{\"corners\": []}";
 

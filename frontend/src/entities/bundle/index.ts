@@ -1,1 +1,1 @@
-export type { Bundle, BundleRequestDTO, BundleCandidateMedia, BundleRuleType } from './model/bundle';
+export type { Bundle, BundleRequestDTO, BundleCandidateMedia, BundleRuleType, BundlePriceQuote } from './model/bundle';

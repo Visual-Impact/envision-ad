@@ -77,6 +77,11 @@ public class BundleServiceImpl implements BundleService {
         existing.setIdealForFr(request.getIdealForFr());
         existing.setBadgeColor(request.getBadgeColor());
         existing.setRuleType(request.getRuleType());
+        // FULL_NETWORK must carry no rule value — the DB CHECK enforces it, so
+        // normalise here rather than letting a stale value trip the constraint.
+        existing.setRuleValue(request.getRuleType() == BundleRuleType.FULL_NETWORK
+                ? null
+                : request.getRuleValue());
         String normalizedRuleValue = request.getRuleValue() == null ? null : request.getRuleValue().trim();
         if (request.getRuleType() == BundleRuleType.FULL_NETWORK) {
             existing.setRuleValue(null);

@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { HeroGridBackground } from "./HeroGridBackground";
 import { HeroScreens } from "./HeroScreens";
 import { AdvertiserTimeline } from "./AdvertiserTimeline";
+import { BundlesSection } from "./BundlesSection";
 import { DisplayGallery } from "@/widgets/DisplayGallery/DisplayGallery";
 
 interface HomepageStats {
@@ -136,6 +137,9 @@ export default function HomePage({ bookMeetingUrl, stats, galleryImages }: HomeP
 
             {/* Animated "how it works" advertiser timeline */}
             <AdvertiserTimeline bookMeetingUrl={bookMeetingUrl} onBookMeetingClick={handleBookMeeting} />
+
+            {/* Bundle discovery — a section here rather than a standalone /bundles page */}
+            <BundlesSection stats={stats} />
         </>
     );
 }

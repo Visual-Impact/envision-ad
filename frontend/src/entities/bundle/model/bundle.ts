@@ -17,8 +17,21 @@ export interface Bundle {
     screenCount: number;
     /** Sum of the eligible screens' monthly prices. */
     basePrice: number;
+    /**
+     * Shared per-screen price when every eligible screen has the same non-null price;
+     * null/absent for an empty, mixed, or partially-priceless set. Drives the card's
+     * "$X × N screens" vs. "N screens" subline.
+     */
+    perScreenPrice?: number | null;
     /** Subscriptions in INCOMPLETE/ACTIVE/PAST_DUE — non-zero blocks deletion. */
     activeSubscriptionCount: number;
+}
+
+/** Buyer-specific price preview from GET /bundles/{id}/quote. */
+export interface BundlePriceQuote {
+    screenCount: number;
+    finalPrice: number;
+    perScreenPrice?: number | null;
 }
 
 export interface BundleRequestDTO {

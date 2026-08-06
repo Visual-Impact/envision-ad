@@ -85,10 +85,12 @@ public class MediaResponseMapper {
         mediaLocationResponseModel.setCountry(media.getMediaLocation().getCountry());
         mediaLocationResponseModel.setProvince(media.getMediaLocation().getProvince());
         mediaLocationResponseModel.setCity(media.getMediaLocation().getCity());
+        mediaLocationResponseModel.setRegion(media.getMediaLocation().getRegion());
         mediaLocationResponseModel.setStreet(media.getMediaLocation().getStreet());
         mediaLocationResponseModel.setPostalCode(media.getMediaLocation().getPostalCode());
         mediaLocationResponseModel.setLatitude(media.getMediaLocation().getLatitude());
         mediaLocationResponseModel.setLongitude(media.getMediaLocation().getLongitude());
+        mediaLocationResponseModel.setBusinessId(media.getMediaLocation().getBusinessId());
         return mediaLocationResponseModel;
     }
 

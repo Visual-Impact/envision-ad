@@ -1,5 +1,7 @@
 .section {
-  padding: 64px 0 72px;
+  /* Bottom matches the timeline & bundles sections (88px) for a uniform
+     inter-section gap; the larger top pads the transition from the tall hero. */
+  padding: 64px 0 88px;
   background: #ffffff;
   overflow: hidden;
 }
@@ -84,7 +86,7 @@
 
 @media (max-width: 62em) {
   .section {
-    padding: 48px 0 56px;
+    padding: 48px 0 64px;
   }
 
   .title {

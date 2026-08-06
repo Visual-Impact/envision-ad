@@ -1219,6 +1219,14 @@
         "title": "Erreur",
         "approveFailed": "Échec de l’approbation du statut de vérification de l’organisation.",
         "denyFailed": "Échec du refus du statut de vérification de l’organisation."
+      },
+      "mediaLocationReview": {
+        "title": "Emplacement média",
+        "description": "Ce média appartient à l’emplacement ci-dessous. Vérifiez la région, qui détermine le regroupement en forfaits régionaux.",
+        "region": "Région",
+        "regionNotSet": "Non défini",
+        "name": "Nom de l’emplacement",
+        "address": "Adresse"
       }
     },
     "metricsPage": {
@@ -1756,6 +1764,68 @@
       "createFailed": "Échec de la création du forfait.",
       "updateFailed": "Échec de la mise à jour du forfait.",
       "deleteFailed": "Échec de la suppression du forfait."
+    }
+  },
+  "bundles": {
+    "title": "Forfaits",
+    "subtitle": "Abonnez-vous à un ensemble d'écrans et rejoignez votre public partout sur le réseau, chaque mois.",
+    "loadFailed": "Échec du chargement des forfaits.",
+    "tabs": {
+      "ALL": "Tous",
+      "FULL_NETWORK": "Réseau complet",
+      "REGION": "Régions",
+      "CITY": "Villes",
+      "VENUE": "Types de lieux"
+    },
+    "empty": {
+      "title": "Aucun forfait ici pour l'instant",
+      "subtitle": "Revenez bientôt ou essayez une autre catégorie."
+    },
+    "card": {
+      "perMonth": "/ mois",
+      "stats": {
+        "screens": "Écrans",
+        "cities": "Villes",
+        "venueTypes": "Types de lieux"
+      },
+      "subline": "{price} × {count} écrans",
+      "sublineNoPrice": "{count} écrans",
+      "idealFor": "Idéal pour :",
+      "subscribe": "S'abonner",
+      "noScreens": "Ce forfait n'a aucun écran disponible pour le moment.",
+      "eyebrow": "Couverture complète",
+      "perScreenHook": "{price} par écran",
+      "reassurance": "Annulable à tout moment · sans frais d’installation",
+      "networkVenueTypes": [
+        "Centres commerciaux & vitrines",
+        "Collège & campus étudiant",
+        "Épicerie & magasin à bas prix",
+        "Barbiers & salons de coiffure",
+        "Restaurant & gym"
+      ],
+      "networkFrequency": "Toutes les 2–3 min, toute la journée"
+    },
+    "features": {
+      "FULL_NETWORK": [
+        "Tous les écrans actifs du réseau",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ],
+      "REGION": [
+        "Tous les écrans actifs de la région",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ],
+      "CITY": [
+        "Tous les écrans actifs de la ville",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ],
+      "VENUE": [
+        "Tous les écrans actifs de ce type de lieu",
+        "Nouveaux écrans ajoutés automatiquement",
+        "Annulable à tout moment"
+      ]
     }
   },
   "privacyPage": {

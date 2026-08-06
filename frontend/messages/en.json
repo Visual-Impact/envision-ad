@@ -1219,6 +1219,14 @@
         "title": "Error",
         "approveFailed": "Failed to approve organization verification status.",
         "denyFailed": "Failed to deny organization verification status."
+      },
+      "mediaLocationReview": {
+        "title": "Media Location",
+        "description": "This media belongs to the location below. Verify the region, which determines regional bundle grouping.",
+        "region": "Region",
+        "regionNotSet": "Not set",
+        "name": "Location name",
+        "address": "Address"
       }
     },
     "metricsPage": {
@@ -1755,6 +1763,68 @@
       "createFailed": "Failed to create bundle.",
       "updateFailed": "Failed to update bundle.",
       "deleteFailed": "Failed to delete bundle."
+    }
+  },
+  "bundles": {
+    "title": "Bundles",
+    "subtitle": "Subscribe to a curated group of screens and reach audiences across the network every month.",
+    "loadFailed": "Failed to load bundles.",
+    "tabs": {
+      "ALL": "All",
+      "FULL_NETWORK": "Full Network",
+      "REGION": "Regions",
+      "CITY": "Cities",
+      "VENUE": "Venue Types"
+    },
+    "empty": {
+      "title": "No bundles here yet",
+      "subtitle": "Check back soon, or try another category."
+    },
+    "card": {
+      "perMonth": "/ month",
+      "stats": {
+        "screens": "Screens",
+        "cities": "Cities",
+        "venueTypes": "Venue types"
+      },
+      "subline": "{price} × {count} screens",
+      "sublineNoPrice": "{count} screens",
+      "idealFor": "Ideal for:",
+      "subscribe": "Subscribe",
+      "noScreens": "This bundle has no available screens right now.",
+      "eyebrow": "Complete coverage",
+      "perScreenHook": "{price} per screen",
+      "reassurance": "Cancel anytime · no setup fees",
+      "networkVenueTypes": [
+        "Malls & storefronts",
+        "Colleges & student campuses",
+        "Grocery & discount stores",
+        "Barbershops & hair salons",
+        "Restaurants & gyms"
+      ],
+      "networkFrequency": "Every 2–3 minutes, all day"
+    },
+    "features": {
+      "FULL_NETWORK": [
+        "Every active screen on the network",
+        "New screens added automatically",
+        "Cancel anytime"
+      ],
+      "REGION": [
+        "All active screens in the region",
+        "New screens added automatically",
+        "Cancel anytime"
+      ],
+      "CITY": [
+        "All active screens in the city",
+        "New screens added automatically",
+        "Cancel anytime"
+      ],
+      "VENUE": [
+        "All active screens of this venue type",
+        "New screens added automatically",
+        "Cancel anytime"
+      ]
     }
   },
   "privacyPage": {

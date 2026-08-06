@@ -8,12 +8,16 @@ import com.envisionad.webservice.bundle.dataaccesslayer.BundleRuleType;
 import com.envisionad.webservice.bundle.mappinglayer.BundleRequestMapper;
 import com.envisionad.webservice.bundle.mappinglayer.BundleResponseMapper;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleCandidateMediaResponseModel;
+import com.envisionad.webservice.bundle.presentationlayer.models.BundlePriceQuoteResponseModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleRequestModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleResponseModel;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
+import com.envisionad.webservice.utils.JwtUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,15 +33,18 @@ public class BundleController {
     private final BundlePricingService pricingService;
     private final BundleRequestMapper requestMapper;
     private final BundleResponseMapper responseMapper;
+    private final JwtUtils jwtUtils;
 
     public BundleController(BundleService bundleService,
             BundlePricingService pricingService,
             BundleRequestMapper requestMapper,
-            BundleResponseMapper responseMapper) {
+            BundleResponseMapper responseMapper,
+            JwtUtils jwtUtils) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
         this.requestMapper = requestMapper;
         this.responseMapper = responseMapper;
+        this.jwtUtils = jwtUtils;
     }
 
     /**
@@ -57,6 +64,24 @@ public class BundleController {
     @GetMapping("/{bundleId}")
     public ResponseEntity<BundleResponseModel> getBundleByBundleId(@PathVariable String bundleId) {
         return ResponseEntity.ok(toResponseModel(bundleService.getBundleByBundleId(bundleId)));
+    }
+
+    /**
+     * Buyer-specific price preview, called by the subscribe flow (M4). In v1 no filter
+     * is buyer-specific so the number matches the public price, but the requesting
+     * advertiser's business is threaded through now so P4/P8 become backend-only later.
+     */
+    @GetMapping("/{bundleId}/quote")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BundlePriceQuoteResponseModel> getBundleQuote(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String bundleId,
+            @RequestParam String businessId) {
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+        // Resolves the bundle first, so an unknown id yields 404 rather than an empty quote.
+        bundleService.getBundleByBundleId(bundleId);
+        BundlePriceQuote quote = pricingService.quote(bundleId, businessId);
+        return ResponseEntity.ok(responseMapper.quoteToResponseModel(quote));
     }
 
     @PostMapping

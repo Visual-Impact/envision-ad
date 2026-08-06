@@ -27,10 +27,12 @@ interface MediaDetailsProps{
   loading: boolean;
   error: string | null;
   activeAdsCount: number | null;
+  /** Optional extra section rendered above the price card (admin review context). */
+  extraSection?: React.ReactNode;
   children: React.ReactNode
 }
 
-export function MediaDetails({media, loading, error, activeAdsCount, children}: MediaDetailsProps){
+export function MediaDetails({media, loading, error, activeAdsCount, extraSection, children}: MediaDetailsProps){
   const t = useTranslations("mediaPage");
   const locale = useLocale();
   const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -181,7 +183,7 @@ export function MediaDetails({media, loading, error, activeAdsCount, children}: 
             {/* Schedule */}
             <Card withBorder radius="lg" p="lg">
               <Stack gap="md">
-                <Text fw="md">{t("scheduleTitle")}</Text>
+                <Text fw={600}>{t("scheduleTitle")}</Text>
 
                 {/* Months */}
                 <Stack gap="xs">
@@ -237,6 +239,7 @@ export function MediaDetails({media, loading, error, activeAdsCount, children}: 
                 </Stack>
               </Stack>
             </Card>
+            {extraSection}
             <Card withBorder radius="lg" shadow="md" p="lg">
               <Stack align="center">
                 <Text fw={600} size="xl">

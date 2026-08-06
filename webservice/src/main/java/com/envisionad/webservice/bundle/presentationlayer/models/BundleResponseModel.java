@@ -28,6 +28,13 @@ public class BundleResponseModel {
     private BigDecimal basePrice;
 
     /**
+     * The shared per-screen price when every eligible screen has the same non-null
+     * price; null for an empty, mixed-price, or partially-priceless set. Drives the
+     * discovery card's "$X × N screens" vs. "N screens" subline.
+     */
+    private BigDecimal perScreenPrice;
+
+    /**
      * Subscriptions in INCOMPLETE/ACTIVE/PAST_DUE. Non-zero means delete is blocked;
      * the admin delete modal warns on this before the request is even sent, the same
      * way the venue delete modal uses mediaCount.
