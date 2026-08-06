@@ -6,6 +6,8 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Bundle, BundleRuleType } from "@/entities/bundle";
 import { getAllBundles } from "@/features/bundle-management/api";
+import { BundleSubscribeModal } from "@/widgets/BundleSubscribeModal";
+import { useOrganization } from "@/app/providers/OrganizationProvider";
 import { BundleCard } from "@/widgets/Cards/BundleCard";
 import { BundleCardLarge } from "@/widgets/Cards/BundleCardLarge";
 import classes from "./BundlesSection.module.css";
@@ -28,9 +30,12 @@ interface BundlesSectionProps {
 export function BundlesSection({ stats }: BundlesSectionProps) {
     const t = useTranslations("bundles");
 
+    const { organization } = useOrganization();
+
     const [bundles, setBundles] = useState<Bundle[]>([]);
     const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
     const [activeTab, setActiveTab] = useState<TabValue>("FULL_NETWORK");
+    const [subscribingTo, setSubscribingTo] = useState<Bundle | null>(null);
 
     // Load once and filter tabs client-side — the active bundle set is small, so a
     // refetch per tab would be wasteful. Inlined async IIFE with a cancelled guard
@@ -63,6 +68,10 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
         () => bundles.filter((b) => b.ruleType === activeTab),
         [bundles, activeTab],
     );
+
+    // An authenticated user with no organization has no businessId to subscribe under, so
+    // the CTA stays inert rather than opening a modal that could never submit.
+    const onSubscribe = organization ? setSubscribingTo : undefined;
 
     return (
         <Box component="section" id="bundles" className={classes.section}>
@@ -106,11 +115,15 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
                                 bundle.ruleType === "FULL_NETWORK" ? (
                                     // The flagship full-network bundle spans the full row as a feature card.
                                     <GridCol key={bundle.bundleId} span={12}>
-                                        <BundleCardLarge bundle={bundle} stats={stats} />
+                                        <BundleCardLarge
+                                            bundle={bundle}
+                                            stats={stats}
+                                            onSubscribe={onSubscribe}
+                                        />
                                     </GridCol>
                                 ) : (
                                     <GridCol key={bundle.bundleId} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                                        <BundleCard bundle={bundle} />
+                                        <BundleCard bundle={bundle} onSubscribe={onSubscribe} />
                                     </GridCol>
                                 ),
                             )}
@@ -118,6 +131,13 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
                     )}
                 </Stack>
             </Container>
+
+            <BundleSubscribeModal
+                opened={subscribingTo !== null}
+                onClose={() => setSubscribingTo(null)}
+                bundle={subscribingTo}
+                businessId={organization?.businessId ?? null}
+            />
         </Box>
     );
 }

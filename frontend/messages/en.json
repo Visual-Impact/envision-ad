@@ -1825,6 +1825,29 @@
         "New screens added automatically",
         "Cancel anytime"
       ]
+    },
+    "subscribe": {
+      "title": "Subscribe to {bundle}",
+      "bundle": "Bundle",
+      "screens": "Screens included",
+      "monthlyTotal": "Monthly total",
+      "perMonth": "/ month",
+      "campaignLabel": "Active campaign",
+      "campaignHelp": "The campaign whose ads will run on these screens.",
+      "campaignPlaceholder": "Select a campaign",
+      "noCampaigns": "You need a campaign with at least one ad before you can subscribe.",
+      "createCampaign": "Create a campaign",
+      "noScreens": "This bundle has no available screens right now, so it cannot be subscribed to.",
+      "recurringNote": "Billed monthly. Cancel anytime — no setup fees.",
+      "cancel": "Cancel",
+      "proceed": "Continue to payment",
+      "loadFailed": "We couldn't load this bundle's price. Please try again.",
+      "errorTitle": "Subscription failed",
+      "initFailed": "We couldn't start the checkout. Please try again.",
+      "missingKey": "Payment is unavailable: the Stripe key is not configured.",
+      "successTitle": "Payment received",
+      "successMessage": "Your subscription is being confirmed. You'll see it in your dashboard once Stripe finishes processing.",
+      "done": "Done"
     }
   },
   "privacyPage": {

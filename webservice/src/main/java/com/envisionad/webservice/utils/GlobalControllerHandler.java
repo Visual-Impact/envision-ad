@@ -2,8 +2,11 @@ package com.envisionad.webservice.utils;
 
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.bundle.exceptions.BundleHasActiveSubscriptionsException;
+import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaException;
+import com.envisionad.webservice.bundle.exceptions.BundleNotActiveException;
 import com.envisionad.webservice.bundle.exceptions.BundleNotFoundException;
 import com.envisionad.webservice.business.exceptions.*;
+import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
 import com.envisionad.webservice.reservation.exceptions.*;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -160,6 +163,31 @@ public class GlobalControllerHandler {
     @ExceptionHandler(BundleHasActiveSubscriptionsException.class)
     public HttpErrorInfo handleBundleHasActiveSubscriptionsException(
             BundleHasActiveSubscriptionsException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(BundleNotActiveException.class)
+    public HttpErrorInfo handleBundleNotActiveException(BundleNotActiveException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(BundleNoEligibleMediaException.class)
+    public HttpErrorInfo handleBundleNoEligibleMediaException(BundleNoEligibleMediaException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(DuplicateBundleSubscriptionException.class)
+    public HttpErrorInfo handleDuplicateBundleSubscriptionException(
+            DuplicateBundleSubscriptionException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(CampaignHasNoAdsException.class)
+    public HttpErrorInfo handleCampaignHasNoAdsException(CampaignHasNoAdsException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
     }
 
