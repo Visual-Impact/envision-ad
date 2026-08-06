@@ -88,8 +88,13 @@ public class BundleController {
     @PreAuthorize("hasAuthority('manage:bundles')")
     public ResponseEntity<BundleResponseModel> createBundle(@RequestBody BundleRequestModel request) {
         Bundle entity = requestMapper.requestModelToEntity(request);
+        String normalizedRuleValue = entity.getRuleValue() == null ? null : entity.getRuleValue().trim();
         if (request.getRuleType() == BundleRuleType.FULL_NETWORK) {
             entity.setRuleValue(null);
+        } else if (normalizedRuleValue == null || normalizedRuleValue.isBlank()) {
+            throw new IllegalArgumentException("ruleValue is required for ruleType " + request.getRuleType());
+        } else {
+            entity.setRuleValue(normalizedRuleValue);
         }
         Bundle saved = bundleService.createBundle(entity);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponseModel(saved));

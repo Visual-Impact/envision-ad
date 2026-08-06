@@ -82,6 +82,14 @@ public class BundleServiceImpl implements BundleService {
         existing.setRuleValue(request.getRuleType() == BundleRuleType.FULL_NETWORK
                 ? null
                 : request.getRuleValue());
+        String normalizedRuleValue = request.getRuleValue() == null ? null : request.getRuleValue().trim();
+        if (request.getRuleType() == BundleRuleType.FULL_NETWORK) {
+            existing.setRuleValue(null);
+        } else if (normalizedRuleValue == null || normalizedRuleValue.isBlank()) {
+            throw new IllegalArgumentException("ruleValue is required for ruleType " + request.getRuleType());
+        } else {
+            existing.setRuleValue(normalizedRuleValue);
+        }
         if (request.getActive() != null) {
             existing.setActive(request.getActive());
         }
