@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Bundle } from "@/entities/bundle";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
+import { Link } from "@/shared/lib/i18n/navigation";
 
 export interface BundleCardProps {
     bundle: Bundle;
@@ -15,12 +16,18 @@ export interface BundleCardProps {
      * BundleSubscribeModal.
      */
     onSubscribe?: (bundle: Bundle) => void;
+    /**
+     * True when the business already holds a live (INCOMPLETE/ACTIVE/PAST_DUE)
+     * subscription to this bundle. Swaps the Subscribe CTA for a link to the
+     * subscriptions page instead of letting the advertiser hit the 409 (D46).
+     */
+    alreadySubscribed?: boolean;
 }
 
 // How many static feature bullets each rule type shows (bundles.features.<TYPE>.<0..n>).
 const FEATURE_COUNT = 3;
 
-export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
+export function BundleCard({ bundle, onSubscribe, alreadySubscribed }: BundleCardProps) {
     const t = useTranslations("bundles");
     const locale = useLocale();
     const { user } = useUser();
@@ -30,6 +37,11 @@ export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
     const idealFor = locale === "fr" ? bundle.idealForFr : bundle.idealForEn;
 
     const hasScreens = bundle.screenCount > 0;
+    // The caller (BundlesSection) leaves onSubscribe undefined for a signed-in user
+    // with no organization — there's no businessId to subscribe under. Without this
+    // check the button rendered enabled and silently did nothing on click.
+    const noOrganization = !!user && !onSubscribe;
+    const disabled = !hasScreens || noOrganization;
     const isDiscounted = bundle.discountPercent > 0;
 
     // With a discount the subline compares per-screen before/after; otherwise it
@@ -52,14 +64,26 @@ export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
         t(`features.${bundle.ruleType}.${i}`),
     );
 
-    const subscribeButton = (
+    const tooltipLabel = alreadySubscribed
+        ? null
+        : !hasScreens
+          ? t("card.noScreens")
+          : noOrganization
+            ? t("card.noOrganization")
+            : null;
+
+    const subscribeButton = alreadySubscribed ? (
+        <Button fullWidth variant="light" component={Link} href="/dashboard/advertiser/subscriptions">
+            {t("card.manageSubscription")}
+        </Button>
+    ) : (
         <Button
             fullWidth
             variant="gradient"
-            disabled={!hasScreens}
-            component={!hasScreens || user ? "button" : "a"}
-            href={!hasScreens || user ? undefined : `/auth/login?ui_locales=${locale}`}
-            onClick={hasScreens && user && onSubscribe ? () => onSubscribe(bundle) : undefined}
+            disabled={disabled}
+            component={disabled || user ? "button" : "a"}
+            href={disabled || user ? undefined : `/auth/login?ui_locales=${locale}`}
+            onClick={!disabled && user && onSubscribe ? () => onSubscribe(bundle) : undefined}
         >
             {t("card.subscribe")}
         </Button>
@@ -72,11 +96,18 @@ export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
                     <Badge color={bundle.badgeColor} variant="filled" size="lg">
                         {name}
                     </Badge>
-                    {isDiscounted && (
-                        <Badge color="red" variant="filled" size="lg">
-                            {t("card.discountBadge", { percent: bundle.discountPercent })}
-                        </Badge>
-                    )}
+                    <Group gap="xs">
+                        {alreadySubscribed && (
+                            <Badge color="teal" variant="light" size="lg">
+                                {t("card.alreadySubscribed")}
+                            </Badge>
+                        )}
+                        {isDiscounted && (
+                            <Badge color="red" variant="filled" size="lg">
+                                {t("card.discountBadge", { percent: bundle.discountPercent })}
+                            </Badge>
+                        )}
+                    </Group>
                 </Group>
 
                 <Box>
@@ -129,13 +160,13 @@ export function BundleCard({ bundle, onSubscribe }: BundleCardProps) {
 
                 {/* Push the CTA to the bottom so cards of varying content align. */}
                 <Box style={{ marginTop: "auto" }} pt="sm">
-                    {hasScreens ? (
-                        subscribeButton
-                    ) : (
-                        <Tooltip label={t("card.noScreens")} withArrow>
+                    {tooltipLabel ? (
+                        <Tooltip label={tooltipLabel} withArrow>
                             {/* Tooltip needs a non-disabled wrapper to receive hover events. */}
                             <Box>{subscribeButton}</Box>
                         </Tooltip>
+                    ) : (
+                        subscribeButton
                     )}
                 </Box>
             </Stack>

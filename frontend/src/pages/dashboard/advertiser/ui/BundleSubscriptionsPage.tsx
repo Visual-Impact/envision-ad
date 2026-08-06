@@ -122,17 +122,21 @@ export default function BundleSubscriptionsPage() {
         });
 
     /**
-     * The renewal line carries three distinct meanings, and conflating them would misinform the
-     * advertiser: a date that is a genuine renewal, the same date when it is really an end date
-     * because the subscription is cancelling, and no date at all — which is legitimate on an
-     * ACTIVE row, since only `invoice.paid` sets one.
+     * The renewal line carries four distinct meanings, and conflating them would misinform the
+     * advertiser: a genuine future renewal, an end date because the subscription is cancelling,
+     * no date at all on a row that's still going (legitimate on ACTIVE — only `invoice.paid` sets
+     * one), and no date at all on a row that's already over — e.g. an INCOMPLETE checkout
+     * cancelled before it ever billed. That last case must not read as "renewal date not set
+     * yet", which implies one is still coming; cancellation status is checked first so a missing
+     * date on an ended subscription doesn't fall through to the pending-renewal copy.
      */
     const renewalLine = (subscription: BundleSubscription) => {
-        if (!subscription.currentPeriodEnd) return t("page.renewalUnknown");
+        const isEnding = subscription.cancelAtPeriodEnd || subscription.status === "CANCELED";
+        if (!subscription.currentPeriodEnd) {
+            return isEnding ? t("page.subscriptionEnded") : t("page.renewalUnknown");
+        }
         const date = formatDate(subscription.currentPeriodEnd);
-        return subscription.cancelAtPeriodEnd || subscription.status === "CANCELED"
-            ? t("page.endsOn", { date })
-            : t("page.renewsOn", { date });
+        return isEnding ? t("page.endsOn", { date }) : t("page.renewsOn", { date });
     };
 
     const bundleName = (subscription: BundleSubscription) => {

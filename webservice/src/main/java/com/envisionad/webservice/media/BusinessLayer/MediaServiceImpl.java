@@ -13,6 +13,8 @@ import com.envisionad.webservice.media.PresentationLayer.Models.MediaRequestMode
 import com.envisionad.webservice.media.PresentationLayer.Models.MediaResponseModel;
 import com.envisionad.webservice.media.PresentationLayer.Models.MediaStatusPatchRequestModel;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
+import com.envisionad.webservice.media.exceptions.MediaRejectedReactivationException;
+import com.envisionad.webservice.media.exceptions.InvalidMediaStatusTransitionException;
 import com.envisionad.webservice.payment.dataaccesslayer.StripeAccount;
 import com.envisionad.webservice.payment.dataaccesslayer.StripeAccountRepository;
 import com.envisionad.webservice.payment.exceptions.StripeAccountNotOnboardedException;
@@ -322,14 +324,14 @@ public class MediaServiceImpl implements MediaService {
         Status target = request.getStatus();
 
         if (current == target) return mediaResponseMapper.entityToResponseModel(media);
-        if (current == Status.REJECTED) throw new IllegalStateException("Rejected media cannot be re-activated. Please create a new media item instead.");
+        if (current == Status.REJECTED) throw new MediaRejectedReactivationException();
 
         boolean allowed =
                 (current == Status.PENDING && (target == Status.ACTIVE || target == Status.REJECTED))
                         || (current == Status.ACTIVE && target == Status.INACTIVE)
                         || (current == Status.INACTIVE && target == Status.ACTIVE);
 
-        if (!allowed) throw new IllegalStateException("Invalid status transition: " + current + " -> " + target);
+        if (!allowed) throw new InvalidMediaStatusTransitionException(current, target);
 
         // Authorization rules
         // - Admin can moderate (PENDING -> ACTIVE/REJECTED)

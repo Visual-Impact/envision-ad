@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
+import com.envisionad.webservice.media.exceptions.MediaRejectedReactivationException;
+import com.envisionad.webservice.media.exceptions.InvalidMediaStatusTransitionException;
 import com.envisionad.webservice.proofofdisplay.exceptions.AdvertiserEmailNotFoundException;
 import com.envisionad.webservice.proofofdisplay.exceptions.MediaNotInActiveSubscriptionException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -159,6 +161,18 @@ public class GlobalControllerHandler {
     @ResponseStatus(CONFLICT)
     @ExceptionHandler(BundleNoEligibleMediaException.class)
     public HttpErrorInfo handleBundleNoEligibleMediaException(BundleNoEligibleMediaException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(MediaRejectedReactivationException.class)
+    public HttpErrorInfo handleMediaRejectedReactivationException(MediaRejectedReactivationException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(InvalidMediaStatusTransitionException.class)
+    public HttpErrorInfo handleInvalidMediaStatusTransitionException(InvalidMediaStatusTransitionException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
     }
 

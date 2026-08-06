@@ -36,7 +36,7 @@ export default function StripePage() {
             setStatus(stripeStatus);
         } catch (e) {
             console.error("Failed to fetch Stripe status", e);
-            setError(e instanceof Error ? e.message : t('errors.fetchFailed'));
+            setError(t('errors.fetchFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -79,7 +79,7 @@ export default function StripePage() {
                 if (!cancelled) setStatus(stripeStatus);
             } catch (e) {
                 console.error("Failed to fetch Stripe status", e);
-                if (!cancelled) setError(e instanceof Error ? e.message : t('errors.fetchFailed'));
+                if (!cancelled) setError(t('errors.fetchFailed'));
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
@@ -103,8 +103,7 @@ export default function StripePage() {
             }
         } catch (e) {
             console.error("Failed to connect to Stripe", e);
-            const apiMessage = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            setError(apiMessage || (e instanceof Error ? e.message : t('errors.connectFailed')));
+            setError(t('errors.connectFailed'));
         } finally {
             setIsConnecting(false);
         }

@@ -73,8 +73,7 @@ export default function MediaOwnerPage() {
             setEditingId(null);
         } catch (error) {
             console.error("Failed to save media", error);
-            const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            notifications.show({ title: t("errors.error"), message: apiMessage || t("errors.saveFailed"), color: "red" });
+            notifications.show({ title: t("errors.error"), message: t("errors.saveFailed"), color: "red" });
         }
     };
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { Badge, Box, Button, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title } from "@mantine/core";
+import { Badge, Box, Button, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, Title, Tooltip } from "@mantine/core";
 import { IconBuildingStore, IconCheck, IconDeviceTv, IconMapPin, type TablerIcon } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Bundle } from "@/entities/bundle";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
+import { Link } from "@/shared/lib/i18n/navigation";
 
 export interface BundleCardLargeStats {
     citiesCovered: number;
@@ -18,6 +19,8 @@ export interface BundleCardLargeProps {
     stats?: BundleCardLargeStats | null;
     /** Wired to the subscribe modal in M4; unused in M3 (discovery only). */
     onSubscribe?: (bundle: Bundle) => void;
+    /** See BundleCard.tsx — swaps the CTA for a link to the subscriptions page (D46). */
+    alreadySubscribed?: boolean;
 }
 
 const NETWORK_VENUE_TYPE_COUNT = 5;
@@ -30,7 +33,7 @@ const NETWORK_VENUE_TYPE_COUNT = 5;
  * and "most popular"/region tags are omitted (no discount until P2, one badge per
  * bundle in the model). See P1-PROGRESS decision log.
  */
-export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeProps) {
+export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed }: BundleCardLargeProps) {
     const t = useTranslations("bundles");
     const locale = useLocale();
     const { user } = useUser();
@@ -39,6 +42,10 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
     const description = locale === "fr" ? bundle.descriptionFr : bundle.descriptionEn;
     const idealFor = locale === "fr" ? bundle.idealForFr : bundle.idealForEn;
     const hasScreens = bundle.screenCount > 0;
+    // See BundleCard.tsx — onSubscribe is left undefined for a signed-in user with
+    // no organization, which used to render the button enabled but inert.
+    const noOrganization = !!user && !onSubscribe;
+    const disabled = !hasScreens || noOrganization;
 
     // Where the screens actually are, not generic feature bullets — mirrors the
     // prototype's venue-type list, ending with the posting-frequency line.
@@ -74,15 +81,27 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
               ? t("card.perScreenHook", { price: approx + formatCurrency(perScreen, { locale }) })
               : null;
 
-    const subscribeButton = (
+    const tooltipLabel = alreadySubscribed
+        ? null
+        : !hasScreens
+          ? t("card.noScreens")
+          : noOrganization
+            ? t("card.noOrganization")
+            : null;
+
+    const subscribeButton = alreadySubscribed ? (
+        <Button fullWidth variant="light" size="md" component={Link} href="/dashboard/advertiser/subscriptions">
+            {t("card.manageSubscription")}
+        </Button>
+    ) : (
         <Button
             fullWidth
             variant="gradient"
             size="md"
-            disabled={!hasScreens}
-            component={!hasScreens || user ? "button" : "a"}
-            href={!hasScreens || user ? undefined : `/auth/login?ui_locales=${locale}`}
-            onClick={hasScreens && user && onSubscribe ? () => onSubscribe(bundle) : undefined}
+            disabled={disabled}
+            component={disabled || user ? "button" : "a"}
+            href={disabled || user ? undefined : `/auth/login?ui_locales=${locale}`}
+            onClick={!disabled && user && onSubscribe ? () => onSubscribe(bundle) : undefined}
         >
             {t("card.subscribe")}
         </Button>
@@ -164,6 +183,12 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
                     style={{ flex: "1 1 240px", display: "flex" }}
                 >
                     <Stack gap="xs" justify="center" align="center" ta="center" style={{ flex: 1 }}>
+                        {alreadySubscribed && (
+                            <Badge color="teal" variant="light" size="lg">
+                                {t("card.alreadySubscribed")}
+                            </Badge>
+                        )}
+
                         {isDiscounted && (
                             <Badge color="red" variant="filled" size="lg">
                                 {t("card.discountBadge", { percent: bundle.discountPercent })}
@@ -199,7 +224,14 @@ export function BundleCardLarge({ bundle, stats, onSubscribe }: BundleCardLargeP
                         )}
 
                         <Box w="100%" mt="xs">
-                            {subscribeButton}
+                            {tooltipLabel ? (
+                                <Tooltip label={tooltipLabel} withArrow>
+                                    {/* Tooltip needs a non-disabled wrapper to receive hover events. */}
+                                    <Box>{subscribeButton}</Box>
+                                </Tooltip>
+                            ) : (
+                                subscribeButton
+                            )}
                         </Box>
 
                         <Text size="xs" c="dimmed">
