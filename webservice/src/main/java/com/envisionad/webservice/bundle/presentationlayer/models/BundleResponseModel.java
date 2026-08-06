@@ -19,6 +19,24 @@ public class BundleResponseModel {
     private String badgeColor;
     private BundleRuleType ruleType;
     private String ruleValue;
+
+    /**
+     * Human-readable rendering of {@link #ruleValue}, so no client has to know that
+     * the column means a different thing per {@link #ruleType}: the venue's name for
+     * VENUE, the raw city/region string for CITY/REGION, null for FULL_NETWORK.
+     *
+     * <p>Response-only and derived — {@code BundleRequestModel} still writes
+     * {@link #ruleValue} alone. Shipped as an En/Fr pair rather than resolved from a
+     * {@code locale} param so the public listing stays locale-free, matching how
+     * {@link #nameEn}/{@link #nameFr} already let the client pick.
+     *
+     * <p>Falls back to the raw {@link #ruleValue} when a VENUE bundle points at a
+     * venue row that no longer exists, which keeps the broken reference visible
+     * instead of blanking the cell.
+     */
+    private String ruleValueLabelEn;
+    private String ruleValueLabelFr;
+
     private boolean active;
 
     /** Eligible screens after the pricing pipeline's filter chain. */

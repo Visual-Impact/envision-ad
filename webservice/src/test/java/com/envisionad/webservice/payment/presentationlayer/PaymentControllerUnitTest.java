@@ -1,7 +1,6 @@
 package com.envisionad.webservice.payment.presentationlayer;
 
 import com.envisionad.webservice.payment.businesslogiclayer.StripeService;
-import com.envisionad.webservice.payment.presentationlayer.models.PaymentIntentRequestModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,49 +69,6 @@ class PaymentControllerUnitTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(stripeService, times(1)).createConnectedAccountAndLink(mockJwt, businessId, returnUrl, refreshUrl);
-    }
-
-    @Test
-    void createPaymentIntent_shouldReturnClientSecret() throws Exception {
-        // Given
-        String campaignId = "camp-456";
-        String mediaId = "media-789";
-        String reservationId = "res-001";
-        LocalDateTime startDate = LocalDateTime.of(2026, 2, 1, 0, 0);
-        LocalDateTime endDate = LocalDateTime.of(2026, 2, 8, 0, 0);
-
-        PaymentIntentRequestModel requestModel = new PaymentIntentRequestModel();
-        requestModel.setCampaignId(campaignId);
-        requestModel.setMediaId(mediaId);
-        requestModel.setReservationId(reservationId);
-        requestModel.setStartDate(startDate);
-        requestModel.setEndDate(endDate);
-
-        Map<String, String> expectedResponse = new HashMap<>();
-        expectedResponse.put("clientSecret", "cs_test_secret123");
-        expectedResponse.put("sessionId", "sess_test123");
-
-        when(stripeService.createAuthorizedCheckoutSession(
-                eq(mockJwt),
-                eq(campaignId),
-                eq(mediaId),
-                eq(reservationId),
-                eq(startDate),
-                eq(endDate)
-        )).thenReturn(expectedResponse);
-
-        // When
-        ResponseEntity<Map<String, String>> response = paymentController.createCheckoutSession(mockJwt, requestModel);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(expectedResponse, response.getBody());
-        assertNotNull(response.getBody());
-        assertNotNull(response.getBody().get("clientSecret"));
-        assertNotNull(response.getBody().get("sessionId"));
-        verify(stripeService, times(1)).createAuthorizedCheckoutSession(
-                mockJwt, campaignId, mediaId, reservationId, startDate, endDate);
     }
 
     @Test

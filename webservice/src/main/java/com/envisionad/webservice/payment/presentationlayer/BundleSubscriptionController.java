@@ -4,6 +4,8 @@ import com.envisionad.webservice.payment.businesslogiclayer.BundleSubscriptionSe
 import com.envisionad.webservice.payment.businesslogiclayer.SubscriptionCheckoutResult;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionCheckoutResponseModel;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionRequestModel;
+import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
+import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
 import com.stripe.exception.StripeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/bundle-subscriptions")
@@ -43,6 +47,33 @@ public class BundleSubscriptionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new BundleSubscriptionCheckoutResponseModel(
                         result.clientSecret(), result.sessionId(), result.subscriptionId()));
+    }
+
+    /**
+     * The advertiser's own subscriptions. Returns every status — an INCOMPLETE row from an
+     * abandoned checkout still occupies that business's slot for the bundle and has to be
+     * visible before it can be cleared.
+     */
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<BundleSubscriptionResponseModel>> getBundleSubscriptions(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String businessId) {
+
+        return ResponseEntity.ok(bundleSubscriptionService.getSubscriptionsForBusiness(jwt, businessId));
+    }
+
+    /**
+     * Campaigns currently running on one screen, for the media owner's proof-of-display picker
+     * (decision D40). Replaces the old client-side derivation from that screen's reservations.
+     */
+    @GetMapping("/live-campaigns")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<LiveCampaignResponseModel>> getLiveCampaigns(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String mediaId) {
+
+        return ResponseEntity.ok(bundleSubscriptionService.getLiveCampaignsForMedia(jwt, mediaId));
     }
 
     /**

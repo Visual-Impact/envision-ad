@@ -1,1 +1,0 @@
-export { Advertisements as default } from "@/pages/dashboard/advertiser"

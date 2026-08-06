@@ -8,15 +8,21 @@ import com.envisionad.webservice.bundle.businesslogiclayer.BundlePriceQuote;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePricingService;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundleService;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
+import com.envisionad.webservice.bundle.dataaccesslayer.BundleRepository;
 import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaException;
 import com.envisionad.webservice.bundle.exceptions.BundleNotActiveException;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
+import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
+import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
+import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
+import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
+import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -34,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -60,6 +67,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     private final StripeCustomerRepository stripeCustomerRepository;
     private final BundleSubscriptionRepository bundleSubscriptionRepository;
     private final BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
+    private final BundleRepository bundleRepository;
+    private final MediaRepository mediaRepository;
+    private final BundleSubscriptionResponseMapper responseMapper;
     private final JwtUtils jwtUtils;
 
     public BundleSubscriptionServiceImpl(BundleService bundleService,
@@ -69,6 +79,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             StripeCustomerRepository stripeCustomerRepository,
             BundleSubscriptionRepository bundleSubscriptionRepository,
             BundleSubscriptionItemRepository bundleSubscriptionItemRepository,
+            BundleRepository bundleRepository,
+            MediaRepository mediaRepository,
+            BundleSubscriptionResponseMapper responseMapper,
             JwtUtils jwtUtils) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
@@ -77,6 +90,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         this.stripeCustomerRepository = stripeCustomerRepository;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
         this.bundleSubscriptionItemRepository = bundleSubscriptionItemRepository;
+        this.bundleRepository = bundleRepository;
+        this.mediaRepository = mediaRepository;
+        this.responseMapper = responseMapper;
         this.jwtUtils = jwtUtils;
     }
 
@@ -371,5 +387,52 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         }).toList();
 
         bundleSubscriptionItemRepository.saveAll(items);
+    }
+
+    @Override
+    public List<BundleSubscriptionResponseModel> getSubscriptionsForBusiness(Jwt jwt, String businessId) {
+        String userId = jwtUtils.extractUserId(jwt);
+        jwtUtils.validateUserIsEmployeeOfBusiness(userId, businessId);
+
+        List<BundleSubscription> subscriptions =
+                bundleSubscriptionRepository.findAllByAdvertiserBusinessId(businessId);
+
+        return subscriptions.stream()
+                .sorted(Comparator.comparing(BundleSubscription::getCreatedAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .map(subscription -> {
+                    Bundle bundle = bundleRepository.findByBundleId(subscription.getBundleId()).orElse(null);
+                    AdCampaign campaign =
+                            adCampaignRepository.findByCampaignId_CampaignId(subscription.getCampaignId());
+                    return responseMapper.entityToResponseModel(
+                            subscription, bundle, campaign == null ? null : campaign.getName());
+                })
+                .toList();
+    }
+
+    @Override
+    public List<LiveCampaignResponseModel> getLiveCampaignsForMedia(Jwt jwt, String mediaId) {
+        String userId = jwtUtils.extractUserId(jwt);
+
+        UUID mediaUuid = UUID.fromString(mediaId);
+        Media media = mediaRepository.findById(mediaUuid)
+                .orElseThrow(() -> new MediaNotFoundException(mediaId));
+
+        if (media.getBusinessId() == null) {
+            throw new IllegalStateException("Media has no associated business");
+        }
+        // Only the screen's owner may see which advertisers are running on it.
+        jwtUtils.validateUserIsEmployeeOfBusiness(userId, media.getBusinessId().toString());
+
+        List<String> campaignIds = bundleSubscriptionItemRepository.findLiveCampaignIdsByMediaId(
+                mediaUuid, LIVE_STATUSES);
+
+        return campaignIds.stream()
+                .map(campaignId -> {
+                    AdCampaign campaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
+                    return new LiveCampaignResponseModel(
+                            campaignId, campaign == null ? campaignId : campaign.getName());
+                })
+                .toList();
     }
 }

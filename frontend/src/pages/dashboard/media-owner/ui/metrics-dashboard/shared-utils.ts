@@ -1,6 +1,5 @@
 import type {
     PayoutAmountPoint,
-    ReservationResponseDTO,
 } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/types";
 
 export const parseNumericValue = (value: unknown): number | null => {
@@ -24,14 +23,6 @@ export const normalizeText = (value: string | undefined, fallback: string) => {
     if (!value) return fallback;
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : fallback;
-};
-
-export const getReservationAmount = (reservation: ReservationResponseDTO) => {
-    if (Number.isFinite(reservation.totalPrice)) {
-        return reservation.totalPrice;
-    }
-    const numericValue = Number(reservation.totalPrice);
-    return Number.isFinite(numericValue) ? numericValue : 0;
 };
 
 export const subtractDays = (date: Date, days: number) => {

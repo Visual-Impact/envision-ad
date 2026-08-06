@@ -43,8 +43,8 @@ interface BundleSubscribeModalProps {
 
 /**
  * Subscribe flow for a bundle: review (buyer-specific quote + campaign pick) → embedded
- * Stripe checkout → confirmation. Modeled on the reservation PaymentModal, which is where
- * the EmbeddedCheckout wiring comes from.
+ * Stripe checkout → confirmation. The EmbeddedCheckout wiring was modeled on the reservation
+ * PaymentModal, which was removed with the rest of that flow in M6.
  *
  * <p>Lives in `widgets` rather than under `pages/dashboard/advertiser` (where the brief
  * originally placed it): its caller is now the home page's bundles section, so a
@@ -67,7 +67,7 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
     const name = locale === "fr" ? bundle?.nameFr : bundle?.nameEn;
 
     // Reset as the modal closes. Adjusting state during render for a prop change is the
-    // pattern React recommends over an effect, and is what PaymentModal already does.
+    // pattern React recommends over an effect.
     const [prevOpened, setPrevOpened] = useState(opened);
     if (opened !== prevOpened) {
         setPrevOpened(opened);

@@ -3,8 +3,6 @@ package com.envisionad.webservice.payment.businesslogiclayer;
 import com.stripe.exception.StripeException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Map;
 
 public interface StripeService {
@@ -18,12 +16,9 @@ public interface StripeService {
     Map<String, String> createConnectedAccountAndLink(Jwt jwt, String businessId, String returnUrl, String refreshUrl)
             throws StripeException;
 
-    Map<String, String> createCheckoutSession(String reservationId, BigDecimal amount, String businessId)
-            throws StripeException;
-
-    Map<String, String> createAuthorizedCheckoutSession(Jwt jwt, String campaignId, String mediaId,
-            String reservationId,
-            LocalDateTime startDate, LocalDateTime endDate) throws StripeException;
+    // createCheckoutSession / createAuthorizedCheckoutSession were removed in P1 M6 (brief
+    // req. 18) along with the weekly-reservation flow they served. Bundle subscriptions use
+    // BundleSubscriptionService, which creates its own subscription-mode session.
 
     /**
      * Get Stripe account status for a business

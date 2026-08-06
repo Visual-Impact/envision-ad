@@ -14,6 +14,8 @@ import com.envisionad.webservice.media.DataAccessLayer.*;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
+import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +57,9 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    @Autowired
+    private VenueRepository venueRepository;
+
     private Media montrealMedia;
     private Media lavalMedia;
 
@@ -65,6 +70,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         bundleRepository.deleteAll();
         mediaRepository.deleteAll();
         mediaLocationRepository.deleteAll();
+        venueRepository.deleteAll();
         employeeRepository.deleteAll();
 
         Jwt adminJwt = Jwt.withTokenValue(ADMIN_TOKEN)
@@ -115,6 +121,15 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         bundle.setRuleValue(ruleValue);
         bundle.setActive(active);
         return bundleRepository.save(bundle);
+    }
+
+    private Venue givenVenue(String venueId, String nameEn, String nameFr) {
+        Venue venue = new Venue();
+        venue.setVenueId(venueId);
+        venue.setNameEn(nameEn);
+        venue.setNameFr(nameFr);
+        venue.setColorCode("#00BFFF");
+        return venueRepository.save(venue);
     }
 
     private BundleRequestModel requestModel(BundleRuleType ruleType, String ruleValue) {
@@ -184,6 +199,82 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().isOk()
                 .expectBody(BundleResponseModel.class)
                 .value(body -> assertEquals(1, body.getScreenCount()));
+    }
+
+    // ---------- rule value labels ----------
+
+    @Test
+    void venueBundle_labelsTheRuleWithTheVenueNameInBothLanguages() {
+        givenVenue("venue-cafe", "Coffee shop", "Café");
+        Bundle bundle = givenBundle(BundleRuleType.VENUE, "venue-cafe", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals("venue-cafe", body.getRuleValue(), "the stored rule is still the id");
+                    assertEquals("Coffee shop", body.getRuleValueLabelEn());
+                    assertEquals("Café", body.getRuleValueLabelFr());
+                });
+    }
+
+    @Test
+    void venueBundle_pointingAtAMissingVenue_fallsBackToTheRawId() {
+        Bundle bundle = givenBundle(BundleRuleType.VENUE, "venue-deleted", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals("venue-deleted", body.getRuleValueLabelEn());
+                    assertEquals("venue-deleted", body.getRuleValueLabelFr());
+                });
+    }
+
+    @Test
+    void cityBundle_labelsBothLanguagesWithTheRawCityString() {
+        // Free text with nothing to translate — a null French label would blank the
+        // rule cell for a French admin, which is what the label field exists to avoid.
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals("Montreal", body.getRuleValueLabelEn());
+                    assertEquals("Montreal", body.getRuleValueLabelFr());
+                });
+    }
+
+    @Test
+    void regionBundle_labelsBothLanguagesWithTheRawRegionString() {
+        Bundle bundle = givenBundle(BundleRuleType.REGION, "Laurentides", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertEquals("Laurentides", body.getRuleValueLabelEn());
+                    assertEquals("Laurentides", body.getRuleValueLabelFr());
+                });
+    }
+
+    @Test
+    void fullNetworkBundle_hasNoRuleValueLabel() {
+        Bundle bundle = givenBundle(BundleRuleType.FULL_NETWORK, null, true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> {
+                    assertNull(body.getRuleValueLabelEn());
+                    assertNull(body.getRuleValueLabelFr());
+                });
     }
 
     @Test
@@ -351,19 +442,45 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         assertTrue(bundleRepository.findByBundleId(bundle.getBundleId()).isPresent());
     }
 
+    /**
+     * D47: canceled history blocks the delete too. Brief req. 5 said such a bundle was deletable
+     * and that its history would cascade away — but {@code bundle_subscriptions.bundle_id} has no
+     * {@code ON DELETE} clause, so Postgres refuses. Verified against a real migrated schema.
+     * This test asserted a 204 before D47 and passed only because the entity-generated test
+     * schema has no foreign keys (D5).
+     */
     @Test
-    void deleteBundle_withOnlyCanceledSubscriptions_succeeds() {
+    void deleteBundle_withOnlyCanceledSubscriptions_isAlsoBlocked() {
         Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
         givenSubscription(bundle, BundleSubscriptionStatus.CANCELED);
 
         webTestClient.delete().uri(BASE_URI + "/" + bundle.getBundleId())
                 .header("Authorization", "Bearer " + ADMIN_TOKEN)
                 .exchange()
-                .expectStatus().isNoContent();
+                .expectStatus().isEqualTo(409);
+
+        assertTrue(bundleRepository.findByBundleId(bundle.getBundleId()).isPresent());
     }
 
     @Test
-    void activeSubscriptionCount_isReportedOnTheResponse() {
+    void deleteBundle_withNoSubscriptionsAtAll_succeeds() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.delete().uri(BASE_URI + "/" + bundle.getBundleId())
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        assertTrue(bundleRepository.findByBundleId(bundle.getBundleId()).isEmpty());
+    }
+
+    /**
+     * The count drives the admin delete modal's disabled state and its explanation, so it has to
+     * agree with the guard exactly. Since D47 widened the guard to every status, this counts both
+     * rows — a bundle showing "1" while the delete fails would be worse than the old wording.
+     */
+    @Test
+    void subscriptionCount_onTheResponse_countsEveryStatus() {
         Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
         givenSubscription(bundle, BundleSubscriptionStatus.ACTIVE);
         givenSubscription(bundle, BundleSubscriptionStatus.CANCELED);
@@ -372,7 +489,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody(BundleResponseModel.class)
-                .value(body -> assertEquals(1, body.getActiveSubscriptionCount()));
+                .value(body -> assertEquals(2, body.getActiveSubscriptionCount()));
     }
 
     private void givenSubscription(Bundle bundle, BundleSubscriptionStatus status) {

@@ -24,10 +24,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
-import java.time.LocalDateTime;
 import java.util.Map;
 
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 
 @Slf4j
 @Service
@@ -39,10 +39,14 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     private final AdRequestMapper adRequestMapper;
     private final AdResponseMapper adResponseMapper;
     private final JwtUtils jwtUtils;
-    private final ReservationRepository reservationRepository;
+    private final BundleSubscriptionRepository bundleSubscriptionRepository;
     private final Cloudinary cloudinary;
 
-    public AdCampaignServiceImpl(AdCampaignRepository adCampaignRepository, AdCampaignRequestMapper adCampaignRequestMapper, AdCampaignResponseMapper adCampaignResponseMapper, AdRequestMapper adRequestMapper, AdResponseMapper adResponseMapper, BusinessRepository businessRepository, JwtUtils jwtUtils, ReservationRepository reservationRepository, Cloudinary cloudinary) {
+    /** The subscription states that make a campaign undeletable — mirrors the DB trigger. */
+    private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
+            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
+
+    public AdCampaignServiceImpl(AdCampaignRepository adCampaignRepository, AdCampaignRequestMapper adCampaignRequestMapper, AdCampaignResponseMapper adCampaignResponseMapper, AdRequestMapper adRequestMapper, AdResponseMapper adResponseMapper, BusinessRepository businessRepository, JwtUtils jwtUtils, BundleSubscriptionRepository bundleSubscriptionRepository, Cloudinary cloudinary) {
         this.businessRepository = businessRepository;
         this.adCampaignRepository = adCampaignRepository;
         this.adCampaignRequestMapper = adCampaignRequestMapper;
@@ -51,7 +55,7 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         this.adResponseMapper = adResponseMapper;
         this.jwtUtils = jwtUtils;
         this.cloudinary = cloudinary;
-        this.reservationRepository = reservationRepository;
+        this.bundleSubscriptionRepository = bundleSubscriptionRepository;
     }
 
     @Override
@@ -109,11 +113,10 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         if (adCampaign == null)
             throw new AdCampaignNotFoundException(campaignId);
 
-        // validate that the campaign is not associated with a pending, approved or confirmed reservation
-        if (campaignIsTiedToReservation(campaignId)) {
-            throw new CampaignIsTiedToReservationException(campaignId);
-        }
-
+        // Deliberately unguarded (P1 M6, decision D42): an advertiser on a live monthly
+        // subscription must be able to change their creative mid-cycle. The weekly-reservation
+        // system blocked this because a booking was a short fixed window; a subscription is not.
+        // Notifying the affected media owners of the change is P6's scope.
         Ad newAd = adRequestMapper.requestModelToEntity(adRequestModel);
         newAd.setAdIdentifier(new AdIdentifier());
 
@@ -139,11 +142,7 @@ public class AdCampaignServiceImpl implements AdCampaignService {
             throw new AdCampaignNotFoundException(campaignId);
         }
 
-        // validate that the campaign is not associated with a pending, approved or confirmed reservation
-        if (campaignIsTiedToReservation(campaignId)) {
-            throw new CampaignIsTiedToReservationException(campaignId);
-        }
-
+        // Deliberately unguarded — see addAdToCampaign above (decision D42).
         Ad adToDelete = adCampaign.getAds().stream()
                 .filter(ad -> ad.getAdIdentifier().getAdIdentifier().equals(adId))
                 .findFirst()
@@ -178,9 +177,13 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         // Validate the campaign belongs to the business
         jwtUtils.validateBusinessOwnsCampaign(businessId, adCampaign);
 
-        // Validate the campaign is not associated with any active reservation (CONFIRMED, APPROVED, or PENDING with endDate >= now)
-        if (campaignIsTiedToReservation(campaignId)) {
-            throw new CampaignIsTiedToReservationException(campaignId);
+        // Deletion IS still guarded (decision D42). This is not a product choice: the campaign is
+        // referenced by bundle_subscriptions.campaign_id (NOT NULL, ON DELETE RESTRICT) and by the
+        // prevent_active_campaign_delete() trigger, so the delete would fail at the database
+        // anyway — the app-layer check is what turns that into a clean 409 instead of a
+        // constraint violation surfacing as the catch-all's 500.
+        if (campaignIsTiedToSubscription(campaignId)) {
+            throw new CampaignIsTiedToSubscriptionException(campaignId);
         }
 
         // Delete all associated ads and their Cloudinary assets
@@ -216,13 +219,25 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     }
 
 
+    /**
+     * Number of distinct campaigns this advertiser currently has running. Re-sourced in M6 from
+     * reservations to bundle subscriptions (brief req. 20 — keep the metric definition, swap the
+     * source). "Running" was CONFIRMED-and-within-its-date-range; a subscription has no date range,
+     * so its equivalent is simply being live: ACTIVE or PAST_DUE.
+     */
     @Override
     public Integer getActiveCampaignCount(String businessId) {
-        return reservationRepository.countActiveCampaignsByAdvertiserId(businessId, LocalDateTime.now());
+        return bundleSubscriptionRepository.countDistinctCampaignsByAdvertiserBusinessIdAndStatusIn(
+                businessId, LIVE_SUBSCRIPTION_STATUSES);
     }
 
-    private boolean campaignIsTiedToReservation(String campaignId) {
-        LocalDateTime now = LocalDateTime.now();
-        return reservationRepository.existsUpcomingByCampaignId(campaignId, now);
+    /**
+     * Matches the foreign key, not the trigger (D47). {@code bundle_subscriptions.campaign_id} is
+     * {@code ON DELETE RESTRICT}, so <em>any</em> subscription row pins the campaign — a cancelled
+     * one just as firmly as a live one. Checking only live statuses would let the delete through
+     * the service and fail at the database with a generic message.
+     */
+    private boolean campaignIsTiedToSubscription(String campaignId) {
+        return bundleSubscriptionRepository.existsByCampaignId(campaignId);
     }
 }

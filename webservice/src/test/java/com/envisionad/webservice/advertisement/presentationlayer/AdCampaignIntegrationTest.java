@@ -5,9 +5,9 @@ import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampai
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
 import com.envisionad.webservice.business.dataaccesslayer.*;
 import com.envisionad.webservice.config.BaseIntegrationTest;
-import com.envisionad.webservice.reservation.dataaccesslayer.Reservation;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationRepository;
-import com.envisionad.webservice.reservation.dataaccesslayer.ReservationStatus;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,12 +37,12 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
 
     private static final String BUSINESS_ID = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22";
     @Autowired
-    private ReservationRepository reservationRepository;
+    private BundleSubscriptionRepository bundleSubscriptionRepository;
 
     @BeforeEach
     void setUp() {
         // Clear all data from previous tests to avoid constraint violations
-        reservationRepository.deleteAll();
+        bundleSubscriptionRepository.deleteAll();
         adCampaignRepository.deleteAll();
         employeeRepository.deleteAll();
         businessRepository.deleteAll();
@@ -374,7 +374,7 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void deleteCampaign_notTiedToReservation_shouldDeleteSuccessfully() {
+    void deleteCampaign_notTiedToAnySubscription_shouldDeleteSuccessfully() {
         // Arrange
         AdCampaign adCampaign = new AdCampaign();
         adCampaign.setName("Winter Sale");
@@ -395,112 +395,81 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
         assertEquals(0, adCampaignRepository.count());
     }
 
+    /**
+     * D42: the delete guard survives the reservation retirement, re-pointed at live bundle
+     * subscriptions. ACTIVE blocks the delete.
+     */
     @Test
-    void deleteCampaign_tiedToConfirmedReservation_shouldReturnConflict() {
-        // Arrange
+    void deleteCampaign_tiedToActiveSubscription_shouldReturnConflict() {
+        String campaignId = persistCampaign("Winter Sale");
+        persistSubscription(campaignId, BundleSubscriptionStatus.ACTIVE);
+
+        expectDeleteStatus(campaignId, 409);
+    }
+
+    /** A failed payment does not release the campaign — PAST_DUE is still live. */
+    @Test
+    void deleteCampaign_tiedToPastDueSubscription_shouldReturnConflict() {
+        String campaignId = persistCampaign("Winter Sale");
+        persistSubscription(campaignId, BundleSubscriptionStatus.PAST_DUE);
+
+        expectDeleteStatus(campaignId, 409);
+    }
+
+    /**
+     * D47: cancelling does not release the campaign. The guard is status-agnostic because it
+     * mirrors the {@code ON DELETE RESTRICT} foreign key, which refuses the delete whatever the
+     * subscription's status — so the advertiser gets this explanatory 409 rather than the
+     * catch-all's generic "conflicting database state" message.
+     *
+     * <p>Before D47 this asserted a 2xx, and passed only because the entity-generated test schema
+     * has no foreign keys (D5). Against a real migrated schema that delete has always failed.
+     */
+    @Test
+    void deleteCampaign_tiedToCanceledSubscriptionOnly_stillReturnsConflict() {
+        String campaignId = persistCampaign("Summer Clearance");
+        persistSubscription(campaignId, BundleSubscriptionStatus.CANCELED);
+
+        expectDeleteStatus(campaignId, 409);
+    }
+
+    /** An abandoned checkout pins the campaign for the same reason a cancelled one does (D47). */
+    @Test
+    void deleteCampaign_tiedToIncompleteSubscriptionOnly_stillReturnsConflict() {
+        String campaignId = persistCampaign("Abandoned Checkout");
+        persistSubscription(campaignId, BundleSubscriptionStatus.INCOMPLETE);
+
+        expectDeleteStatus(campaignId, 409);
+    }
+
+    private String persistCampaign(String name) {
         AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Winter Sale");
+        adCampaign.setName(name);
         adCampaign.setCampaignId(new AdCampaignIdentifier());
         adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
+        return adCampaignRepository.save(adCampaign).getCampaignId().getCampaignId();
+    }
 
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.CONFIRMED);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().plusDays(1));
-        reservationRepository.save(reservation);
+    private void persistSubscription(String campaignId, BundleSubscriptionStatus status) {
+        BundleSubscription subscription = new BundleSubscription();
+        subscription.setSubscriptionId(UUID.randomUUID().toString());
+        subscription.setBundleId(UUID.randomUUID().toString());
+        subscription.setAdvertiserBusinessId(businessId.getBusinessId());
+        subscription.setCampaignId(campaignId);
+        subscription.setStripeCheckoutSessionId("cs_test_" + UUID.randomUUID());
+        subscription.setStatus(status);
+        subscription.setMonthlyAmount(new java.math.BigDecimal("48.00"));
+        subscription.setScreenCount(15);
+        bundleSubscriptionRepository.save(subscription);
+    }
 
-        // Act & Assert
+    private void expectDeleteStatus(String campaignId, int expectedStatus) {
         webTestClient.delete()
                 .uri(uriBuilder -> uriBuilder
                         .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
                         .build(businessId.getBusinessId(), campaignId))
                 .headers(headers -> headers.setBearerAuth("advertiser-token"))
                 .exchange()
-                .expectStatus().isEqualTo(409); // Conflict status code
+                .expectStatus().isEqualTo(expectedStatus);
     }
-
-    @Test
-    void deleteCampaign_tiedToPendingReservation_shouldReturnConflict() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Winter Sale");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
-
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.PENDING);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().plusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().isEqualTo(409); // Conflict status code
-    }
-
-    @Test
-    void deleteCampaign_tiedToApprovedReservation_shouldReturnConflict() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Winter Sale");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
-
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.APPROVED);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().plusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().isEqualTo(409); // Conflict status code
-    }
-
-    @Test
-    void deleteCampaign_tiedToExpiredReservation_shouldSucceed() {
-        // Arrange
-        AdCampaign adCampaign = new AdCampaign();
-        adCampaign.setName("Summer Clearance");
-        adCampaign.setCampaignId(new AdCampaignIdentifier());
-        adCampaign.setBusinessId(businessId);
-        AdCampaign savedCampaign = adCampaignRepository.save(adCampaign);
-        String campaignId = savedCampaign.getCampaignId().getCampaignId();
-
-        Reservation reservation = new Reservation();
-        reservation.setReservationId(UUID.randomUUID().toString());
-        reservation.setStatus(ReservationStatus.CONFIRMED);
-        reservation.setCampaignId(campaignId);
-        reservation.setEndDate(java.time.LocalDateTime.now().minusDays(1));
-        reservationRepository.save(reservation);
-
-        // Act & Assert
-        webTestClient.delete()
-                .uri(uriBuilder -> uriBuilder
-                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
-                        .build(businessId.getBusinessId(), campaignId))
-                .headers(headers -> headers.setBearerAuth("advertiser-token"))
-                .exchange()
-                .expectStatus().is2xxSuccessful();
-    }
-
 }
