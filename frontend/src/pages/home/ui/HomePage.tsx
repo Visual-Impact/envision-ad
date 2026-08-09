@@ -74,12 +74,6 @@ export default function HomePage({ bookMeetingUrl, stats, galleryImages }: HomeP
                     <div className={classes.heroWash} aria-hidden="true" />
                     <div className={classes.heroGrid}>
                         <Stack gap="xl" className={classes.heroLeft}>
-                        {/* Network badge */}
-                        <Box className={classes.networkBadge}>
-                            <span className={classes.badgeDot} aria-hidden="true">●</span>
-                            {t("networkBadge")}
-                        </Box>
-
                         {/* Headline */}
                         <Stack gap={0}>
                             <Title order={1} className={classes.heroTitle}>
