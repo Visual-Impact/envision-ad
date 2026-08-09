@@ -35,6 +35,13 @@ const getApiErrorStatus = (error: unknown): number | null => {
     return typeof response?.status === "number" ? response.status : null;
 };
 
+const getApiErrorCode = (error: unknown): string | null => {
+    if (!error || typeof error !== "object" || !("response" in error)) return null;
+    const response = (error as { response?: { data?: unknown } }).response;
+    if (!response?.data || typeof response.data !== "object") return null;
+    return (response.data as { code?: string }).code ?? null;
+};
+
 const hasApiFieldErrors = (error: unknown): boolean => {
     if (!error || typeof error !== "object" || !("response" in error)) return false;
     const response = (error as { response?: { data?: unknown } }).response;
@@ -66,14 +73,16 @@ export default function MediaLocations() {
         setRefreshCount(c => c + 1);
     }, []);
 
+    const businessId = organization?.businessId;
+
     useEffect(() => {
-        if (!organization) return;
+        if (!businessId) return;
 
         let ignored = false;
 
         const fetchLocations = async () => {
             try {
-                const data = await getAllMediaLocations(organization.businessId);
+                const data = await getAllMediaLocations(businessId);
                 if (!ignored) setLocations(data);
             } catch (error) {
                 if (!ignored) {
@@ -90,7 +99,7 @@ export default function MediaLocations() {
         void fetchLocations();
 
         return () => { ignored = true; };
-    }, [organization, t, refreshCount]);
+    }, [businessId, t, refreshCount]);
 
     const handleCreateLocation = async (payload: MediaLocationRequestDTO) => {
         if (!organization) return;
@@ -167,10 +176,12 @@ export default function MediaLocations() {
             refreshLocations();
         } catch (error) {
             console.error("Failed to create media", error);
-            const apiMessage = getApiErrorMessage(error);
+            const isStripeNotOnboarded = getApiErrorCode(error) === "STRIPE_NOT_ONBOARDED";
             notifications.show({
                 title: t('notifications.createMedia.error.title'),
-                message: apiMessage || t("notifications.createMedia.error.message"),
+                message: isStripeNotOnboarded
+                    ? t("notifications.createMedia.error.stripeNotOnboarded")
+                    : t("notifications.createMedia.error.message"),
                 color: "red"
             });
         }

@@ -21,10 +21,22 @@ const axiosInstance = axios.create({
 
 let cachedToken: string | null = null;
 let cachedTokenExp = 0;
+let noSessionUntil = 0;
 let tokenFetchPromise: Promise<string | null> | null = null;
 
 // Buffer in seconds — refetch before the token actually expires
 const EXP_BUFFER = 60;
+
+// How long to skip re-fetching after a confirmed "no session" response, so an anonymous
+// visitor doesn't trigger a fresh /api/auth0/token 401 on every single API call. Safe to
+// cache: login goes through a full-page Auth0 redirect, which gives this module a clean
+// reload rather than needing to notice an in-place session change.
+const NO_SESSION_TTL = 30;
+
+export function resetTokenCache(): void {
+    cachedToken = null;
+    cachedTokenExp = 0;
+}
 
 async function getToken(): Promise<string | null> {
     const now = Math.floor(Date.now() / 1000);
@@ -32,6 +44,8 @@ async function getToken(): Promise<string | null> {
     if (cachedToken && cachedTokenExp - EXP_BUFFER > now) {
         return cachedToken;
     }
+
+    if (now < noSessionUntil) return null;
 
     // If a fetch is already in flight, reuse it to avoid duplicate requests
     if (tokenFetchPromise) return tokenFetchPromise;
@@ -49,6 +63,7 @@ async function getToken(): Promise<string | null> {
                 }
             }
             cachedToken = null;
+            noSessionUntil = now + NO_SESSION_TTL;
             return null;
         } catch (error) {
             console.error("Axios: Failed to inject auth token", error);

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useUser } from '@auth0/nextjs-auth0/client';
 import {jwtDecode} from "jwt-decode";
 import {Token} from "@/entities/auth";
+import {resetTokenCache} from "@/shared/api/axios/axios";
 
 interface PermissionsContextType {
     permissions: string[];
@@ -48,6 +49,7 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         try {
             await fetch('/api/auth0/token', { method: 'POST' });
+            resetTokenCache();
             await fetchPermissions();
         } catch (error) {
             console.error('Failed to refresh permissions:', error);

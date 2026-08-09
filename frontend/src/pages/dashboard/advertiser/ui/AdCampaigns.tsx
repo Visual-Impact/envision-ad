@@ -42,14 +42,16 @@ export default function AdCampaigns() {
         setRefreshCount(c => c + 1);
     }, []);
 
+    const businessId = organization?.businessId;
+
     useEffect(() => {
-        if (!organization) return;
+        if (!businessId) return;
 
         let ignored = false;
 
         const fetchCampaigns = async () => {
             try {
-                const data = await getAllAdCampaigns(organization.businessId);
+                const data = await getAllAdCampaigns(businessId);
                 if (!ignored) setCampaigns(data);
             } catch (error) {
                 if (!ignored) {
@@ -66,7 +68,7 @@ export default function AdCampaigns() {
         void fetchCampaigns();
 
         return () => { ignored = true; };
-    }, [organization, t, refreshCount]);
+    }, [businessId, t, refreshCount]);
 
     const handleOpenAddAd = (campaignId: string) => {
         setTargetCampaignId(campaignId);
