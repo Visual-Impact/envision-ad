@@ -21,6 +21,16 @@ public interface BundleSubscriptionService {
             Jwt jwt, String bundleId, String campaignId, String businessId) throws StripeException;
 
     /**
+     * Same as the four-arg overload, with an optional Stripe coupon code attached (P3). A
+     * code that doesn't resolve to a known coupon, or that Stripe itself rejects at session
+     * creation (invalid/inactive/expired/exhausted), throws {@code InvalidCouponException}
+     * rather than a generic {@code StripeException} — brief §4.6.5's "late rejection" case.
+     */
+    SubscriptionCheckoutResult createSubscriptionCheckout(
+            Jwt jwt, String bundleId, String campaignId, String businessId, String couponCode)
+            throws StripeException;
+
+    /**
      * Cancels a subscription at the end of the current billing period — never
      * immediately. The advertiser keeps the bundle's screens until
      * {@code current_period_end}, there is no refund, and the media owners keep what

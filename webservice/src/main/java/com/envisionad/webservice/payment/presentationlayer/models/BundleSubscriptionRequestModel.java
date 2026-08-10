@@ -15,4 +15,8 @@ public class BundleSubscriptionRequestModel {
     private String bundleId;
     private String campaignId;
     private String businessId;
+
+    /** Optional Stripe coupon code (P3), already previewed via {@code POST /coupons/validate}
+     * before the advertiser confirms checkout. Null/absent means no coupon. */
+    private String couponCode;
 }

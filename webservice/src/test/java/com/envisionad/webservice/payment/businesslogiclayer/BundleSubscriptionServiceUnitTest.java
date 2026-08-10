@@ -20,6 +20,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
+import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.stripe.exception.StripeException;
@@ -80,6 +81,7 @@ class BundleSubscriptionServiceUnitTest {
     @Mock private EmployeeRepository employeeRepository;
     @Mock private Auth0Service auth0Service;
     @Mock private EmailService emailService;
+    @Mock private CouponRepository couponRepository;
 
     private Jwt jwt;
     private Media montrealScreen;
@@ -92,7 +94,7 @@ class BundleSubscriptionServiceUnitTest {
         service = new BundleSubscriptionServiceImpl(bundleService, pricingService, adCampaignRepository,
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
                 bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
-                jwtUtils, employeeRepository, auth0Service, emailService);
+                jwtUtils, employeeRepository, auth0Service, emailService, couponRepository);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
 
@@ -423,7 +425,102 @@ class BundleSubscriptionServiceUnitTest {
                 .anyMatch(i -> i.getMonthlyAmount().compareTo(BigDecimal.ZERO) == 0));
     }
 
+    // ---------- coupons (P3) ----------
+
+    @Test
+    void createSubscriptionCheckout_withACouponCode_attachesThePromotionCodeDiscount() throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+        Coupon coupon = givenCoupon("WELCOME20", "promo_welcome20");
+        when(couponRepository.findByCodeIgnoreCase("WELCOME20")).thenReturn(Optional.of(coupon));
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            ArgumentCaptor<SessionCreateParams> params = ArgumentCaptor.forClass(SessionCreateParams.class);
+            sessions.when(() -> Session.create(params.capture(), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+
+            service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, "welcome20");
+
+            assertEquals(1, params.getValue().getDiscounts().size());
+            assertEquals("promo_welcome20", params.getValue().getDiscounts().get(0).getPromotionCode());
+        }
+
+        ArgumentCaptor<BundleSubscription> saved = ArgumentCaptor.forClass(BundleSubscription.class);
+        verify(bundleSubscriptionRepository).save(saved.capture());
+        assertEquals(coupon.getId(), saved.getValue().getCouponId());
+    }
+
+    @Test
+    void createSubscriptionCheckout_withoutACouponCode_sendsNoDiscountsAndLeavesCouponIdNull() throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            ArgumentCaptor<SessionCreateParams> params = ArgumentCaptor.forClass(SessionCreateParams.class);
+            sessions.when(() -> Session.create(params.capture(), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+
+            service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, null);
+
+            assertTrue(params.getValue().getDiscounts() == null || params.getValue().getDiscounts().isEmpty());
+        }
+        verify(couponRepository, never()).findByCodeIgnoreCase(any());
+
+        ArgumentCaptor<BundleSubscription> saved = ArgumentCaptor.forClass(BundleSubscription.class);
+        verify(bundleSubscriptionRepository).save(saved.capture());
+        assertNull(saved.getValue().getCouponId());
+    }
+
+    @Test
+    void createSubscriptionCheckout_withAnUnknownCouponCode_throwsInvalidCouponBeforeAnyStripeCall() {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        when(couponRepository.findByCodeIgnoreCase("NOPE")).thenReturn(Optional.empty());
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            assertThrows(InvalidCouponException.class, () -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, "NOPE"));
+            sessions.verifyNoInteractions();
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
+    /**
+     * Stripe validates and redeems the code atomically at session creation (brief §4.7.2) — a
+     * rejection there, even for a code that resolves locally, must surface the same
+     * InvalidCouponException as an unknown code, not a raw StripeException (brief §4.6.5).
+     */
+    @Test
+    void createSubscriptionCheckout_whenStripeRejectsTheCoupon_throwsInvalidCouponException() throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+        Coupon coupon = givenCoupon("EXPIRED10", "promo_expired10");
+        when(couponRepository.findByCodeIgnoreCase("EXPIRED10")).thenReturn(Optional.of(coupon));
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenThrow(mock(com.stripe.exception.InvalidRequestException.class));
+
+            assertThrows(InvalidCouponException.class, () -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, "EXPIRED10"));
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
     // ---------- fixtures ----------
+
+    private Coupon givenCoupon(String code, String stripePromotionCodeId) {
+        Coupon coupon = new Coupon();
+        coupon.setId(42L);
+        coupon.setCouponId(UUID.randomUUID().toString());
+        coupon.setCode(code);
+        coupon.setStripeCouponId("stripe_coupon_" + code);
+        coupon.setStripePromotionCodeId(stripePromotionCodeId);
+        return coupon;
+    }
 
     private void givenValidPreconditions() {
         Bundle bundle = new Bundle();

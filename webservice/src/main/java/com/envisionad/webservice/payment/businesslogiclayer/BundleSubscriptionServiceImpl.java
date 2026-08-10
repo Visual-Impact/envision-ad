@@ -25,6 +25,7 @@ import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
+import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
 import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
@@ -79,6 +80,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     private final EmployeeRepository employeeRepository;
     private final Auth0Service auth0Service;
     private final EmailService emailService;
+    private final CouponRepository couponRepository;
 
     public BundleSubscriptionServiceImpl(BundleService bundleService,
             BundlePricingService pricingService,
@@ -93,7 +95,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             JwtUtils jwtUtils,
             EmployeeRepository employeeRepository,
             Auth0Service auth0Service,
-            EmailService emailService) {
+            EmailService emailService,
+            CouponRepository couponRepository) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
         this.adCampaignRepository = adCampaignRepository;
@@ -108,6 +111,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         this.employeeRepository = employeeRepository;
         this.auth0Service = auth0Service;
         this.emailService = emailService;
+        this.couponRepository = couponRepository;
     }
 
     /**
@@ -119,6 +123,14 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     @Override
     public SubscriptionCheckoutResult createSubscriptionCheckout(
             Jwt jwt, String bundleId, String campaignId, String businessId) throws StripeException {
+        return createSubscriptionCheckout(jwt, bundleId, campaignId, businessId, null);
+    }
+
+    @Transactional
+    @Override
+    public SubscriptionCheckoutResult createSubscriptionCheckout(
+            Jwt jwt, String bundleId, String campaignId, String businessId, String couponCode)
+            throws StripeException {
 
         jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
 
@@ -145,6 +157,17 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             throw new BundleNoEligibleMediaException(bundleId);
         }
 
+        // A code that doesn't resolve locally is rejected before any Stripe call — there is
+        // no stripePromotionCodeId to reference. A code that resolves but is inactive/expired/
+        // exhausted is still forwarded to Stripe, which is the actual enforcer (brief §4.6.5,
+        // §4.7.2); Stripe rejecting it at session creation is caught below.
+        Coupon coupon = null;
+        if (couponCode != null && !couponCode.isBlank()) {
+            coupon = couponRepository.findByCodeIgnoreCase(couponCode.trim().toUpperCase())
+                    .orElseThrow(() -> new InvalidCouponException(
+                            "invalid", "Coupon code " + couponCode + " is not valid."));
+        }
+
         Optional<BundleSubscription> retryOf = bundleSubscriptionRepository
                 .findByBundleIdAndAdvertiserBusinessIdAndStatusIn(
                         bundleId, businessId, Set.of(BundleSubscriptionStatus.INCOMPLETE));
@@ -168,7 +191,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
 
         BigDecimal monthlyAmount = quote.finalPrice().setScale(MONEY_SCALE, RoundingMode.HALF_UP);
         Session session = createSubscriptionSession(
-                bundle, monthlyAmount, stripeCustomerId, subscriptionId, businessId);
+                bundle, monthlyAmount, stripeCustomerId, subscriptionId, businessId, coupon);
 
         BundleSubscription subscription = retryOf.orElseGet(BundleSubscription::new);
         subscription.setSubscriptionId(subscriptionId);
@@ -179,6 +202,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         subscription.setStatus(BundleSubscriptionStatus.INCOMPLETE);
         subscription.setMonthlyAmount(monthlyAmount);
         subscription.setScreenCount(quote.eligibleMedias().size());
+        // Overwritten on a retry same as every other locked field (D22): a second attempt's
+        // coupon (present, absent, or different) always wins over the abandoned one's.
+        subscription.setCouponId(coupon != null ? coupon.getId() : null);
         bundleSubscriptionRepository.save(subscription);
 
         writeItems(subscriptionId, quote.eligibleMedias(), retryOf.isPresent());
@@ -331,11 +357,12 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     }
 
     private Session createSubscriptionSession(Bundle bundle, BigDecimal monthlyAmount,
-            String stripeCustomerId, String subscriptionId, String businessId) throws StripeException {
+            String stripeCustomerId, String subscriptionId, String businessId, Coupon coupon)
+            throws StripeException {
 
         long amountInCents = monthlyAmount.multiply(BigDecimal.valueOf(100)).longValueExact();
 
-        SessionCreateParams params = SessionCreateParams.builder()
+        SessionCreateParams.Builder paramsBuilder = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.SUBSCRIPTION)
                 .setUiMode(SessionCreateParams.UiMode.EMBEDDED)
                 .setRedirectOnCompletion(SessionCreateParams.RedirectOnCompletion.NEVER)
@@ -367,8 +394,17 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                                 .putMetadata("subscriptionId", subscriptionId)
                                 .putMetadata("bundleId", bundle.getBundleId())
                                 .putMetadata("advertiserBusinessId", businessId)
-                                .build())
-                .build();
+                                .build());
+
+        // Our own input box (bundle checkout's coupon field) resolves to a promotion_code id
+        // passed here programmatically — Stripe's own hosted promo box (allow_promotion_codes)
+        // stays off, deliberately, to avoid a second entry point that bypasses the §4.6 preview.
+        if (coupon != null) {
+            paramsBuilder.addDiscount(SessionCreateParams.Discount.builder()
+                    .setPromotionCode(coupon.getStripePromotionCodeId())
+                    .build());
+        }
+        SessionCreateParams params = paramsBuilder.build();
 
         // Timestamped so an abandoned attempt can be retried with a fresh session, matching
         // the legacy reservation checkout's key strategy.
@@ -376,7 +412,22 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                 .setIdempotencyKey(subscriptionId + "-subscription-" + System.currentTimeMillis())
                 .build();
 
-        return Session.create(params, requestOptions);
+        try {
+            return Session.create(params, requestOptions);
+        } catch (StripeException e) {
+            // Stripe validates and redeems the promotion code atomically at session creation
+            // (brief §4.7.2) — a rejection here means it was invalid/inactive/expired/exhausted
+            // at this exact instant, even though it passed the earlier client-side preview
+            // (brief §4.6.5). Translated to InvalidCouponException so the frontend gets the
+            // same error vocabulary as /coupons/validate rather than a generic 500. Stripe's
+            // own exception doesn't reliably distinguish which of the three reasons applied, so
+            // this collapses them to "invalid" rather than guessing.
+            if (coupon != null) {
+                throw new InvalidCouponException("invalid",
+                        "Coupon code " + coupon.getCode() + " was rejected by Stripe: " + e.getMessage());
+            }
+            throw e;
+        }
     }
 
     /**
