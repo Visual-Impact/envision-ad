@@ -38,13 +38,16 @@ public class StripeWebhookService {
     private final StripeAccountRepository stripeAccountRepository;
     private final BundleSubscriptionRepository bundleSubscriptionRepository;
     private final BundlePayoutService bundlePayoutService;
+    private final BundleSubscriptionService bundleSubscriptionService;
 
     public StripeWebhookService(StripeAccountRepository stripeAccountRepository,
                                 BundleSubscriptionRepository bundleSubscriptionRepository,
-                                BundlePayoutService bundlePayoutService) {
+                                BundlePayoutService bundlePayoutService,
+                                BundleSubscriptionService bundleSubscriptionService) {
         this.stripeAccountRepository = stripeAccountRepository;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
         this.bundlePayoutService = bundlePayoutService;
+        this.bundleSubscriptionService = bundleSubscriptionService;
     }
 
     @Transactional
@@ -162,12 +165,21 @@ public class StripeWebhookService {
             return;
         }
 
+        // Captured before the overwrite: only a first activation (was INCOMPLETE) is a "new
+        // subscription" worth emailing media owners about. In the normal case invoice.paid has
+        // already flipped this row to ACTIVE by the time this handler runs, so this is a no-op.
+        BundleSubscriptionStatus previousStatus = subscription.getStatus();
+
         subscription.setStripeSubscriptionId(stripeSubscriptionId);
         subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
         bundleSubscriptionRepository.save(subscription);
 
         log.info("Bundle subscription {} is now ACTIVE (stripeSubscriptionId={})",
                 subscription.getSubscriptionId(), stripeSubscriptionId);
+
+        if (previousStatus == BundleSubscriptionStatus.INCOMPLETE) {
+            notifyMediaOwnersOfNewSubscription(subscription.getSubscriptionId());
+        }
     }
 
     /**
@@ -227,6 +239,11 @@ public class StripeWebhookService {
             subscription.setStripeSubscriptionId(stripeSubscriptionId);
         }
 
+        // Captured before the overwrite: only a first activation (was INCOMPLETE) is a "new
+        // subscription" worth emailing media owners about — a renewal or a PAST_DUE recovery
+        // payment reaches this same line every cycle and must not re-send it.
+        BundleSubscriptionStatus previousStatus = subscription.getStatus();
+
         subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
         LocalDateTime periodEnd = periodEndOf(invoice);
         if (periodEnd != null) {
@@ -235,6 +252,30 @@ public class StripeWebhookService {
         bundleSubscriptionRepository.save(subscription);
 
         bundlePayoutService.payOutInvoice(invoice.getId(), subscription.getSubscriptionId());
+
+        // Sent last and deliberately outside payout's failure path: this handler is
+        // @Transactional and throws on failure so Stripe redelivers. If the notification ran
+        // before the payout and the payout then threw, the transaction would roll back to
+        // INCOMPLETE, Stripe would redeliver, and the owner would be emailed twice for one
+        // subscription. Sending last means the only failure mode is "no email yet", which
+        // redelivery still fixes.
+        if (previousStatus == BundleSubscriptionStatus.INCOMPLETE) {
+            notifyMediaOwnersOfNewSubscription(subscription.getSubscriptionId());
+        }
+    }
+
+    /**
+     * Best-effort by construction ({@link BundleSubscriptionService#notifyMediaOwnersOfNewSubscription}
+     * already catches and logs per-owner failures) — this outer guard exists only so an
+     * unexpected exception from the lookup itself cannot turn a successful activation/payout
+     * into a failed, retried webhook.
+     */
+    private void notifyMediaOwnersOfNewSubscription(String subscriptionId) {
+        try {
+            bundleSubscriptionService.notifyMediaOwnersOfNewSubscription(subscriptionId);
+        } catch (Exception e) {
+            log.error("Failed to send new-subscription notification for {}", subscriptionId, e);
+        }
     }
 
     @Transactional

@@ -1,6 +1,7 @@
 package com.envisionad.webservice.payment.presentationlayer;
 
 import com.envisionad.webservice.payment.businesslogiclayer.BundlePayoutService;
+import com.envisionad.webservice.payment.businesslogiclayer.BundleSubscriptionService;
 import com.envisionad.webservice.payment.businesslogiclayer.StripeWebhookService;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.stripe.model.Account;
@@ -47,6 +48,9 @@ class StripeWebhookServiceTest {
     private BundlePayoutService bundlePayoutService;
 
     @Mock
+    private BundleSubscriptionService bundleSubscriptionService;
+
+    @Mock
     private Event event;
 
     @Mock
@@ -54,7 +58,8 @@ class StripeWebhookServiceTest {
 
     @BeforeEach
     void setUp() {
-        reset(stripeAccountRepository, bundleSubscriptionRepository, bundlePayoutService, event, deserializer);
+        reset(stripeAccountRepository, bundleSubscriptionRepository, bundlePayoutService,
+                bundleSubscriptionService, event, deserializer);
     }
 
     // ==================== handleCheckoutSessionCompleted guards ====================

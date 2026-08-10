@@ -11,12 +11,16 @@ import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaExceptio
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
+import com.envisionad.webservice.business.dataaccesslayer.Employee;
+import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
+import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
+import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
@@ -73,6 +77,9 @@ class BundleSubscriptionServiceUnitTest {
     @Mock private MediaRepository mediaRepository;
     @Mock private BundleSubscriptionResponseMapper responseMapper;
     @Mock private JwtUtils jwtUtils;
+    @Mock private EmployeeRepository employeeRepository;
+    @Mock private Auth0Service auth0Service;
+    @Mock private EmailService emailService;
 
     private Jwt jwt;
     private Media montrealScreen;
@@ -85,7 +92,7 @@ class BundleSubscriptionServiceUnitTest {
         service = new BundleSubscriptionServiceImpl(bundleService, pricingService, adCampaignRepository,
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
                 bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
-                jwtUtils);
+                jwtUtils, employeeRepository, auth0Service, emailService);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
 
@@ -438,7 +445,7 @@ class BundleSubscriptionServiceUnitTest {
     }
 
     private void givenQuote(List<Media> eligible, String finalPrice) {
-        when(pricingService.quote(BUNDLE_ID, BUSINESS_ID))
+        when(pricingService.quote(any(Bundle.class), eq(BUSINESS_ID)))
                 .thenReturn(new BundlePriceQuote(eligible, new BigDecimal(finalPrice), new BigDecimal(finalPrice)));
     }
 
@@ -619,5 +626,152 @@ class BundleSubscriptionServiceUnitTest {
         when(bundleSubscriptionRepository.findByBundleIdAndAdvertiserBusinessIdAndStatusIn(
                 BUNDLE_ID, BUSINESS_ID, Set.of(BundleSubscriptionStatus.INCOMPLETE)))
                 .thenReturn(Optional.of(incomplete));
+    }
+
+    // ---------- notifyMediaOwnersOfNewSubscription ----------
+    // The email the legacy reservation flow used to send and P1 M6 silently dropped
+    // when it deleted that flow wholesale.
+
+    private static final String NOTIFY_SUB_ID = "sub-notify-1";
+
+    @Test
+    void notifyMediaOwners_emailsEachDistinctOwnerExactlyOnce() {
+        givenNotifiableSubscription();
+        Media secondMontrealScreen = givenMedia(ownerA, "3.00");
+        when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
+                givenSubscriptionItem(montrealScreen.getId(), ownerA),
+                givenSubscriptionItem(secondMontrealScreen.getId(), ownerA), // same owner, must not double-email
+                givenSubscriptionItem(lavalScreen.getId(), ownerB)));
+        givenResolvableOwnerEmail(ownerA.toString(), "auth0|ownerA", "ownerA@example.com");
+        givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com");
+
+        service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID);
+
+        ArgumentCaptor<String> bodies = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("ownerA@example.com"), contains("Acme Co"), bodies.capture());
+        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), contains("Acme Co"), anyString());
+        verifyNoMoreInteractions(emailService);
+        assertTrue(bodies.getValue().contains("Billboard Creative"));
+        assertTrue(bodies.getValue().contains("https://cdn.example.com/ad.jpg"));
+    }
+
+    @Test
+    void notifyMediaOwners_unknownSubscription_isANoOp() {
+        when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(Optional.empty());
+
+        assertDoesNotThrow(() -> service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID));
+
+        verifyNoInteractions(emailService, bundleSubscriptionItemRepository);
+    }
+
+    @Test
+    void notifyMediaOwners_campaignNotFound_isANoOp() {
+        BundleSubscription subscription = givenSubscriptionRow();
+        when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID))
+                .thenReturn(Optional.of(subscription));
+        when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(null);
+
+        assertDoesNotThrow(() -> service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID));
+
+        verifyNoInteractions(emailService);
+    }
+
+    @Test
+    void notifyMediaOwners_campaignWithNoAds_isANoOp() {
+        BundleSubscription subscription = givenSubscriptionRow();
+        when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID))
+                .thenReturn(Optional.of(subscription));
+        AdCampaign emptyCampaign = new AdCampaign();
+        emptyCampaign.setCampaignId(new AdCampaignIdentifier(CAMPAIGN_ID));
+        emptyCampaign.setAds(List.of());
+        when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(emptyCampaign);
+
+        assertDoesNotThrow(() -> service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID));
+
+        verifyNoInteractions(emailService);
+    }
+
+    /** An owner whose email cannot be resolved must not block the other affected owners. */
+    @Test
+    void notifyMediaOwners_ownerWithNoResolvableEmail_isSkippedButOthersStillNotified() {
+        givenNotifiableSubscription();
+        when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
+                givenSubscriptionItem(montrealScreen.getId(), ownerA),
+                givenSubscriptionItem(lavalScreen.getId(), ownerB)));
+        when(employeeRepository.findAllByBusinessId_BusinessId(ownerA.toString())).thenReturn(List.of());
+        givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com");
+
+        service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID);
+
+        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), anyString(), anyString());
+        verifyNoMoreInteractions(emailService);
+    }
+
+    /** A mail-server failure for one owner must not stop the send to the next owner. */
+    @Test
+    void notifyMediaOwners_oneOwnersSendFails_theOtherOwnerIsStillNotified() {
+        givenNotifiableSubscription();
+        when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
+                givenSubscriptionItem(montrealScreen.getId(), ownerA),
+                givenSubscriptionItem(lavalScreen.getId(), ownerB)));
+        givenResolvableOwnerEmail(ownerA.toString(), "auth0|ownerA", "ownerA@example.com");
+        givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com");
+        doThrow(new RuntimeException("mail server down"))
+                .when(emailService).sendSimpleEmail(eq("ownerA@example.com"), anyString(), anyString());
+
+        assertDoesNotThrow(() -> service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID));
+
+        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), anyString(), anyString());
+    }
+
+    private void givenNotifiableSubscription() {
+        BundleSubscription subscription = givenSubscriptionRow();
+        when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID))
+                .thenReturn(Optional.of(subscription));
+        when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(givenCampaignWithAds());
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Co"));
+    }
+
+    private BundleSubscription givenSubscriptionRow() {
+        BundleSubscription subscription = new BundleSubscription();
+        subscription.setSubscriptionId(NOTIFY_SUB_ID);
+        subscription.setBundleId(BUNDLE_ID);
+        subscription.setAdvertiserBusinessId(BUSINESS_ID);
+        subscription.setCampaignId(CAMPAIGN_ID);
+        subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
+        subscription.setMonthlyAmount(new BigDecimal("4.00"));
+        subscription.setScreenCount(1);
+        return subscription;
+    }
+
+    private AdCampaign givenCampaignWithAds() {
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(CAMPAIGN_ID));
+        campaign.setBusinessId(new BusinessIdentifier(BUSINESS_ID));
+        campaign.setName("Summer Promo");
+        Ad ad = new Ad();
+        ad.setAdIdentifier(new AdIdentifier());
+        ad.setName("Billboard Creative");
+        ad.setAdUrl("https://cdn.example.com/ad.jpg");
+        ad.setAdType(AdType.IMAGE);
+        campaign.setAds(List.of(ad));
+        return campaign;
+    }
+
+    private BundleSubscriptionItem givenSubscriptionItem(UUID mediaId, UUID ownerBusinessId) {
+        BundleSubscriptionItem item = new BundleSubscriptionItem();
+        item.setSubscriptionId(NOTIFY_SUB_ID);
+        item.setMediaId(mediaId);
+        item.setMediaOwnerBusinessId(ownerBusinessId.toString());
+        item.setMonthlyAmount(new BigDecimal("4.00"));
+        return item;
+    }
+
+    private void givenResolvableOwnerEmail(String ownerBusinessId, String userId, String email) {
+        Employee employee = new Employee();
+        employee.setUserId(userId);
+        employee.setBusinessId(new BusinessIdentifier(ownerBusinessId));
+        when(employeeRepository.findAllByBusinessId_BusinessId(ownerBusinessId)).thenReturn(List.of(employee));
+        when(auth0Service.getUserEmailByUserId(userId)).thenReturn(email);
     }
 }
