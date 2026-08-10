@@ -130,6 +130,44 @@ class BundleServiceUnitTest {
     }
 
     @Test
+    void createBundle_trimsRuleValue() {
+        bundle.setRuleValue("  Montreal  ");
+        when(bundleRepository.save(any(Bundle.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Bundle saved = bundleService.createBundle(bundle);
+
+        assertEquals("Montreal", saved.getRuleValue());
+    }
+
+    @Test
+    void createBundle_clearsRuleValueForFullNetwork() {
+        bundle.setRuleType(BundleRuleType.FULL_NETWORK);
+        bundle.setRuleValue("stale");
+        when(bundleRepository.save(any(Bundle.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Bundle saved = bundleService.createBundle(bundle);
+
+        assertNull(saved.getRuleValue());
+    }
+
+    @Test
+    void createBundle_withBlankRuleValueForCity_throws() {
+        bundle.setRuleValue("   ");
+
+        assertThrows(IllegalArgumentException.class, () -> bundleService.createBundle(bundle));
+        verify(bundleRepository, never()).save(any());
+    }
+
+    @Test
+    void createBundle_withNullRuleValueForRegion_throws() {
+        bundle.setRuleType(BundleRuleType.REGION);
+        bundle.setRuleValue(null);
+
+        assertThrows(IllegalArgumentException.class, () -> bundleService.createBundle(bundle));
+        verify(bundleRepository, never()).save(any());
+    }
+
+    @Test
     void updateBundle_copiesEveryEditableField() {
         when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
         when(bundleRepository.save(any(Bundle.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -143,6 +181,40 @@ class BundleServiceUnitTest {
         assertEquals("#000000", updated.getBadgeColor());
         assertEquals(BundleRuleType.REGION, updated.getRuleType());
         assertEquals("Montérégie", updated.getRuleValue());
+    }
+
+    @Test
+    void updateBundle_trimsRuleValue() {
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
+        when(bundleRepository.save(any(Bundle.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Bundle updated = bundleService.updateBundle(BUNDLE_ID, request(BundleRuleType.CITY, "  Laval  "));
+
+        assertEquals("Laval", updated.getRuleValue());
+    }
+
+    /**
+     * MediaSpecifications' *EqualsIgnoreCase() treats a blank value as "no filter" — a
+     * whitespace-only rule value would silently widen the bundle to every ACTIVE screen
+     * on the network instead of the intended city/region/venue slice, so it must be
+     * rejected rather than persisted.
+     */
+    @Test
+    void updateBundle_withBlankRuleValueForCity_throws() {
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> bundleService.updateBundle(BUNDLE_ID, request(BundleRuleType.CITY, "   ")));
+        verify(bundleRepository, never()).save(any());
+    }
+
+    @Test
+    void updateBundle_withNullRuleValueForVenue_throws() {
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> bundleService.updateBundle(BUNDLE_ID, request(BundleRuleType.VENUE, null)));
+        verify(bundleRepository, never()).save(any());
     }
 
     @Test
