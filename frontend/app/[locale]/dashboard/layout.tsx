@@ -5,16 +5,14 @@ import { useMediaQuery } from "@mantine/hooks";
 import {Box, Center, Group, Loader, Paper} from "@mantine/core";
 import SideBar from "@/widgets/SideBar/SideBar";
 import { useOrganization, usePermissions } from "@/app/providers";
+import { isAdmin as computeIsAdmin } from "@/shared/lib/auth/isAdmin";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const isMobile = useMediaQuery("(max-width: 768px)");
     const { organization, loading: orgLoading } = useOrganization();
     const { permissions, loading: permissionsLoading } = usePermissions();
 
-    const isAdmin =
-        permissions.includes('patch:media_status') &&
-        permissions.includes('readAll:verification') &&
-        permissions.includes('update:verification');
+    const isAdmin = computeIsAdmin(permissions);
 
     if (orgLoading || permissionsLoading) {
         return (

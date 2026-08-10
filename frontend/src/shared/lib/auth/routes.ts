@@ -13,6 +13,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | undefined> = {
     '/dashboard/admin/media/pending': 'update:verification',
     '/dashboard/admin/organization/verification': 'update:verification',
     '/dashboard/admin/metrics': 'patch:media_status',
+    '/dashboard/admin/venues': 'manage:venues',
+    '/dashboard/admin/bundles': 'manage:bundles',
+    '/dashboard/admin/settings': 'manage:settings',
 
     '/dashboard/organization/overview': undefined,
     '/dashboard/organization/employees': 'read:employee',
