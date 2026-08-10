@@ -15,6 +15,7 @@ import {
 } from "@mantine/core";
 import { IconUpload, IconTrash, IconArrowRight, IconArrowLeft } from "@tabler/icons-react";
 import { CldUploadWidget } from "next-cloudinary";
+import axios from "axios";
 import { useProofStepper } from "../../hooks/useProofStepper";
 import axiosInstance from "@/shared/api/axios/axios";
 import { useTranslations } from "next-intl";
@@ -39,8 +40,14 @@ export default function SubmitProofStepperModal({
                                                 }: Props) {
     const [active, setActive] = useState(0);
 
-    const { campaigns, selectedCampaignId, setSelectedCampaignId, loadingCampaigns } =
-        useProofStepper(mediaId);
+    const {
+        campaigns,
+        selectedCampaignId,
+        setSelectedCampaignId,
+        loadingCampaigns,
+        loadCampaignsFailed,
+        retryLoadCampaigns,
+    } = useProofStepper(mediaId);
 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -126,21 +133,34 @@ export default function SubmitProofStepperModal({
 
             setActive(2);
         } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e);
-            setError(msg);
+            // The backend's error `message` is free text for logs, not for display (see
+            // HttpErrorInfo) — branch on the HTTP status instead of surfacing it verbatim.
+            const status = axios.isAxiosError(e) ? e.response?.status : undefined;
+            setError(status === 409 ? t("errors.notInActiveSubscription") : t("errors.submitFailed"));
         } finally {
             setSubmitting(false);
         }
     }
 
     return (
-        <Modal opened={opened} onClose={onClose} centered size="lg" title={t("modal.title", { mediaName })} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
+        <Modal opened={opened} onClose={onClose} centered size="lg" title={t("modal.title", { mediaName })} radius="lg" overlayProps={{ backgroundOpacity: 0.55 }}>
             <Stepper active={active}>
                 <Stepper.Step
                     label={t("stepper.campaign.label")}
                     description={t("stepper.campaign.description")}>
                     {loadingCampaigns ? (
                         <Loader />
+                    ) : loadCampaignsFailed ? (
+                        <Alert color="red">
+                            <Stack gap="sm">
+                                <Text size="sm">{t("errors.loadCampaignsFailed")}</Text>
+                                <Group justify="flex-end">
+                                    <Button size="xs" variant="light" onClick={retryLoadCampaigns}>
+                                        {t("buttons.retry")}
+                                    </Button>
+                                </Group>
+                            </Stack>
+                        </Alert>
                     ) : (
                         <Stack gap="sm">
                             <Select
