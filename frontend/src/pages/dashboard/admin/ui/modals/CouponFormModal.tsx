@@ -29,7 +29,10 @@ export function CouponFormModal({ opened, onClose, onSave }: CouponFormModalProp
     const [amountOff, setAmountOff] = useState<number | "">("");
     const [duration, setDuration] = useState<CouponDuration>("ONCE");
     const [durationInMonths, setDurationInMonths] = useState<number | "">(2);
-    const [expiresAt, setExpiresAt] = useState<Date | null>(null);
+    // Mantine 8's DatePickerInput onChange gives a plain "YYYY-MM-DD" string
+    // (DateStringValue), not a Date object, despite what its type once implied —
+    // confirmed via node_modules/@mantine/dates' actual .d.ts, not assumed.
+    const [expiresAt, setExpiresAt] = useState<string | null>(null);
     const [maxRedemptions, setMaxRedemptions] = useState<number | "">("");
     const [saving, setSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -80,7 +83,10 @@ export function CouponFormModal({ opened, onClose, onSave }: CouponFormModalProp
                 ...(discountType === "PERCENT" && { percentOff: percentOff as number }),
                 ...(discountType === "FIXED_AMOUNT" && { amountOffCents: Math.round((amountOff as number) * 100) }),
                 ...(duration === "REPEATING" && { durationInMonths: durationInMonths as number }),
-                ...(expiresAt && { expiresAt: expiresAt.toISOString() }),
+                // expiresAt is a bare "YYYY-MM-DD" string; the backend's LocalDateTime
+                // needs a full ISO-8601 datetime, so treat the code as expiring at the
+                // end of the selected day.
+                ...(expiresAt && { expiresAt: `${expiresAt}T23:59:59` }),
                 ...(maxRedemptions !== "" && { maxRedemptions: maxRedemptions as number }),
             };
             await onSave(data);
@@ -176,7 +182,7 @@ export function CouponFormModal({ opened, onClose, onSave }: CouponFormModalProp
                 <DatePickerInput
                     label={t("expiresAtLabel")}
                     value={expiresAt}
-                    onChange={(v) => setExpiresAt(v as Date | null)}
+                    onChange={setExpiresAt}
                     minDate={new Date()}
                     clearable
                 />

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Group, Loader, Stack, Title } from "@mantine/core";
+import { Button, Group, Loader, Stack, Switch, Title } from "@mantine/core";
 import { IconPlus } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -16,6 +16,7 @@ export default function CouponManagementPage() {
 
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [loading, setLoading] = useState(true);
+    const [includeArchived, setIncludeArchived] = useState(false);
 
     const [formModalOpen, setFormModalOpen] = useState(false);
 
@@ -24,24 +25,26 @@ export default function CouponManagementPage() {
 
     const refreshCoupons = useCallback(async () => {
         try {
-            const data = await getAllCoupons();
+            const data = await getAllCoupons(includeArchived);
             setCoupons(data);
         } catch {
             notifications.show({ title: t("notifications.loadFailed"), message: "", color: "red" });
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, [t, includeArchived]);
 
-    // Initial load is inlined (rather than calling `refreshCoupons`) so the effect's
-    // own state updates stay local to the effect, with proper unmount cancellation —
+    // Re-runs whenever `includeArchived` flips, same effect driving both the initial
+    // load and the toggle — inlined rather than calling `refreshCoupons` so the
+    // effect's own state updates stay local to it, with proper unmount cancellation,
     // matching VenueManagementPage's established pattern in this codebase.
     useEffect(() => {
         let cancelled = false;
+        setLoading(true);
 
         (async () => {
             try {
-                const data = await getAllCoupons();
+                const data = await getAllCoupons(includeArchived);
                 if (!cancelled) setCoupons(data);
             } catch {
                 if (!cancelled) {
@@ -55,7 +58,7 @@ export default function CouponManagementPage() {
         return () => {
             cancelled = true;
         };
-    }, [t]);
+    }, [t, includeArchived]);
 
     const handleCreate = () => {
         setFormModalOpen(true);
@@ -108,9 +111,16 @@ export default function CouponManagementPage() {
         <Stack component="main" gap="md" p="md" style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" align="center">
                 <Title order={1}>{t("title")}</Title>
-                <Button variant="gradient" leftSection={<IconPlus size={18} />} onClick={handleCreate}>
-                    {t("addCoupon")}
-                </Button>
+                <Group gap="md">
+                    <Switch
+                        label={t("table.showArchived")}
+                        checked={includeArchived}
+                        onChange={(e) => setIncludeArchived(e.currentTarget.checked)}
+                    />
+                    <Button variant="gradient" leftSection={<IconPlus size={18} />} onClick={handleCreate}>
+                        {t("addCoupon")}
+                    </Button>
+                </Group>
             </Group>
 
             {loading ? (

@@ -1710,7 +1710,8 @@
       "noCoupons": "No coupon codes yet. Create your first one to get started.",
       "statusActive": "Active",
       "statusInactive": "Inactive",
-      "statusArchived": "Archived"
+      "statusArchived": "Archived",
+      "showArchived": "Show archived"
     },
     "duration": {
       "once": "Once",

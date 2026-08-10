@@ -1710,7 +1710,8 @@
       "noCoupons": "Aucun code promo pour le moment. Créez votre premier code pour commencer.",
       "statusActive": "Actif",
       "statusInactive": "Inactif",
-      "statusArchived": "Archivé"
+      "statusArchived": "Archivé",
+      "showArchived": "Afficher les archivés"
     },
     "duration": {
       "once": "Une fois",
