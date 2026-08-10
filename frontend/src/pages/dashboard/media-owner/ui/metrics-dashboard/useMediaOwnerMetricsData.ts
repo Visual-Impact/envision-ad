@@ -18,6 +18,8 @@ import {
 } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/earnings-utils";
 import { buildPaginationInfo } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/pagination-utils";
 import { mapPayoutsToRows } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/payout-utils";
+import { filterPayoutsByPeriod } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/shared-utils";
+import type { StripeDashboardPayout } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/types";
 import { useOrganization } from "@/app/providers";
 
 const PAYOUTS_PER_PAGE = 10;
@@ -43,8 +45,13 @@ export function useMediaOwnerMetricsData() {
     const { organization } = useOrganization();
     const [kpis, setKpis] = useState<MetricsKpi[]>(() => buildEarningsKpis([], 0));
 
-    const [payoutHistoryRows, setPayoutHistoryRows] = useState<PayoutHistoryRow[]>([]);
+    const [rawPayouts, setRawPayouts] = useState<StripeDashboardPayout[]>([]);
     const [payoutPage, setPayoutPage] = useState(1);
+
+    const payoutHistoryRows: PayoutHistoryRow[] = useMemo(
+        () => mapPayoutsToRows(filterPayoutsByPeriod(rawPayouts, overviewPeriod, dateRange)),
+        [rawPayouts, overviewPeriod, dateRange]
+    );
 
     const payoutPagination = useMemo(
         () => buildPaginationInfo({ rows: payoutHistoryRows, page: payoutPage, rowsPerPage: PAYOUTS_PER_PAGE }),
@@ -73,12 +80,12 @@ export function useMediaOwnerMetricsData() {
                         ? dashboardDataResult.value.payouts : [];
                     const earningsDashboardData = buildEarningsDashboardData(payouts, 0);
                     setKpis(earningsDashboardData.kpis);
-                    setPayoutHistoryRows(mapPayoutsToRows(payouts));
+                    setRawPayouts(payouts);
                     setPayoutPage(1);
                 } else {
                     console.error("Failed to load payout history", dashboardDataResult.reason);
                     setKpis(buildEarningsKpis([], 0));
-                    setPayoutHistoryRows([]);
+                    setRawPayouts([]);
                     setPayoutPage(1);
                 }
 
@@ -96,7 +103,7 @@ export function useMediaOwnerMetricsData() {
                 if (!isCancelled) {
                     console.error("Failed to load media owner metrics", error);
                     setKpis(buildEarningsKpis([], 0));
-                    setPayoutHistoryRows([]);
+                    setRawPayouts([]);
                     setMediaLocations([]);
                     setPayoutPage(1);
                 }
