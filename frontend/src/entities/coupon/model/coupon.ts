@@ -36,3 +36,13 @@ export interface CouponRequestDTO {
 export interface CouponPatchDTO {
     active: boolean;
 }
+
+export type CouponValidateError = "invalid" | "expired" | "exhausted";
+
+/** Response of POST /coupons/validate — a fast, Stripe-free preview (brief §4.6.3). */
+export interface CouponValidateResponse {
+    valid: boolean;
+    discountAmountCents: number | null;
+    previewTotalCents: number | null;
+    error: CouponValidateError | null;
+}

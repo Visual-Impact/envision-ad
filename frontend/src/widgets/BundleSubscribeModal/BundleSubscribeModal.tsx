@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+    ActionIcon,
     Alert,
     Button,
     Center,
@@ -13,10 +14,11 @@ import {
     Select,
     Stack,
     Text,
+    TextInput,
     ThemeIcon,
     Title,
 } from "@mantine/core";
-import { IconCheck, IconInfoCircle } from "@tabler/icons-react";
+import { IconCheck, IconInfoCircle, IconX } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useLocale, useTranslations } from "next-intl";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
@@ -25,9 +27,11 @@ import axios from "axios";
 
 import { Bundle, BundlePriceQuote } from "@/entities/bundle";
 import { AdCampaign } from "@/entities/ad-campaign";
+import { CouponValidateError } from "@/entities/coupon";
 import { getBundleQuote } from "@/features/bundle-management/api";
 import { getAllAdCampaigns } from "@/features/ad-campaign-management/api";
 import { createBundleSubscription } from "@/features/bundle-subscription/api";
+import { validateCoupon } from "@/features/payment";
 import { Link } from "@/shared/lib/i18n/navigation";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 
@@ -72,6 +76,16 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
     const [loadState, setLoadState] = useState<"loading" | "error" | "notAdvertiser" | "ready">("loading");
     const [submitting, setSubmitting] = useState(false);
 
+    // Coupon (P3). `appliedCouponCode` is the normalized code actually sent at
+    // subscribe time — separate from `couponInput`, the raw text field — so editing
+    // the input after a successful Apply doesn't silently change what gets submitted.
+    const [couponInput, setCouponInput] = useState("");
+    const [couponState, setCouponState] = useState<"idle" | "loading" | "applied" | "error">("idle");
+    const [couponError, setCouponError] = useState<CouponValidateError | null>(null);
+    const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
+    const [discountAmountCents, setDiscountAmountCents] = useState<number | null>(null);
+    const [previewTotalCents, setPreviewTotalCents] = useState<number | null>(null);
+
     const missingKey = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
     const name = locale === "fr" ? bundle?.nameFr : bundle?.nameEn;
 
@@ -88,6 +102,12 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
             setCampaignId(null);
             setLoadState("loading");
             setSubmitting(false);
+            setCouponInput("");
+            setCouponState("idle");
+            setCouponError(null);
+            setAppliedCouponCode(null);
+            setDiscountAmountCents(null);
+            setPreviewTotalCents(null);
         }
     }
 
@@ -139,15 +159,70 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
         };
     }, [opened, bundleId, businessId]);
 
+    const isCouponError = (value: unknown): value is CouponValidateError =>
+        value === "invalid" || value === "expired" || value === "exhausted";
+
+    const handleApplyCoupon = async () => {
+        const code = couponInput.trim();
+        if (!code || !quote) return;
+
+        setCouponState("loading");
+        setCouponError(null);
+        try {
+            const subtotalCents = Math.round(quote.finalPrice * 100);
+            const result = await validateCoupon(code, subtotalCents);
+            if (result.valid) {
+                setAppliedCouponCode(code.toUpperCase());
+                setDiscountAmountCents(result.discountAmountCents ?? 0);
+                setPreviewTotalCents(result.previewTotalCents ?? subtotalCents);
+                setCouponState("applied");
+            } else {
+                setCouponError(result.error ?? "invalid");
+                setCouponState("error");
+            }
+        } catch {
+            setCouponError("invalid");
+            setCouponState("error");
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponInput("");
+        setAppliedCouponCode(null);
+        setDiscountAmountCents(null);
+        setPreviewTotalCents(null);
+        setCouponState("idle");
+        setCouponError(null);
+    };
+
     const handleSubscribe = async () => {
         if (!bundleId || !businessId || !campaignId) return;
 
         setSubmitting(true);
         try {
-            const data = await createBundleSubscription({ bundleId, campaignId, businessId });
+            const data = await createBundleSubscription({
+                bundleId,
+                campaignId,
+                businessId,
+                ...(appliedCouponCode && { couponCode: appliedCouponCode }),
+            });
             setClientSecret(data.clientSecret);
             setStep("payment");
-        } catch {
+        } catch (err) {
+            // A coupon that passed the /validate preview can still be rejected by
+            // Stripe at this exact instant (brief §4.6.5) — clear it and re-show the
+            // same error vocabulary the preview uses, rather than the generic message
+            // below, and without resetting the bundle/campaign selection.
+            const code = axios.isAxiosError(err) ? err.response?.data?.code : undefined;
+            if (appliedCouponCode && isCouponError(code)) {
+                setAppliedCouponCode(null);
+                setDiscountAmountCents(null);
+                setPreviewTotalCents(null);
+                setCouponError(code);
+                setCouponState("error");
+                return;
+            }
+
             // Backend guard messages are English-only and not meant for display — the
             // frontend owns user-facing copy so it stays correct and translated regardless
             // of what the server says. Re-quoting on open (the effect above) means most of
@@ -223,7 +298,12 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                                             {t("monthlyTotal")}
                                         </Text>
                                         <Text size="lg" fw={700} c="blue">
-                                            {formatCurrency(quote?.finalPrice ?? 0, { locale })}
+                                            {formatCurrency(
+                                                couponState === "applied" && previewTotalCents !== null
+                                                    ? previewTotalCents / 100
+                                                    : quote?.finalPrice ?? 0,
+                                                { locale },
+                                            )}
                                             <Text component="span" size="sm" c="dimmed" fw={500}>
                                                 {" "}
                                                 {t("perMonth")}
@@ -231,6 +311,49 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                                         </Text>
                                     </Group>
                                 </Paper>
+
+                                <Stack gap={4}>
+                                    {couponState === "applied" && appliedCouponCode ? (
+                                        <Alert color="green" icon={<IconCheck size={18} />} p="sm">
+                                            <Group justify="space-between" wrap="nowrap">
+                                                <Text size="sm">
+                                                    {t("coupon.applied", {
+                                                        code: appliedCouponCode,
+                                                        amount: formatCurrency((discountAmountCents ?? 0) / 100, { locale }),
+                                                    })}
+                                                </Text>
+                                                <ActionIcon
+                                                    variant="subtle"
+                                                    color="green"
+                                                    size="sm"
+                                                    onClick={handleRemoveCoupon}
+                                                    aria-label={t("coupon.remove")}
+                                                >
+                                                    <IconX size={14} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Alert>
+                                    ) : (
+                                        <Group gap="xs" align="flex-end" wrap="nowrap">
+                                            <TextInput
+                                                label={t("coupon.label")}
+                                                placeholder={t("coupon.placeholder")}
+                                                value={couponInput}
+                                                onChange={(e) => setCouponInput(e.currentTarget.value.toUpperCase())}
+                                                error={couponState === "error" ? t(`coupon.error.${couponError}`) : undefined}
+                                                style={{ flex: 1 }}
+                                            />
+                                            <Button
+                                                variant="light"
+                                                onClick={handleApplyCoupon}
+                                                loading={couponState === "loading"}
+                                                disabled={!couponInput.trim()}
+                                            >
+                                                {t("coupon.apply")}
+                                            </Button>
+                                        </Group>
+                                    )}
+                                </Stack>
 
                                 {!hasScreens && (
                                     <Alert color="yellow" icon={<IconInfoCircle size={18} />}>

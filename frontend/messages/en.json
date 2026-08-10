@@ -1845,7 +1845,19 @@
       "missingKey": "Payment is unavailable: the Stripe key is not configured.",
       "successTitle": "Payment received",
       "successMessage": "Your subscription is being confirmed. You'll see it in your dashboard once Stripe finishes processing.",
-      "done": "Done"
+      "done": "Done",
+      "coupon": {
+        "label": "Coupon code",
+        "placeholder": "Enter code",
+        "apply": "Apply",
+        "remove": "Remove coupon",
+        "applied": "Code {code} applied: −{amount}",
+        "error": {
+          "invalid": "This coupon code is invalid.",
+          "expired": "This coupon code has expired.",
+          "exhausted": "This coupon code has reached its redemption limit."
+        }
+      }
     }
   },
   "privacyPage": {

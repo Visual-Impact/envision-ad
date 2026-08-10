@@ -1845,7 +1845,19 @@
       "missingKey": "Paiement indisponible : la clé Stripe n'est pas configurée.",
       "successTitle": "Paiement reçu",
       "successMessage": "Votre abonnement est en cours de confirmation. Il apparaîtra dans votre tableau de bord une fois le traitement Stripe terminé.",
-      "done": "Terminé"
+      "done": "Terminé",
+      "coupon": {
+        "label": "Code promo",
+        "placeholder": "Entrez le code",
+        "apply": "Appliquer",
+        "remove": "Retirer le code promo",
+        "applied": "Code {code} appliqué : −{amount}",
+        "error": {
+          "invalid": "Ce code promo est invalide.",
+          "expired": "Ce code promo a expiré.",
+          "exhausted": "Ce code promo a atteint sa limite d'utilisation."
+        }
+      }
     }
   },
   "privacyPage": {

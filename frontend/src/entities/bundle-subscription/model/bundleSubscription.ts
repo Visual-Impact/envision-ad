@@ -8,6 +8,9 @@ export interface BundleSubscriptionRequestDTO {
     bundleId: string;
     campaignId: string;
     businessId: string;
+    /** Optional Stripe coupon code, already previewed via /coupons/validate before
+     * confirming checkout (P3). Omitted entirely when no coupon is applied. */
+    couponCode?: string;
 }
 
 /** Embedded-checkout handoff returned when a subscribe attempt opens a Stripe session. */
