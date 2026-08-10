@@ -213,7 +213,7 @@ export default function MediaOwnerPage() {
                     <Pagination.Root total={totalPages} value={activePage} onChange={setActivePage}>
                         <Group gap="xs">
                             <Pagination.First aria-label={t("pagination.first")} />
-                            <Pagination.Previous aria-label={t("pagination.prev")} />
+                            <Pagination.Previous aria-label={t("pagination.previous")} />
                             <Pagination.Items />
                             <Pagination.Next aria-label={t("pagination.next")} />
                             <Pagination.Last aria-label={t("pagination.last")} />
