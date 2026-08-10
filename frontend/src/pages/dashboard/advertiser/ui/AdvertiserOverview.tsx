@@ -26,16 +26,71 @@ import { jwtDecode } from "jwt-decode";
 import { MetricCard } from "@/widgets/Cards/MetricCard";
 
 
-const getDateKey = (date: Date, timeRange: string | null): string => {
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const daysBetween = (a: Date, b: Date): number => Math.floor((b.getTime() - a.getTime()) / MS_PER_DAY);
+
+// Mirrors StripeServiceImpl#calculateStartDate on the backend: the dashboard endpoint queries a
+// rolling window ending "now", not a calendar-aligned week/month/year. Buckets below are built
+// relative to that same window so labels line up chronologically instead of colliding across
+// month/year boundaries (e.g. day-of-month 9 in both July and August landing in the same bucket).
+const getWindowStart = (timeRange: string, now: Date): Date => {
+    const start = new Date(now);
     if (timeRange === "Weekly") {
-        return date.toLocaleDateString('en-US', { weekday: 'short' });
+        start.setDate(start.getDate() - 7);
     } else if (timeRange === "Monthly") {
-        const day = date.getDate();
-        const weekNum = Math.ceil(day / 7);
-        return `Week ${weekNum}`;
+        start.setMonth(start.getMonth() - 1);
     } else {
-        return date.toLocaleDateString('en-US', { month: 'short' });
+        start.setFullYear(start.getFullYear() - 1);
     }
+    return start;
+};
+
+interface Bucket {
+    key: string;
+    label: string;
+}
+
+const buildBuckets = (timeRange: string, now: Date): { buckets: Bucket[]; keyFor: (d: Date) => string } => {
+    if (timeRange === "Weekly") {
+        const buckets: Bucket[] = [];
+        for (let daysAgo = 6; daysAgo >= 0; daysAgo--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - daysAgo);
+            buckets.push({ key: `d${daysAgo}`, label: d.toLocaleDateString('en-US', { weekday: 'short' }) });
+        }
+        const keyFor = (d: Date) => `d${Math.min(6, Math.max(0, daysBetween(d, now)))}`;
+        return { buckets, keyFor };
+    }
+
+    if (timeRange === "Monthly") {
+        const start = getWindowStart("Monthly", now);
+        const totalDays = Math.max(1, daysBetween(start, now));
+        const numWeeks = Math.ceil(totalDays / 7);
+        const buckets: Bucket[] = [];
+        for (let w = 0; w < numWeeks; w++) {
+            buckets.push({ key: `w${w}`, label: `Week ${w + 1}` });
+        }
+        const keyFor = (d: Date) => {
+            const offsetDays = Math.min(totalDays - 1, Math.max(0, daysBetween(start, d)));
+            return `w${Math.min(numWeeks - 1, Math.floor(offsetDays / 7))}`;
+        };
+        return { buckets, keyFor };
+    }
+
+    // Yearly
+    const start = getWindowStart("Yearly", now);
+    const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1;
+    const buckets: Bucket[] = [];
+    for (let m = 0; m < totalMonths; m++) {
+        const d = new Date(start.getFullYear(), start.getMonth() + m, 1);
+        buckets.push({ key: `m${m}`, label: d.toLocaleDateString('en-US', { month: 'short' }) });
+    }
+    const keyFor = (d: Date) => {
+        const offsetMonths = (d.getFullYear() - start.getFullYear()) * 12 + (d.getMonth() - start.getMonth());
+        return `m${Math.min(totalMonths - 1, Math.max(0, offsetMonths))}`;
+    };
+    return { buckets, keyFor };
 };
 
 interface DecodedToken {
@@ -77,7 +132,13 @@ export function AdvertiserOverview() {
     }, []);
 
     useEffect(() => {
+        let ignore = false;
+
         const fetchData = async () => {
+            const now = new Date();
+            const { buckets, keyFor } = buildBuckets(timeRange, now);
+            const emptyChartData = buckets.map(b => ({ date: b.label, Spend: 0 }));
+
             try {
                 const response = await fetch('/api/auth0/token');
                 const { accessToken } = await response.json();
@@ -101,7 +162,7 @@ export function AdvertiserOverview() {
 
                     if (countResponse.ok) {
                         const count = await countResponse.json();
-                        setActiveCampaignCount(count);
+                        if (!ignore) setActiveCampaignCount(count);
                     }
 
                     // 3. Get Dashboard Data (Spend & Payments)
@@ -115,6 +176,14 @@ export function AdvertiserOverview() {
                             dashboardResponse.status,
                             dashboardResponse.statusText
                         );
+                        // Reset to this period's empty state so a failed request doesn't leave the
+                        // previous period's chart on screen mislabeled as the newly selected one.
+                        if (!ignore) {
+                            setTotalSpend(0);
+                            setEstimatedImpressions(0);
+                            setAverageCPM(0);
+                            setChartData(emptyChartData);
+                        }
                         return;
                     }
 
@@ -122,19 +191,20 @@ export function AdvertiserOverview() {
 
                     let calculatedTotal = 0;
 
-                    // Process Chart Data
-                    const paymentsByDate: Record<string, { spend: number }> = {};
+                    // Process Chart Data, bucketed relative to the rolling window (see buildBuckets)
+                    const paymentsByKey: Record<string, number> = {};
 
                     // Process Spend (Outgoing)
                     if (data.payments && Array.isArray(data.payments)) {
                         data.payments.forEach((payment: Payment) => {
                             const date = new Date(payment.created * 1000);
-                            const dateKey = getDateKey(date, timeRange);
-                            if (!paymentsByDate[dateKey]) paymentsByDate[dateKey] = { spend: 0 };
-                            paymentsByDate[dateKey].spend += payment.amount;
+                            const key = keyFor(date);
+                            paymentsByKey[key] = (paymentsByKey[key] || 0) + payment.amount;
                             calculatedTotal += payment.amount;
                         });
                     }
+
+                    if (ignore) return;
 
                     // Set Total Spend from manual calculation of all transactions
                     setTotalSpend(calculatedTotal);
@@ -142,39 +212,43 @@ export function AdvertiserOverview() {
                     if (data.estimatedImpressions !== undefined) setEstimatedImpressions(data.estimatedImpressions);
                     if (data.averageCPM !== undefined) setAverageCPM(data.averageCPM);
 
-
-
-                    // Transform to Chart Data Array
-                    let templateData = [];
-                    if (timeRange === "Weekly") {
-                        const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-                        templateData = days.map(d => ({ date: d, Spend: 0 }));
-                    } else if (timeRange === "Monthly") {
-                        templateData = [
-                            { date: "Week 1", Spend: 0 },
-                            { date: "Week 2", Spend: 0 },
-                            { date: "Week 3", Spend: 0 },
-                            { date: "Week 4", Spend: 0 },
-                            { date: "Week 5", Spend: 0 }
-                        ];
-                    } else {
-                        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                        templateData = months.map(m => ({ date: m, Spend: 0 }));
-                    }
-
-                    // Fill template with real data
-                    const filledData = templateData.map(item => ({
-                        ...item,
-                        Spend: (paymentsByDate[item.date]?.spend || 0), // Already in dollars (BigDecimal from backend)
+                    // Fill buckets with real data, oldest to newest left-to-right
+                    const filledData = buckets.map(b => ({
+                        date: b.label,
+                        Spend: paymentsByKey[b.key] || 0, // Already in dollars (BigDecimal from backend)
                     }));
 
                     setChartData(filledData);
+                } else {
+                    console.error(
+                        "Failed to fetch business for user",
+                        businessResponse.status,
+                        businessResponse.statusText
+                    );
+                    if (!ignore) {
+                        setTotalSpend(0);
+                        setEstimatedImpressions(0);
+                        setAverageCPM(0);
+                        setChartData(emptyChartData);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch dashboard data:", error);
+                // Same reasoning as the businessResponse/dashboardResponse failure branches above:
+                // don't leave a previous period's numbers on screen mislabeled as the new period.
+                if (!ignore) {
+                    setTotalSpend(0);
+                    setEstimatedImpressions(0);
+                    setAverageCPM(0);
+                    setChartData(emptyChartData);
+                }
             }
         };
         fetchData();
+
+        return () => {
+            ignore = true;
+        };
     }, [timeRange]);
 
     // Stats
