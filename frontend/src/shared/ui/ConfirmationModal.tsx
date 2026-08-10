@@ -33,7 +33,7 @@ export function ConfirmationModal({
             padding="lg"
             radius="lg"
             shadow="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
             classNames={{ content: styles.modalContent }}
         >
             <Text size="sm">

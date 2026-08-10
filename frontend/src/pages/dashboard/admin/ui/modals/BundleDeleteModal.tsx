@@ -45,7 +45,7 @@ export function BundleDeleteModal({ opened, onClose, onConfirm, bundle }: Bundle
             size="sm"
             centered
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="md">
                 <Text>{t("message", { name })}</Text>

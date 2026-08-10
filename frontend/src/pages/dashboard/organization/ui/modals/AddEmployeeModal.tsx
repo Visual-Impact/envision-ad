@@ -99,7 +99,7 @@ export function AddEmployeeModal({
             centered
             size="lg"
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="md">
                 {invalidInputWarning && (

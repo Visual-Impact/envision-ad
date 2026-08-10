@@ -209,7 +209,7 @@ export function MediaModal({
             size="xl"
             centered
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <div style={{paddingRight: 8, overflowX: 'hidden'}}>
                 <Stepper

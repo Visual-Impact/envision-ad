@@ -251,7 +251,7 @@ export default function BundleSubscriptionsPage() {
                 size="sm"
                 centered
                 radius="lg"
-                overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+                overlayProps={{ backgroundOpacity: 0.55 }}
             >
                 <Stack gap="md">
                     <Text size="sm">{t("page.confirmBody")}</Text>
