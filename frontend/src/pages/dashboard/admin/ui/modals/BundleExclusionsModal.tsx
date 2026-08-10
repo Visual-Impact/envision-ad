@@ -115,7 +115,7 @@ export function BundleExclusionsModal({ opened, onClose, onChanged, bundle }: Bu
             size="xl"
             centered
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="md">
                 <Text size="sm" c="dimmed">

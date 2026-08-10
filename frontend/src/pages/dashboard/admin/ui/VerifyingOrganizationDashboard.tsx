@@ -2,8 +2,9 @@
 
 import {OrganizationVerificationTable} from "@/pages/dashboard/admin/ui/tables/OrganizationVerificationTable";
 import {OrganizationDetailsModal} from "@/pages/dashboard/admin/ui/modals/OrganizationDetailsModal";
-import {Group, Stack, Title} from "@mantine/core";
-import {useEffect, useState} from "react";
+import {Alert, Button, Group, Stack, Title} from "@mantine/core";
+import {IconAlertTriangle} from "@tabler/icons-react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import {useTranslations} from "next-intl";
 import {VerificationResponseDTO} from "@/entities/organization/model/verification";
 import {
@@ -14,43 +15,71 @@ import {
 import {OrganizationResponseDTO} from "@/entities/organization";
 import {notifications} from "@mantine/notifications";
 
+type OrgDetailEntry =
+    | { status: "loading" }
+    | { status: "loaded"; data: OrganizationResponseDTO }
+    | { status: "error" };
+
 export default function VerifyingOrganizationDashboard() {
     const t = useTranslations("admin.adminActions");
     const [verificationRequests, setVerificationRequests] = useState<VerificationResponseDTO[]>([]);
-    const [organizationDetails, setOrganizationDetails] = useState<OrganizationResponseDTO[]>([]);
+    const [listLoadFailed, setListLoadFailed] = useState(false);
+    const [listRefreshToken, setListRefreshToken] = useState(0);
+    const [organizationDetails, setOrganizationDetails] = useState<Record<string, OrgDetailEntry>>({});
     const [selectedOrganization, setSelectedOrganization] = useState<OrganizationResponseDTO | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
+    // Gates which businessIds already have a fetch in flight or resolved, so a detail
+    // resolving doesn't re-trigger the effect into re-fetching every other still-in-flight id.
+    const requestedIdsRef = useRef<Set<string>>(new Set());
+
     useEffect(() => {
-        getAllVerificationRequests().then(setVerificationRequests);
+        let cancelled = false;
+
+        (async () => {
+            setListLoadFailed(false);
+            try {
+                const data = await getAllVerificationRequests();
+                if (!cancelled) setVerificationRequests(data);
+            } catch (error) {
+                console.error("Failed to load verification requests:", error);
+                if (!cancelled) setListLoadFailed(true);
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [listRefreshToken]);
+
+    const fetchOrganizationDetail = useCallback(async (businessId: string) => {
+        requestedIdsRef.current.add(businessId);
+        setOrganizationDetails(prev => ({...prev, [businessId]: {status: "loading"}}));
+
+        try {
+            const response = await getOrganizationById(businessId);
+            setOrganizationDetails(prev => ({...prev, [businessId]: {status: "loaded", data: response}}));
+        } catch (error) {
+            console.error(`Failed to fetch organization details for ${businessId}:`, error);
+            requestedIdsRef.current.delete(businessId);
+            setOrganizationDetails(prev => ({...prev, [businessId]: {status: "error"}}));
+        }
     }, []);
 
     useEffect(() => {
-        const fetchOrganizationDetails = async (businessId: string) => {
-            try {
-                const response = await getOrganizationById(businessId);
-                setOrganizationDetails(prev => [...prev, response]);
-            } catch (error) {
-                console.error(`Failed to fetch organization details for ${businessId}:`, error);
-            }
-        };
-
         verificationRequests.forEach(request => {
-            const alreadyFetched = organizationDetails.some(org => org.businessId === request.businessId);
-            if (!alreadyFetched) {
-                fetchOrganizationDetails(request.businessId);
+            if (!requestedIdsRef.current.has(request.businessId)) {
+                void fetchOrganizationDetail(request.businessId);
             }
         });
-    }, [verificationRequests, organizationDetails]);
+    }, [verificationRequests, fetchOrganizationDetail]);
 
     const handleRequestRemoved = (id: string) => {
         setVerificationRequests(prev => prev.filter(request => request.verificationId !== id));
     };
 
     const handleRowClick = (request: VerificationResponseDTO) => {
-        const org = organizationDetails.find(o => o.businessId === request.businessId);
-        if (org) {
-            setSelectedOrganization(org);
+        const entry = organizationDetails[request.businessId];
+        if (entry?.status === "loaded") {
+            setSelectedOrganization(entry.data);
             setModalOpen(true);
         }
     };
@@ -123,12 +152,15 @@ export default function VerifyingOrganizationDashboard() {
     };
 
     const getOrganizationName = (businessId: string): string => {
-        const org = organizationDetails.find(o => o.businessId === businessId);
-        return org?.name || businessId;
+        const entry = organizationDetails[businessId];
+        return entry?.status === "loaded" ? entry.data.name : businessId;
     };
 
-    const isLoading = (businessId: string): boolean => {
-        return !organizationDetails.some(org => org.businessId === businessId);
+    const getDetailStatus = (businessId: string): "loading" | "loaded" | "error" =>
+        organizationDetails[businessId]?.status ?? "loading";
+
+    const retryOrganizationDetail = (businessId: string) => {
+        void fetchOrganizationDetail(businessId);
     };
 
     return (
@@ -137,12 +169,24 @@ export default function VerifyingOrganizationDashboard() {
                 <Title order={1}>{t("pendingOrganization")}</Title>
             </Group>
 
+            {listLoadFailed && (
+                <Alert icon={<IconAlertTriangle size="1rem" />} color="red" title={t('errors.title')}>
+                    <Group justify="space-between" align="center">
+                        {t('errors.loadRequestsFailed')}
+                        <Button size="xs" variant="light" color="red" onClick={() => setListRefreshToken(v => v + 1)}>
+                            {t('retry')}
+                        </Button>
+                    </Group>
+                </Alert>
+            )}
+
             <OrganizationVerificationTable
                 rows={verificationRequests}
                 onRequestRemoved={handleRequestRemoved}
                 onRowClick={handleRowClick}
                 getOrganizationName={getOrganizationName}
-                isLoading={isLoading}
+                getDetailStatus={getDetailStatus}
+                onRetryDetail={retryOrganizationDetail}
             />
 
             <OrganizationDetailsModal

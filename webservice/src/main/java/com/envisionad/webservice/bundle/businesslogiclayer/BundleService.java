@@ -29,6 +29,15 @@ public interface BundleService {
      */
     List<Media> getRuleMatchedMedias(Bundle bundle);
 
+    /**
+     * Same rule match as {@link #getRuleMatchedMedias}, for the admin candidate-medias
+     * screen specifically: eager-fetches {@code mediaLocation} so the city/region
+     * columns it renders per row don't each trigger their own lazy-load query. Kept
+     * separate from {@link #getRuleMatchedMedias} because that method backs the
+     * pricing quote used on every public bundle listing, which never reads location.
+     */
+    List<Media> getCandidateMedias(Bundle bundle);
+
     Set<UUID> getExcludedMediaIds(String bundleId);
 
     void excludeMedia(String bundleId, UUID mediaId);

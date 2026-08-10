@@ -68,6 +68,7 @@ class MediaControllerIntegrationTest extends BaseIntegrationTest {
                                                 "create:employee",
                                                 "create:media",
                                                 "delete:employee",
+                                                "readAll:media",
                                                 "read:employee",
                                                 "update:business",
                                                 "update:media"))
@@ -202,11 +203,22 @@ class MediaControllerIntegrationTest extends BaseIntegrationTest {
                 webTestClient.get()
                                 .uri(BASE_URI_MEDIA)
                                 .accept(MediaType.APPLICATION_JSON)
+                                .headers(headers -> headers.setBearerAuth("mock-token"))
                                 .exchange()
                                 .expectStatus().isOk()
                                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                                 .expectBody()
                                 .jsonPath("$.length()").isEqualTo(1);
+        }
+
+        @Test
+        void getAllMedia_WithoutAuthentication_ShouldReturnForbidden() {
+                // Act & Assert
+                webTestClient.get()
+                                .uri(BASE_URI_MEDIA)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .exchange()
+                                .expectStatus().isForbidden();
         }
 
         @Test

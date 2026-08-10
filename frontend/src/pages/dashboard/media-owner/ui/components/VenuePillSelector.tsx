@@ -18,10 +18,21 @@ export function VenuePillSelector({ selectedVenueId, onSelect }: VenuePillSelect
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getAllVenues(locale)
-            .then(setVenues)
-            .catch(() => setVenues([]))
-            .finally(() => setLoading(false));
+        let cancelled = false;
+        (async () => {
+            setLoading(true);
+            try {
+                const data = await getAllVenues(locale);
+                if (!cancelled) setVenues(data);
+            } catch {
+                if (!cancelled) setVenues([]);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, [locale]);
 
     if (loading) return <Loader size="xs" />;

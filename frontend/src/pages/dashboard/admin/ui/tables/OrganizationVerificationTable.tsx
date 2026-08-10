@@ -1,6 +1,6 @@
 "use client";
 
-import { Paper, ScrollArea, Table, Text } from "@mantine/core";
+import { Button, Group, Loader, Paper, ScrollArea, Table, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import {VerificationResponseDTO} from "@/entities/organization/model/verification";
 
@@ -9,18 +9,18 @@ interface OrganizationVerificationTableProps {
     onRequestRemoved: (id: string) => void;
     onRowClick: (request: VerificationResponseDTO) => void;
     getOrganizationName: (businessId: string) => string;
-    isLoading: (businessId: string) => boolean;
+    getDetailStatus: (businessId: string) => "loading" | "loaded" | "error";
+    onRetryDetail: (businessId: string) => void;
 }
 
 export function OrganizationVerificationTable({
                                                   rows,
                                                   onRowClick,
                                                   getOrganizationName,
-                                                  isLoading
+                                                  getDetailStatus,
+                                                  onRetryDetail
                                               }: OrganizationVerificationTableProps) {
     const t = useTranslations("admin.adminActions");
-
-    const loadedRows = rows.filter(row => !isLoading(row.businessId));
 
     return (
         <Paper shadow="sm" radius="lg">
@@ -42,23 +42,59 @@ export function OrganizationVerificationTable({
                     </Table.Thead>
 
                     <Table.Tbody>
-                        {loadedRows.length > 0 ? (
-                            loadedRows.map((row) => (
-                                <Table.Tr
-                                    key={row.verificationId}
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() => onRowClick(row)}
-                                >
-                                    <Table.Td>
-                                        <Text fw={500}>{getOrganizationName(row.businessId)}</Text>
-                                    </Table.Td>
-                                    <Table.Td>
-                                        <Text size="sm">
-                                            {new Date(row.dateCreated).toLocaleDateString()}
-                                        </Text>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))
+                        {rows.length > 0 ? (
+                            rows.map((row) => {
+                                const status = getDetailStatus(row.businessId);
+                                if (status === "error") {
+                                    return (
+                                        <Table.Tr key={row.verificationId}>
+                                            <Table.Td>
+                                                <Text c="red" size="sm">{t('errors.loadDetailsFailed')}</Text>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Button
+                                                    size="xs"
+                                                    variant="light"
+                                                    color="red"
+                                                    onClick={() => onRetryDetail(row.businessId)}
+                                                >
+                                                    {t('retry')}
+                                                </Button>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    );
+                                }
+
+                                if (status === "loading") {
+                                    return (
+                                        <Table.Tr key={row.verificationId}>
+                                            <Table.Td colSpan={2}>
+                                                <Group gap="xs">
+                                                    <Loader size="xs" />
+                                                    <Text size="sm" c="dimmed">{row.businessId}</Text>
+                                                </Group>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    );
+                                }
+
+                                return (
+                                    <Table.Tr
+                                        key={row.verificationId}
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => onRowClick(row)}
+                                    >
+                                        <Table.Td>
+                                            <Text fw={500}>{getOrganizationName(row.businessId)}</Text>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Text size="sm">
+                                                {new Date(row.dateCreated).toLocaleDateString()}
+                                            </Text>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })
                         ) : (
                             <Table.Tr>
                                 <Table.Td colSpan={2}>

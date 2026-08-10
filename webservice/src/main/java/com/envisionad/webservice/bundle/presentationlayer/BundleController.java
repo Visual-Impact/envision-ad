@@ -11,6 +11,9 @@ import com.envisionad.webservice.bundle.presentationlayer.models.BundleCandidate
 import com.envisionad.webservice.bundle.presentationlayer.models.BundlePriceQuoteResponseModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleRequestModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleResponseModel;
+import com.envisionad.webservice.bundle.exceptions.NotAdvertiserException;
+import com.envisionad.webservice.business.businesslogiclayer.BusinessService;
+import com.envisionad.webservice.business.dataaccesslayer.Roles;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.venue.businesslogiclayer.VenueService;
@@ -37,19 +40,22 @@ public class BundleController {
     private final BundleResponseMapper responseMapper;
     private final VenueService venueService;
     private final JwtUtils jwtUtils;
+    private final BusinessService businessService;
 
     public BundleController(BundleService bundleService,
             BundlePricingService pricingService,
             BundleRequestMapper requestMapper,
             BundleResponseMapper responseMapper,
             VenueService venueService,
-            JwtUtils jwtUtils) {
+            JwtUtils jwtUtils,
+            BusinessService businessService) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
         this.requestMapper = requestMapper;
         this.responseMapper = responseMapper;
         this.venueService = venueService;
         this.jwtUtils = jwtUtils;
+        this.businessService = businessService;
     }
 
     /**
@@ -83,19 +89,25 @@ public class BundleController {
             @PathVariable String bundleId,
             @RequestParam String businessId) {
         jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+        requireAdvertiser(businessId);
         // Resolves the bundle first, so an unknown id yields 404 rather than an empty quote.
-        bundleService.getBundleByBundleId(bundleId);
-        BundlePriceQuote quote = pricingService.quote(bundleId, businessId);
+        Bundle bundle = bundleService.getBundleByBundleId(bundleId);
+        BundlePriceQuote quote = pricingService.quote(bundle, businessId);
         return ResponseEntity.ok(responseMapper.quoteToResponseModel(quote));
+    }
+
+    /** Bundles are advertiser inventory; a media-owner-only business can browse but not buy. */
+    private void requireAdvertiser(String businessId) {
+        Roles roles = businessService.getBusinessById(businessId).getRoles();
+        if (roles == null || !roles.isAdvertiser()) {
+            throw new NotAdvertiserException(businessId);
+        }
     }
 
     @PostMapping
     @PreAuthorize("hasAuthority('manage:bundles')")
     public ResponseEntity<BundleResponseModel> createBundle(@RequestBody BundleRequestModel request) {
         Bundle entity = requestMapper.requestModelToEntity(request);
-        if (request.getRuleType() == BundleRuleType.FULL_NETWORK) {
-            entity.setRuleValue(null);
-        }
         Bundle saved = bundleService.createBundle(entity);
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponseModel(saved));
     }
@@ -121,7 +133,7 @@ public class BundleController {
     public ResponseEntity<List<BundleCandidateMediaResponseModel>> getCandidateMedias(
             @PathVariable String bundleId) {
         Bundle bundle = bundleService.getBundleByBundleId(bundleId);
-        List<Media> candidates = bundleService.getRuleMatchedMedias(bundle);
+        List<Media> candidates = bundleService.getCandidateMedias(bundle);
         Set<UUID> excluded = bundleService.getExcludedMediaIds(bundleId);
         return ResponseEntity.ok(
                 responseMapper.mediaListToCandidateResponseModelList(candidates, excluded));
@@ -142,7 +154,7 @@ public class BundleController {
     }
 
     private BundleResponseModel toResponseModel(Bundle bundle) {
-        BundlePriceQuote quote = pricingService.quote(bundle.getBundleId(), null);
+        BundlePriceQuote quote = pricingService.quote(bundle, null);
         long activeSubscriptions = bundleService.countBlockingSubscriptions(bundle.getBundleId());
         return responseMapper.entityToResponseModel(bundle, quote, activeSubscriptions,
                 ruleVenue(bundle));

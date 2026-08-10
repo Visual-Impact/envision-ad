@@ -53,26 +53,6 @@
   justify-content: center;
 }
 
-/* Network badge pill */
-.networkBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1.5px solid var(--mantine-color-blue-6);
-  border-radius: 9999px;
-  color: var(--mantine-color-blue-6);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  width: fit-content;
-}
-
-.badgeDot {
-  font-size: 8px;
-  line-height: 1;
-}
-
 /* Hero headline */
 .heroTitle {
   font-size: 68px !important;

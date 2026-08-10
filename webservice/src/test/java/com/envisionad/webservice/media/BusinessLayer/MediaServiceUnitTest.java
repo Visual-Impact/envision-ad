@@ -24,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -692,9 +693,10 @@ class MediaServiceUnitTest {
         UUID id = UUID.randomUUID();
         media1.setImageUrl("https://res.cloudinary.com/demo/image/upload/v1/sample.png");
         when(mediaRepository.findById(id)).thenReturn(Optional.of(media1));
+        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
 
         // Act
-        mediaService.deleteMedia(id);
+        mediaService.deleteMedia(mockJwt, id);
 
         // Assert
         verify(uploader).destroy(eq("sample"), anyMap());
@@ -807,12 +809,13 @@ class MediaServiceUnitTest {
         UUID id = media1.getId();
         media1.setImageUrl(".../upload/sample.png");
         when(mediaRepository.findById(id)).thenReturn(Optional.of(media1));
+        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
 
         // Simulate Cloudinary exception
         when(uploader.destroy(anyString(), anyMap())).thenThrow(new RuntimeException("API Down"));
 
         // Act & Assert
-        assertDoesNotThrow(() -> mediaService.deleteMedia(id));
+        assertDoesNotThrow(() -> mediaService.deleteMedia(mockJwt, id));
         verify(mediaRepository).delete(media1);
     }
 
@@ -825,12 +828,14 @@ class MediaServiceUnitTest {
 
         Media media = new Media();
         media.setId(id);
+        media.setBusinessId(UUID.fromString(business1Id));
         media.setImageUrl(croppedUrl);
 
         when(mediaRepository.findById(id)).thenReturn(Optional.of(media));
+        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
 
         // Act
-        mediaService.deleteMedia(id);
+        mediaService.deleteMedia(mockJwt, id);
 
         // Assert
         verify(uploader).destroy(eq("my_image"), anyMap());
@@ -843,9 +848,10 @@ class MediaServiceUnitTest {
         String videoUrl = "https://res.cloudinary.com/demo/video/upload/v1/my_video.mp4";
         media1.setImageUrl(videoUrl);
         when(mediaRepository.findById(id)).thenReturn(Optional.of(media1));
+        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
 
         // Act
-        mediaService.deleteMedia(id);
+        mediaService.deleteMedia(mockJwt, id);
 
         // Assert
         ArgumentCaptor<Map<String, Object>> mapCaptor = ArgumentCaptor.forClass(Map.class);        verify(uploader).destroy(eq("my_video"), mapCaptor.capture());
@@ -858,13 +864,27 @@ class MediaServiceUnitTest {
         UUID id = UUID.randomUUID();
         media1.setImageUrl(null);
         when(mediaRepository.findById(id)).thenReturn(Optional.of(media1));
+        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
 
         // Act
-        mediaService.deleteMedia(id);
+        mediaService.deleteMedia(mockJwt, id);
 
         // Assert
         verify(uploader, never()).destroy(anyString(), anyMap());
         verify(mediaRepository).delete(media1); // Should still delete from DB
+    }
+
+    @Test
+    void deleteMedia_WhenCallerIsNotEmployeeOfOwningBusiness_ShouldThrowAndNotDelete() {
+        // Arrange
+        UUID id = media1.getId();
+        when(mediaRepository.findById(id)).thenReturn(Optional.of(media1));
+        doThrow(new AccessDeniedException("Access Denied"))
+                .when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), anyString());
+
+        // Act & Assert
+        assertThrows(AccessDeniedException.class, () -> mediaService.deleteMedia(mockJwt, id));
+        verify(mediaRepository, never()).delete(any(Media.class));
     }
 
     // ==================== Helper Methods ====================

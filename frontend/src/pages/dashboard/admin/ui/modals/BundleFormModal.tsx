@@ -132,7 +132,7 @@ export function BundleFormModal({ opened, onClose, onSave, bundle, venues }: Bun
             size="lg"
             centered
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="md">
                 <Group grow>

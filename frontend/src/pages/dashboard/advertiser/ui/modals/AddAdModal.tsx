@@ -92,10 +92,11 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
         resourceType: 'auto',
         multiple: false,
         maxFileSize: 50000000,
+        folder: 'envisionad/ads',
     };
 
     return (
-        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
+        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55 }}>
             <Box pos="relative">
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack gap="md">

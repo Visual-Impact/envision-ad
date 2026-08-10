@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Group, Stack, Title } from "@mantine/core";
+import { Alert, Button, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useTranslations } from 'next-intl';
 import { useMediaForm } from "@/pages/dashboard/media-owner/hooks/useMediaForm";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
-import { IconCheck } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCheck } from "@tabler/icons-react";
 import { WeeklyScheduleModel } from "@/entities/media";
 import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location/model/mediaLocation";
 import {
@@ -21,6 +21,15 @@ import { EditMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { MediaStatusEnum } from "@/entities/media/model/media";
 import { useOrganization } from "@/app/providers";
+import { getStripeAccountStatus } from "@/features/payment";
+import Link from "next/link";
+
+interface StripeStatus {
+    connected: boolean;
+    onboardingComplete: boolean;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+}
 
 const getApiErrorMessage = (error: unknown): string | null => {
     if (!error || typeof error !== "object" || !("response" in error)) return null;
@@ -35,6 +44,13 @@ const getApiErrorStatus = (error: unknown): number | null => {
     return typeof response?.status === "number" ? response.status : null;
 };
 
+const getApiErrorCode = (error: unknown): string | null => {
+    if (!error || typeof error !== "object" || !("response" in error)) return null;
+    const response = (error as { response?: { data?: unknown } }).response;
+    if (!response?.data || typeof response.data !== "object") return null;
+    return (response.data as { code?: string }).code ?? null;
+};
+
 const hasApiFieldErrors = (error: unknown): boolean => {
     if (!error || typeof error !== "object" || !("response" in error)) return false;
     const response = (error as { response?: { data?: unknown } }).response;
@@ -46,10 +62,14 @@ const hasApiFieldErrors = (error: unknown): boolean => {
 
 export default function MediaLocations() {
     const t = useTranslations('mediaLocations');
+    const tMedia = useTranslations('media');
     const { organization } = useOrganization();
 
     const [locations, setLocations] = useState<MediaLocation[]>([]);
     const [refreshCount, setRefreshCount] = useState(0);
+
+    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+    const [isStripeLoading, setIsStripeLoading] = useState(true);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -66,14 +86,39 @@ export default function MediaLocations() {
         setRefreshCount(c => c + 1);
     }, []);
 
+    const businessId = organization?.businessId;
+
     useEffect(() => {
         if (!organization) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsStripeLoading(true);
+            try {
+                const status = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStripeStatus(status);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+            } finally {
+                if (!cancelled) setIsStripeLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization]);
+
+    const isStripeOnboarded = stripeStatus?.onboardingComplete && stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
+
+    useEffect(() => {
+        if (!businessId) return;
 
         let ignored = false;
 
         const fetchLocations = async () => {
             try {
-                const data = await getAllMediaLocations(organization.businessId);
+                const data = await getAllMediaLocations(businessId);
                 if (!ignored) setLocations(data);
             } catch (error) {
                 if (!ignored) {
@@ -90,7 +135,7 @@ export default function MediaLocations() {
         void fetchLocations();
 
         return () => { ignored = true; };
-    }, [organization, t, refreshCount]);
+    }, [businessId, t, refreshCount]);
 
     const handleCreateLocation = async (payload: MediaLocationRequestDTO) => {
         if (!organization) return;
@@ -149,6 +194,7 @@ export default function MediaLocations() {
     };
 
     const handleAssignMedia = (locationId: string) => {
+        if (!isStripeOnboarded) return;
         updateField("mediaLocationId", locationId);
         setIsMediaModalOpen(true);
     };
@@ -167,10 +213,12 @@ export default function MediaLocations() {
             refreshLocations();
         } catch (error) {
             console.error("Failed to create media", error);
-            const apiMessage = getApiErrorMessage(error);
+            const isStripeNotOnboarded = getApiErrorCode(error) === "STRIPE_NOT_ONBOARDED";
             notifications.show({
                 title: t('notifications.createMedia.error.title'),
-                message: apiMessage || t("notifications.createMedia.error.message"),
+                message: isStripeNotOnboarded
+                    ? t("notifications.createMedia.error.stripeNotOnboarded")
+                    : t("notifications.createMedia.error.message"),
                 color: "red"
             });
         }
@@ -297,6 +345,15 @@ export default function MediaLocations() {
                 <Button variant="gradient" onClick={() => setIsCreateModalOpen(true)}>{t('page.createButton')}</Button>
             </Group>
 
+            {!isStripeLoading && !isStripeOnboarded && (
+                <Alert icon={<IconAlertTriangle size="1rem" />} title={tMedia('stripe.requiredTitle')} color="orange">
+                    {tMedia('stripe.requiredMessage')}
+                    <Link href="/dashboard/stripe" style={{ color: 'var(--mantine-color-orange-7)', textDecoration: 'underline' }}>
+                        {tMedia('stripe.requiredLink')}
+                    </Link>
+                </Alert>
+            )}
+
             <MediaLocationsTable
                 locations={locations}
                 onDeleteLocation={handleDeleteLocation}
@@ -305,6 +362,7 @@ export default function MediaLocations() {
                 onEditMedia={handleEditMedia}
                 onDeleteMedia={handleDeleteMedia}
                 onToggleMediaStatus={handleToggleMediaStatus}
+                addMediaDisabled={!isStripeOnboarded}
             />
 
             <CreateMediaLocationModal

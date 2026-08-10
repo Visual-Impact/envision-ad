@@ -282,9 +282,15 @@ public class MediaServiceImpl implements MediaService {
     }
 
     @Override
-    public void deleteMedia(UUID id) {
+    public void deleteMedia(Jwt jwt, UUID id) {
         Media media = mediaRepository.findById(id)
                 .orElseThrow(() -> new MediaNotFoundException(id.toString()));
+
+        UUID businessId = media.getBusinessId();
+        if (businessId == null) {
+            throw new IllegalStateException("Existing media has no associated business; cannot delete.");
+        }
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId.toString());
 
         String publicId = CloudinaryConfig.getPublicIdFromUrl(media.getImageUrl());
         String resourceType = CloudinaryConfig.getResourceTypeFromUrl(media.getImageUrl());

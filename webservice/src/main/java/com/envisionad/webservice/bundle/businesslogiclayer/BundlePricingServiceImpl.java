@@ -47,8 +47,12 @@ public class BundlePricingServiceImpl implements BundlePricingService {
 
     @Override
     public BundlePriceQuote quote(String bundleId, String advertiserBusinessId) {
-        Bundle bundle = bundleService.getBundleByBundleId(bundleId);
-        PricingContext context = new PricingContext(bundleId, advertiserBusinessId);
+        return quote(bundleService.getBundleByBundleId(bundleId), advertiserBusinessId);
+    }
+
+    @Override
+    public BundlePriceQuote quote(Bundle bundle, String advertiserBusinessId) {
+        PricingContext context = new PricingContext(bundle.getBundleId(), advertiserBusinessId);
 
         List<Media> eligible = bundleService.getRuleMatchedMedias(bundle);
         for (MediaEligibilityFilter filter : eligibilityFilters) {

@@ -40,7 +40,7 @@ export function CreateCampaignModal({ opened, onClose, onSuccess }: CreateCampai
     };
 
     return (
-        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
+        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55 }}>
             <Box>
                 <form onSubmit={form.onSubmit(handleSubmit)}>
                     <Stack>

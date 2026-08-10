@@ -1,6 +1,7 @@
 package com.envisionad.webservice.payment.presentationlayer;
 
 import com.envisionad.webservice.payment.businesslogiclayer.BundlePayoutService;
+import com.envisionad.webservice.payment.businesslogiclayer.BundleSubscriptionService;
 import com.envisionad.webservice.payment.businesslogiclayer.StripeWebhookService;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotLinkedException;
@@ -48,11 +49,13 @@ class BundleSubscriptionWebhookUnitTest {
     @Mock private StripeAccountRepository stripeAccountRepository;
     @Mock private BundleSubscriptionRepository bundleSubscriptionRepository;
     @Mock private BundlePayoutService bundlePayoutService;
+    @Mock private BundleSubscriptionService bundleSubscriptionService;
 
     @BeforeEach
     void setUp() {
         service = new StripeWebhookService(
-                stripeAccountRepository, bundleSubscriptionRepository, bundlePayoutService);
+                stripeAccountRepository, bundleSubscriptionRepository, bundlePayoutService,
+                bundleSubscriptionService);
     }
 
     // --- checkout.session.completed (mode=subscription) ---------------------
@@ -68,6 +71,24 @@ class BundleSubscriptionWebhookUnitTest {
         BundleSubscription saved = savedSubscription();
         assertEquals(STRIPE_SUB_ID, saved.getStripeSubscriptionId());
         assertEquals(BundleSubscriptionStatus.ACTIVE, saved.getStatus());
+        verify(bundleSubscriptionService).notifyMediaOwnersOfNewSubscription(LOCAL_SUB_ID);
+    }
+
+    /**
+     * The normal case per the class comment on {@code handleSubscriptionCheckoutCompleted}:
+     * invoice.paid usually wins the race and has already activated the row, so this handler's
+     * own transition is CANCELED->CANCELED or ACTIVE->ACTIVE, neither of which is a first
+     * activation.
+     */
+    @Test
+    void whenCheckoutCompletesAfterInvoicePaidAlreadyActivatedIt_thenNoDuplicateNotification() {
+        BundleSubscription row = givenSubscription(BundleSubscriptionStatus.ACTIVE, STRIPE_SUB_ID);
+        when(bundleSubscriptionRepository.findByStripeCheckoutSessionId(SESSION_ID))
+                .thenReturn(Optional.of(row));
+
+        service.handleCheckoutSessionCompleted(eventOf(subscriptionSession()));
+
+        verify(bundleSubscriptionService, never()).notifyMediaOwnersOfNewSubscription(anyString());
     }
 
     /**
@@ -130,8 +151,10 @@ class BundleSubscriptionWebhookUnitTest {
         assertEquals(STRIPE_SUB_ID, saved.getStripeSubscriptionId());
         assertEquals(BundleSubscriptionStatus.ACTIVE, saved.getStatus());
         verify(bundlePayoutService).payOutInvoice(INVOICE_ID, LOCAL_SUB_ID);
+        verify(bundleSubscriptionService).notifyMediaOwnersOfNewSubscription(LOCAL_SUB_ID);
     }
 
+    /** A renewal payment must not re-send the "you're now part of this bundle" email. */
     @Test
     void whenInvoiceHasNoMetadata_thenItFallsBackToTheStripeSubscriptionId() {
         BundleSubscription row = givenSubscription(BundleSubscriptionStatus.ACTIVE, STRIPE_SUB_ID);
@@ -142,6 +165,37 @@ class BundleSubscriptionWebhookUnitTest {
 
         verify(bundlePayoutService).payOutInvoice(INVOICE_ID, LOCAL_SUB_ID);
         verify(bundleSubscriptionRepository, never()).findBySubscriptionId(anyString());
+        verify(bundleSubscriptionService, never()).notifyMediaOwnersOfNewSubscription(anyString());
+    }
+
+    /** A PAST_DUE recovery payment is a reactivation, not a new subscription — no resend. */
+    @Test
+    void whenInvoicePaidRecoversAPastDueSubscription_thenNoNewSubscriptionEmailIsSent() {
+        BundleSubscription row = givenSubscription(BundleSubscriptionStatus.PAST_DUE, STRIPE_SUB_ID);
+        when(bundleSubscriptionRepository.findBySubscriptionId(LOCAL_SUB_ID)).thenReturn(Optional.of(row));
+
+        service.handleInvoicePaid(eventOf(invoiceWith(LOCAL_SUB_ID, STRIPE_SUB_ID)));
+
+        assertEquals(BundleSubscriptionStatus.ACTIVE, savedSubscription().getStatus());
+        verify(bundleSubscriptionService, never()).notifyMediaOwnersOfNewSubscription(anyString());
+    }
+
+    /**
+     * A notification failure must never turn a successful activation and payout into a
+     * failed, Stripe-retried webhook — StripeWebhookService catches around the call for
+     * exactly this reason.
+     */
+    @Test
+    void whenNotifyingMediaOwnersThrows_thenTheWebhookStillSucceeds() {
+        BundleSubscription row = givenSubscription(BundleSubscriptionStatus.INCOMPLETE, null);
+        when(bundleSubscriptionRepository.findBySubscriptionId(LOCAL_SUB_ID)).thenReturn(Optional.of(row));
+        doThrow(new RuntimeException("boom"))
+                .when(bundleSubscriptionService).notifyMediaOwnersOfNewSubscription(LOCAL_SUB_ID);
+
+        assertDoesNotThrow(() -> service.handleInvoicePaid(eventOf(invoiceWith(LOCAL_SUB_ID, STRIPE_SUB_ID))));
+
+        verify(bundlePayoutService).payOutInvoice(INVOICE_ID, LOCAL_SUB_ID);
+        assertEquals(BundleSubscriptionStatus.ACTIVE, savedSubscription().getStatus());
     }
 
     /**

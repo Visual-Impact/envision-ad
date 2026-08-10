@@ -214,7 +214,7 @@ export default function AdminMediaReviewPage() {
             keepMounted={false}
             closeButtonProps={{ "aria-label": t1("close") }}
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
             title={
               confirmAction === "approve"
                   ? t1("approveMediaConfirmation")

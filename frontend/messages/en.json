@@ -240,12 +240,11 @@
     }
   },
   "homepage": {
-    "networkBadge": "ADVERTISEMENT SCREEN NETWORK",
     "heroTitlePart1": "Your ads everywhere in",
     "heroTitlePart2": "Greater Montreal",
     "heroDescription": "Broadcast your message across {count} digital screens strategically placed throughout the South Shore and the Island of Montreal — every 2 to 3 minutes.",
     "ctaMeeting": "Book a Meeting",
-    "ctaPackages": "View Packages",
+    "ctaPackages": "View Our Screens",
     "stats": {
       "screens": "ACTIVE SCREENS",
       "cities": "CITIES COVERED",
@@ -329,11 +328,10 @@
     "scheduleTitle": "Schedule",
     "monthsTitle": "Months",
     "hoursTitle": "Hours",
-    "pricePerWeek": "{price} per week",
+    "pricePerWeek": "{price} per month",
     "priceUnavailable": "Price not available",
     "loopDurationSeconds": "{seconds} seconds",
     "weeklyImpressions": "~{count} impressions",
-    "weeklyImpressionsPerWeek": "~{count} impressions per week",
     "months": {
       "january": "Jan",
       "february": "Feb",
@@ -373,7 +371,7 @@
     "browseBundlesNote": "Screens are sold as part of a monthly bundle subscription."
   },
   "mediacard": {
-    "perWeek": "{price} per week",
+    "perWeek": "{price} per month",
     "weeklyImpressions": "~{weeklyImpressions} impressions per week",
     "typeOfDisplay": {
       "DIGITAL": "Digital",
@@ -683,7 +681,8 @@
       "uploadProofImages": "Upload proof images",
       "clear": "Clear",
       "submitProof": "Submit proof",
-      "close": "Close"
+      "close": "Close",
+      "retry": "Retry"
     },
     "completed": {
       "title": "Proof submitted",
@@ -702,6 +701,18 @@
       "action": "Action",
       "addProof": "Add proof",
       "noMedia": "No media found"
+    },
+    "errors": {
+      "notInActiveSubscription": "This media isn't part of an active subscription for the selected campaign.",
+      "submitFailed": "Failed to submit proof. Please try again.",
+      "loadCampaignsFailed": "Failed to load campaigns for this media. Please try again."
+    },
+    "pagination": {
+      "previous": "Previous page",
+      "next": "Next page",
+      "first": "First page",
+      "last": "Last page",
+      "page": "Page {page}"
     }
   },
   "mediaModal": {
@@ -745,7 +756,7 @@
       "resolutionHeight": "Resolution - Height (px)",
       "width": "Width (cm)",
       "height": "Height (cm)",
-      "price": "Price (per week)",
+      "price": "Price (per month)",
       "dailyImpressions": "Daily impressions",
       "venueType": "Venue Type",
       "previewCorners": "Preview & Set Corners",
@@ -950,8 +961,6 @@
       "startDate": "Start Date",
       "endDate": "End Date",
       "duration": "Duration",
-      "oneWeek": "1 week",
-      "weeks": "{count} weeks",
       "totalPrice": "Total Price",
       "approve": "Approve",
       "deny": "Deny",
@@ -1021,8 +1030,7 @@
         },
         "error": {
           "title": "Error",
-          "genericMessage": "Failed to save ad",
-          "tiedReservationMessage": "Failed to save ad because its campaign still has upcoming or ongoing reservation. Please wait until the reservation for this ad has ended before making changes."
+          "genericMessage": "Failed to save ad"
         }
       },
       "deleteAd": {
@@ -1032,8 +1040,7 @@
         },
         "error": {
           "title": "Error",
-          "genericMessage": "Failed to delete ad",
-          "tiedReservationMessage": "Failed to delete ad because its campaign still has upcoming or ongoing reservations. Please wait until all reservations for this campaign have ended before deleting."
+          "genericMessage": "Failed to delete ad"
         }
       },
       "deleteCampaign": {
@@ -1155,8 +1162,11 @@
       "errors": {
         "title": "Error",
         "approveFailed": "Failed to approve organization verification status.",
-        "denyFailed": "Failed to deny organization verification status."
+        "denyFailed": "Failed to deny organization verification status.",
+        "loadRequestsFailed": "Failed to load verification requests. Retry.",
+        "loadDetailsFailed": "Failed to load details for this organization."
       },
+      "retry": "Retry",
       "mediaLocationReview": {
         "title": "Media Location",
         "description": "This media belongs to the location below. Verify the region, which determines regional bundle grouping.",
@@ -1316,7 +1326,8 @@
       "mediaType": "Type",
       "resolution": "Resolution",
       "noAssignedMedia": "No media assigned yet.",
-      "edit": "Edit"
+      "edit": "Edit",
+      "deleteLocationAria": "Delete location {name}"
     },
     "notifications": {
       "loadFailed": {
@@ -1341,7 +1352,8 @@
         },
         "error": {
           "title": "Error",
-          "message": "Failed to create media."
+          "message": "Failed to create media.",
+          "stripeNotOnboarded": "Your business must have a fully configured Stripe account to create media. Please complete your Stripe onboarding."
         }
       },
       "delete": {
@@ -1403,6 +1415,7 @@
         "title": "Edit Media Location",
         "fields": {
           "name": "Name",
+          "addressSearch": "Search for your address",
           "street": "Street",
           "city": "City",
           "province": "Province/State",
@@ -1414,6 +1427,7 @@
         },
         "placeholders": {
           "name": "E.g. Downtown Billboards",
+          "addressSearch": "Start typing an address...",
           "street": "123 Main St",
           "city": "New York",
           "province": "NY",
@@ -1422,7 +1436,13 @@
           "postalCode": "10001"
         },
         "descriptions": {
-          "region": "Optional. Used to group this screen into regional bundles."
+          "region": "Optional. Used to group this screen into regional bundles.",
+          "addressSearch": "Pick a suggestion to auto-fill the fields below.",
+          "pinMap": "Click or drag the pin to set the exact location.",
+          "resolvingPin": "Looking up the address for this pin..."
+        },
+        "addressSearch": {
+          "noResults": "No matches found"
         },
         "validation": {
           "name": "Name is too short",
@@ -1442,7 +1462,9 @@
         },
         "buttons": {
           "cancel": "Cancel",
-          "save": "Save"
+          "save": "Save",
+          "dropPin": "Can't find your address? Drop a pin",
+          "hidePin": "Hide map"
         },
         "success": {
           "title": "Success",
@@ -1489,6 +1511,7 @@
     },
     "labels": {
       "name": "Name",
+      "addressSearch": "Search for your address",
       "street": "Street",
       "city": "City",
       "province": "Province/State",
@@ -1500,6 +1523,7 @@
     },
     "placeholders": {
       "name": "E.g. Downtown Billboards",
+      "addressSearch": "Start typing an address...",
       "street": "123 Main St",
       "city": "New York",
       "province": "NY",
@@ -1508,11 +1532,23 @@
       "postalCode": "10001"
     },
     "descriptions": {
-      "region": "Optional. Used to group this screen into regional bundles."
+      "region": "Optional. Used to group this screen into regional bundles.",
+      "addressSearch": "Pick a suggestion to auto-fill the fields below.",
+      "pinMap": "Click or drag the pin to set the exact location.",
+      "resolvingPin": "Looking up the address for this pin..."
+    },
+    "addressSearch": {
+      "noResults": "No matches found"
     },
     "buttons": {
       "cancel": "Cancel",
-      "create": "Create"
+      "create": "Create",
+      "dropPin": "Can't find your address? Drop a pin",
+      "hidePin": "Hide map"
+    },
+    "error": {
+      "title": "Error",
+      "message": "Failed to create location"
     }
   },
   "venueManagement": {
@@ -1690,7 +1726,7 @@
       "manageSubscription": "Manage subscription",
       "eyebrow": "Complete coverage",
       "perScreenHook": "{price} per screen",
-      "reassurance": "Cancel anytime · no setup fees",
+      "reassurance": "Cancel anytime · no fees",
       "networkVenueTypes": [
         "Malls & storefronts",
         "Colleges & student campuses",
@@ -1698,7 +1734,7 @@
         "Barbershops & hair salons",
         "Restaurants & gyms"
       ],
-      "networkFrequency": "Every 2–3 minutes, all day",
+      "networkFrequency": "Every 3 minutes, all day",
       "discountBadge": "−{percent}%",
       "sublineDiscounted": "{now} × {count, plural, =1 {# screen} other {# screens}} (was {was})",
       "perScreenHookDiscounted": "{now} per screen — was {was}"
@@ -1737,10 +1773,11 @@
       "noCampaigns": "You need a campaign with at least one ad before you can subscribe.",
       "createCampaign": "Create a campaign",
       "noScreens": "This bundle has no available screens right now, so it cannot be subscribed to.",
-      "recurringNote": "Billed monthly. Cancel anytime — no setup fees.",
+      "recurringNote": "Billed monthly. Cancel anytime — no fees.",
       "cancel": "Cancel",
       "proceed": "Continue to payment",
       "loadFailed": "We couldn't load this bundle's price. Please try again.",
+      "notAdvertiser": "This business isn't set up as an advertiser, so it can't subscribe to bundles. Switch to an advertiser business or contact us to add advertiser access.",
       "errorTitle": "Subscription failed",
       "initFailed": "We couldn't start the checkout. Please try again.",
       "missingKey": "Payment is unavailable: the Stripe key is not configured.",

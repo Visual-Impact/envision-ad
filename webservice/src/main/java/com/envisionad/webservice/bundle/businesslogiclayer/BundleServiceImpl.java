@@ -57,6 +57,7 @@ public class BundleServiceImpl implements BundleService {
     @Override
     public Bundle createBundle(Bundle bundle) {
         validateDiscountPercent(bundle.getDiscountPercent());
+        bundle.setRuleValue(normalizeRuleValue(bundle.getRuleType(), bundle.getRuleValue()));
         return bundleRepository.save(bundle);
     }
 
@@ -72,6 +73,25 @@ public class BundleServiceImpl implements BundleService {
         }
     }
 
+    /**
+     * FULL_NETWORK must carry no rule value — the DB CHECK enforces it, so normalise
+     * here rather than letting a stale value trip the constraint. CITY/REGION/VENUE
+     * require a genuine, non-blank value: {@code MediaSpecifications}' *EqualsIgnoreCase()
+     * treats a blank value as "no filter", so a whitespace-only rule value would silently
+     * turn the bundle into "every ACTIVE screen on the network" instead of the intended
+     * slice — reject it with a 400 instead.
+     */
+    private String normalizeRuleValue(BundleRuleType ruleType, String ruleValue) {
+        if (ruleType == BundleRuleType.FULL_NETWORK) {
+            return null;
+        }
+        String normalized = ruleValue == null ? null : ruleValue.trim();
+        if (normalized == null || normalized.isBlank()) {
+            throw new IllegalArgumentException("ruleValue is required for ruleType " + ruleType);
+        }
+        return normalized;
+    }
+
     @Override
     public Bundle updateBundle(String bundleId, BundleRequestModel request) {
         Bundle existing = getBundleByBundleId(bundleId);
@@ -84,11 +104,7 @@ public class BundleServiceImpl implements BundleService {
         existing.setIdealForFr(request.getIdealForFr());
         existing.setBadgeColor(request.getBadgeColor());
         existing.setRuleType(request.getRuleType());
-        // FULL_NETWORK must carry no rule value — the DB CHECK enforces it, so
-        // normalise here rather than letting a stale value trip the constraint.
-        existing.setRuleValue(request.getRuleType() == BundleRuleType.FULL_NETWORK
-                ? null
-                : request.getRuleValue());
+        existing.setRuleValue(normalizeRuleValue(request.getRuleType(), request.getRuleValue()));
         if (request.getActive() != null) {
             existing.setActive(request.getActive());
         }
@@ -121,7 +137,29 @@ public class BundleServiceImpl implements BundleService {
 
     @Override
     public List<Media> getRuleMatchedMedias(Bundle bundle) {
+        return mediaRepository.findAll(ruleMatchedSpec(bundle, false));
+    }
+
+    @Override
+    public List<Media> getCandidateMedias(Bundle bundle) {
+        return mediaRepository.findAll(ruleMatchedSpec(bundle, true));
+    }
+
+    /**
+     * ACTIVE media matching the bundle's rule. {@code fetchLocation} eager-fetches
+     * mediaLocation for {@link #getCandidateMedias}, the one caller that reads
+     * city/region per row (mediaLocation is LAZY, so without it every row would
+     * trigger its own lazy-load query once the response mapper touches it) —
+     * {@link #getRuleMatchedMedias} skips it deliberately: that method backs
+     * {@code BundlePricingServiceImpl.quote()}, called once per bundle on every
+     * public, unauthenticated {@code GET /bundles} listing, which never reads
+     * location and shouldn't pay for the extra join on that hot path.
+     */
+    private Specification<Media> ruleMatchedSpec(Bundle bundle, boolean fetchLocation) {
         Specification<Media> spec = MediaSpecifications.hasStatus(Status.ACTIVE);
+        if (fetchLocation) {
+            spec = spec.and(MediaSpecifications.fetchMediaLocation());
+        }
 
         Specification<Media> ruleSpec = switch (bundle.getRuleType()) {
             case FULL_NETWORK -> null;
@@ -134,7 +172,7 @@ public class BundleServiceImpl implements BundleService {
             spec = spec.and(ruleSpec);
         }
 
-        return mediaRepository.findAll(spec);
+        return spec;
     }
 
     @Override

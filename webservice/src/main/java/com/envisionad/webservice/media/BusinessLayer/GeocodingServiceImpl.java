@@ -3,12 +3,15 @@ package com.envisionad.webservice.media.BusinessLayer;
 import com.envisionad.webservice.media.exceptions.GeocodingServiceUnavailableException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriBuilder;
 
+import java.net.URI;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 @Service
 public class GeocodingServiceImpl implements GeocodingService {
@@ -33,7 +36,35 @@ public class GeocodingServiceImpl implements GeocodingService {
 
     @Override
     public Optional<String> geocodeAddress(String address) {
-        String cacheKey = normalizeCacheKey(address);
+        String cacheKey = normalizeCacheKey("q:" + address);
+        return performGeocodeRequest(cacheKey, uriBuilder -> uriBuilder
+                .path("/search")
+                .queryParam("q", address)
+                .queryParam("format", "json")
+                .queryParam("addressdetails", 1)
+                .queryParam("limit", 1)
+                .build());
+    }
+
+    @Override
+    public Optional<String> geocodeStructuredAddress(String street, String city, String state, String country,
+            String postalCode) {
+        String cacheKey = normalizeCacheKey(
+                "structured:" + street + "|" + city + "|" + state + "|" + country + "|" + postalCode);
+        return performGeocodeRequest(cacheKey, uriBuilder -> uriBuilder
+                .path("/search")
+                .queryParam("street", street)
+                .queryParam("city", city)
+                .queryParam("state", state)
+                .queryParam("country", country)
+                .queryParam("postalcode", postalCode)
+                .queryParam("format", "json")
+                .queryParam("addressdetails", 1)
+                .queryParam("limit", 1)
+                .build());
+    }
+
+    private Optional<String> performGeocodeRequest(String cacheKey, Function<UriBuilder, URI> uriCustomizer) {
         CacheEntry cachedResponse = getCached(cacheKey);
         if (cachedResponse != null) {
             return cachedResponse.value();
@@ -43,13 +74,7 @@ public class GeocodingServiceImpl implements GeocodingService {
             awaitRateLimitSlot();
 
             String response = webClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/search")
-                            .queryParam("q", address)
-                            .queryParam("format", "json")
-                            .queryParam("addressdetails", 1)
-                            .queryParam("limit", 1)
-                            .build())
+                    .uri(uriCustomizer)
                     .header("User-Agent", "EnvisionAd/1.0") // Nominatim requires a User-Agent
                     .retrieve()
                     .bodyToMono(String.class)
@@ -66,11 +91,11 @@ public class GeocodingServiceImpl implements GeocodingService {
         }
     }
 
-    private String normalizeCacheKey(String address) {
-        if (address == null) {
+    private String normalizeCacheKey(String key) {
+        if (key == null) {
             return "";
         }
-        return address.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+        return key.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     private CacheEntry getCached(String cacheKey) {

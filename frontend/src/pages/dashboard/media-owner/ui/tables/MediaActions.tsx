@@ -97,7 +97,7 @@ export function MediaActions({ row, onEdit, onDelete, onToggleStatus }: MediaAct
                 onClose={closeModal}
                 centered
                 radius="lg"
-                overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+                overlayProps={{ backgroundOpacity: 0.55 }}
                 title={
                     isActivating
                         ? `${t("changeStatus.activate")} ${row.name}`

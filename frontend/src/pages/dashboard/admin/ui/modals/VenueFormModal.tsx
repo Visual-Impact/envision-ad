@@ -66,7 +66,7 @@ export function VenueFormModal({ opened, onClose, onSave, venue }: VenueFormModa
             size="md"
             centered
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="md">
                 <TextInput

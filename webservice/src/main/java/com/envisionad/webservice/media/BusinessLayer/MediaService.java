@@ -40,7 +40,7 @@ public interface MediaService {
     Media addMedia(Media media);
 
     MediaResponseModel updateMediaById(Jwt jwt, String id, MediaRequestModel requestModel);
-    void deleteMedia(UUID id);
+    void deleteMedia(Jwt jwt, UUID id);
 
 
     MediaResponseModel patchMediaStatusById(Jwt jwt, String id, MediaStatusPatchRequestModel request);

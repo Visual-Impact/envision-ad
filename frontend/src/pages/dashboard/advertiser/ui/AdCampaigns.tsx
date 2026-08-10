@@ -42,14 +42,16 @@ export default function AdCampaigns() {
         setRefreshCount(c => c + 1);
     }, []);
 
+    const businessId = organization?.businessId;
+
     useEffect(() => {
-        if (!organization) return;
+        if (!businessId) return;
 
         let ignored = false;
 
         const fetchCampaigns = async () => {
             try {
-                const data = await getAllAdCampaigns(organization.businessId);
+                const data = await getAllAdCampaigns(businessId);
                 if (!ignored) setCampaigns(data);
             } catch (error) {
                 if (!ignored) {
@@ -66,7 +68,7 @@ export default function AdCampaigns() {
         void fetchCampaigns();
 
         return () => { ignored = true; };
-    }, [organization, t, refreshCount]);
+    }, [businessId, t, refreshCount]);
 
     const handleOpenAddAd = (campaignId: string) => {
         setTargetCampaignId(campaignId);
@@ -74,10 +76,10 @@ export default function AdCampaigns() {
     };
 
     const handleSuccessAddAd = async (payload: AdRequestDTO) => {
-        if (!targetCampaignId) return;
+        if (!targetCampaignId || !organization) return;
 
         try {
-            await addAdToCampaign(organization!.businessId, targetCampaignId, payload);
+            await addAdToCampaign(organization.businessId, targetCampaignId, payload);
             notifications.show({
                 title: t('notifications.addAd.success.title'),
                 message: t('notifications.addAd.success.message'),
@@ -86,19 +88,9 @@ export default function AdCampaigns() {
             setIsAddAdModalOpen(false);
             refreshCampaigns();
         } catch (error) {
-            const err = error as { response?: { status?: number } };
-            const status = err.response?.status;
-
-            let messageToShow: string;
-            if (status === 409) {
-                messageToShow = t('notifications.addAd.error.tiedReservationMessage');
-            } else {
-                messageToShow = t('notifications.addAd.error.genericMessage');
-            }
-
             notifications.show({
                 title: t('notifications.addAd.error.title'),
-                message: messageToShow,
+                message: t('notifications.addAd.error.genericMessage'),
                 color: 'red'
             });
 
@@ -130,19 +122,10 @@ export default function AdCampaigns() {
             setConfirmDeleteAdOpen(false);
             setAdToDelete(null);
         } catch (error) {
-            const err = error as { response?: { status?: number } };
-            const status = err.response?.status;
-
-            let messageToShow: string;
-            if (status === 409) {
-                messageToShow = t('notifications.deleteAd.error.tiedReservationMessage');
-            } else {
-                messageToShow = t('notifications.deleteAd.error.genericMessage');
-            }
-
+            console.error('Failed to delete ad', error);
             notifications.show({
                 title: t('notifications.deleteAd.error.title'),
-                message: messageToShow,
+                message: t('notifications.deleteAd.error.genericMessage'),
                 color: 'red'
             });
         }

@@ -49,6 +49,7 @@ public class MediaController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('readAll:media')")
     public List<MediaResponseModel> getAllMedia() {
         return responseMapper.entityListToResponseModelList(mediaService.getAllMedia());
     }
@@ -142,10 +143,11 @@ public class MediaController {
         return ResponseEntity.ok(mediaService.updateMediaById(jwt, id, requestModel));
     }
 
-    // this endpoint will probably be deleted
+    // TODO: likely to become an archive/soft-delete instead of a hard delete
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteMedia(@PathVariable String id) {
-        mediaService.deleteMedia(UUID.fromString(id));
+    @PreAuthorize("hasAuthority('update:media')")
+    public ResponseEntity<Void> deleteMedia(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
+        mediaService.deleteMedia(jwt, UUID.fromString(id));
         return ResponseEntity.noContent().build();
     }
 
@@ -160,7 +162,7 @@ public class MediaController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAuthority('get:media')")
+    @PreAuthorize("hasAuthority('readAll:media')")
     public List<MediaResponseModel> getPendingMedia() {
         return responseMapper.entityListToResponseModelList(
                 mediaService.getMediaByStatus(Status.PENDING)

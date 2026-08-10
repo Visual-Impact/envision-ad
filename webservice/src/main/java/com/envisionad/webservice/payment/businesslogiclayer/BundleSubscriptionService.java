@@ -49,4 +49,17 @@ public interface BundleSubscriptionService {
      * picker (decision D40). Caller must be an employee of the business that owns the media.
      */
     List<LiveCampaignResponseModel> getLiveCampaignsForMedia(Jwt jwt, String mediaId);
+
+    /**
+     * Emails every affected media owner the advertiser's creatives, once, at the moment a
+     * subscription first goes live. The legacy weekly-reservation flow used to send this on
+     * every reservation; P1 M6 deleted that flow (and the email with it) without a
+     * replacement. Called by the Stripe webhook handlers right after a subscription
+     * transitions from INCOMPLETE to ACTIVE — never on a renewal or a PAST_DUE recovery.
+     *
+     * <p>Best-effort per owner: an owner whose email cannot be resolved, or whose send
+     * fails, is logged and skipped rather than failing the caller — this must never roll
+     * back subscription activation or a payout.
+     */
+    void notifyMediaOwnersOfNewSubscription(String subscriptionId);
 }

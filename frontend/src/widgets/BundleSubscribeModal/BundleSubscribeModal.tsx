@@ -21,6 +21,7 @@ import { notifications } from "@mantine/notifications";
 import { useLocale, useTranslations } from "next-intl";
 import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import axios from "axios";
 
 import { Bundle, BundlePriceQuote } from "@/entities/bundle";
 import { AdCampaign } from "@/entities/ad-campaign";
@@ -30,9 +31,17 @@ import { createBundleSubscription } from "@/features/bundle-subscription/api";
 import { Link } from "@/shared/lib/i18n/navigation";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 
-const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-    ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
-    : null;
+// Lazy singleton: loadStripe() must not run at module scope, since this component is
+// imported by the home page's bundles section that every visitor renders. Calling it
+// eagerly spins up Stripe's fraud-detection script/iframes for everyone, not just the
+// people who reach checkout.
+let stripePromise: ReturnType<typeof loadStripe> | null = null;
+function getStripe() {
+    if (!stripePromise && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+        stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+    }
+    return stripePromise;
+}
 
 interface BundleSubscribeModalProps {
     opened: boolean;
@@ -60,7 +69,7 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
     const [quote, setQuote] = useState<BundlePriceQuote | null>(null);
     const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
     const [campaignId, setCampaignId] = useState<string | null>(null);
-    const [loadState, setLoadState] = useState<"loading" | "error" | "ready">("loading");
+    const [loadState, setLoadState] = useState<"loading" | "error" | "notAdvertiser" | "ready">("loading");
     const [submitting, setSubmitting] = useState(false);
 
     const missingKey = !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -92,23 +101,37 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
 
         (async () => {
             setLoadState("loading");
-            try {
-                const [quoteData, campaignData] = await Promise.all([
-                    getBundleQuote(bundleId, businessId),
-                    getAllAdCampaigns(businessId),
-                ]);
-                if (cancelled) return;
+            // allSettled rather than Promise.all: a media-owner-only business gets a
+            // structured NOT_ADVERTISER rejection from one or both calls, and that needs
+            // to win over a generic failure regardless of which promise rejects first.
+            const [quoteResult, campaignResult] = await Promise.allSettled([
+                getBundleQuote(bundleId, businessId),
+                getAllAdCampaigns(businessId),
+            ]);
+            if (cancelled) return;
 
-                // A campaign with no ads has nothing to display, so the backend rejects it;
-                // filtering here keeps the picker from offering a guaranteed failure.
-                const usable = campaignData.filter((c) => (c.ads?.length ?? 0) > 0);
-                setQuote(quoteData);
-                setCampaigns(usable);
-                setCampaignId(usable.length === 1 ? usable[0].campaignId : null);
-                setLoadState("ready");
-            } catch {
-                if (!cancelled) setLoadState("error");
+            const isNotAdvertiser = (result: PromiseSettledResult<unknown>) =>
+                result.status === "rejected" &&
+                axios.isAxiosError(result.reason) &&
+                result.reason.response?.data?.code === "NOT_ADVERTISER";
+
+            if (isNotAdvertiser(quoteResult) || isNotAdvertiser(campaignResult)) {
+                setLoadState("notAdvertiser");
+                return;
             }
+
+            if (quoteResult.status === "rejected" || campaignResult.status === "rejected") {
+                setLoadState("error");
+                return;
+            }
+
+            // A campaign with no ads has nothing to display, so the backend rejects it;
+            // filtering here keeps the picker from offering a guaranteed failure.
+            const usable = campaignResult.value.filter((c) => (c.ads?.length ?? 0) > 0);
+            setQuote(quoteResult.value);
+            setCampaigns(usable);
+            setCampaignId(usable.length === 1 ? usable[0].campaignId : null);
+            setLoadState("ready");
         })();
 
         return () => {
@@ -160,7 +183,7 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
             padding="xl"
             closeOnClickOutside={step !== "payment"}
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="xl" p="md">
                 {step === "review" && (
@@ -174,6 +197,12 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                         {loadState === "error" && (
                             <Alert color="red" icon={<IconInfoCircle size={18} />}>
                                 {t("loadFailed")}
+                            </Alert>
+                        )}
+
+                        {loadState === "notAdvertiser" && (
+                            <Alert color="yellow" icon={<IconInfoCircle size={18} />}>
+                                {t("notAdvertiser")}
                             </Alert>
                         )}
 
@@ -261,17 +290,13 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                     clientSecret &&
                     (missingKey ? (
                         <Text c="red">{t("missingKey")}</Text>
-                    ) : stripePromise ? (
+                    ) : (
                         <EmbeddedCheckoutProvider
-                            stripe={stripePromise}
+                            stripe={getStripe()}
                             options={{ clientSecret, onComplete: () => setStep("success") }}
                         >
                             <EmbeddedCheckout />
                         </EmbeddedCheckoutProvider>
-                    ) : (
-                        <Center>
-                            <Loader />
-                        </Center>
                     ))}
 
                 {step === "success" && (

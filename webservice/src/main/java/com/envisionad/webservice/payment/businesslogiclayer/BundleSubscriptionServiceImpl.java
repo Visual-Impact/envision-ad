@@ -1,5 +1,6 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
+import com.envisionad.webservice.advertisement.dataaccesslayer.Ad;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaign;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaignRepository;
 import com.envisionad.webservice.advertisement.exceptions.AdCampaignNotFoundException;
@@ -13,10 +14,14 @@ import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaExceptio
 import com.envisionad.webservice.bundle.exceptions.BundleNotActiveException;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
+import com.envisionad.webservice.business.dataaccesslayer.Employee;
+import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
+import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
+import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
@@ -71,6 +76,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     private final MediaRepository mediaRepository;
     private final BundleSubscriptionResponseMapper responseMapper;
     private final JwtUtils jwtUtils;
+    private final EmployeeRepository employeeRepository;
+    private final Auth0Service auth0Service;
+    private final EmailService emailService;
 
     public BundleSubscriptionServiceImpl(BundleService bundleService,
             BundlePricingService pricingService,
@@ -82,7 +90,10 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             BundleRepository bundleRepository,
             MediaRepository mediaRepository,
             BundleSubscriptionResponseMapper responseMapper,
-            JwtUtils jwtUtils) {
+            JwtUtils jwtUtils,
+            EmployeeRepository employeeRepository,
+            Auth0Service auth0Service,
+            EmailService emailService) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
         this.adCampaignRepository = adCampaignRepository;
@@ -94,6 +105,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         this.mediaRepository = mediaRepository;
         this.responseMapper = responseMapper;
         this.jwtUtils = jwtUtils;
+        this.employeeRepository = employeeRepository;
+        this.auth0Service = auth0Service;
+        this.emailService = emailService;
     }
 
     /**
@@ -126,7 +140,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
 
         // Never trust a client-supplied price: the quote is recomputed here even though the
         // modal already previewed it through GET /bundles/{id}/quote.
-        BundlePriceQuote quote = pricingService.quote(bundleId, businessId);
+        BundlePriceQuote quote = pricingService.quote(bundle, businessId);
         if (quote.eligibleMedias().isEmpty() || quote.finalPrice().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BundleNoEligibleMediaException(bundleId);
         }
@@ -434,5 +448,78 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                             campaignId, campaign == null ? campaignId : campaign.getName());
                 })
                 .toList();
+    }
+
+    @Override
+    public void notifyMediaOwnersOfNewSubscription(String subscriptionId) {
+        BundleSubscription subscription =
+                bundleSubscriptionRepository.findBySubscriptionId(subscriptionId).orElse(null);
+        if (subscription == null) {
+            log.warn("Cannot notify media owners for subscription {}: row not found", subscriptionId);
+            return;
+        }
+
+        AdCampaign campaign = adCampaignRepository.findByCampaignId_CampaignId(subscription.getCampaignId());
+        // The ads collection is LAZY; this must run inside the caller's transaction to initialize.
+        if (campaign == null || campaign.getAds() == null || campaign.getAds().isEmpty()) {
+            log.warn("Skipping new-subscription notification for {}: campaign {} has no creatives",
+                    subscriptionId, subscription.getCampaignId());
+            return;
+        }
+
+        Business advertiserBusiness =
+                businessRepository.findByBusinessId_BusinessId(subscription.getAdvertiserBusinessId());
+        String advertiserName =
+                advertiserBusiness != null ? advertiserBusiness.getName() : subscription.getAdvertiserBusinessId();
+
+        String subject = "New creatives for your Envision Ad screens — " + advertiserName;
+        String body = buildNewSubscriptionEmailBody(advertiserName, campaign);
+
+        List<String> ownerBusinessIds = bundleSubscriptionItemRepository.findAllBySubscriptionId(subscriptionId)
+                .stream()
+                .map(BundleSubscriptionItem::getMediaOwnerBusinessId)
+                .distinct()
+                .toList();
+
+        for (String ownerBusinessId : ownerBusinessIds) {
+            try {
+                Optional<String> ownerEmail = resolveOwnerEmail(ownerBusinessId);
+                if (ownerEmail.isEmpty()) {
+                    log.warn("Skipping new-subscription notification for owner {}: no resolvable email",
+                            ownerBusinessId);
+                    continue;
+                }
+                emailService.sendSimpleEmail(ownerEmail.get(), subject, body);
+            } catch (Exception e) {
+                // A mail-server hiccup or a lookup failure for one owner must not stop the
+                // others, and must never propagate into the caller's webhook transaction.
+                log.error("Failed to notify media owner {} of new subscription {}",
+                        ownerBusinessId, subscriptionId, e);
+            }
+        }
+    }
+
+    private String buildNewSubscriptionEmailBody(String advertiserName, AdCampaign campaign) {
+        StringBuilder body = new StringBuilder();
+        body.append("Hi there,\n\n");
+        body.append(advertiserName)
+                .append(" just subscribed to a bundle that includes one or more of your screens.\n\n");
+        body.append("Campaign: ").append(campaign.getName()).append("\n\n");
+        body.append("Please update your display(s) with the following creatives:\n\n");
+        for (Ad ad : campaign.getAds()) {
+            body.append("- ").append(ad.getName()).append(": ").append(ad.getAdUrl()).append("\n");
+        }
+        body.append("\nThanks for partnering with Envision Ad!\n");
+        body.append("— The Envision Ad Team");
+        return body.toString();
+    }
+
+    /** Mirrors ProofOfDisplayService's advertiser-email resolution, business-side. */
+    private Optional<String> resolveOwnerEmail(String ownerBusinessId) {
+        return employeeRepository.findAllByBusinessId_BusinessId(ownerBusinessId).stream()
+                .map(Employee::getUserId)
+                .filter(uid -> uid != null && !uid.isBlank())
+                .findFirst()
+                .map(auth0Service::getUserEmailByUserId);
     }
 }

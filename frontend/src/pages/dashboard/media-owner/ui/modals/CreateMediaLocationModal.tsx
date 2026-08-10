@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Modal, TextInput, Button, Group, Stack } from '@mantine/core';
+import React, { useRef, useState } from 'react';
+import { Modal, TextInput, Button, Group, Stack, Anchor, Text, Loader } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { useTranslations } from 'next-intl';
-import { MediaLocationRequestDTO } from "@/entities/media-location/model/mediaLocation";
-import { GetAddressDetails } from '@/shared/lib/geolocation/LocationService';
+import { useLocale, useTranslations } from 'next-intl';
+import { notifications } from '@mantine/notifications';
+import { MediaLocationRequestDTO, addressDetailsToLocationFields } from "@/entities/media-location/model/mediaLocation";
+import { AddressAutocomplete, PinDropMap } from '@/shared/ui';
+import { AddressDetails, ReverseGeocode } from '@/shared/lib/geolocation';
 
 interface MediaLocationValidationErrorResponse {
     message?: string;
@@ -53,10 +55,15 @@ interface CreateMediaLocationModalProps {
     onSuccess: (payload: MediaLocationRequestDTO) => Promise<void>;
 }
 
+const DEFAULT_MAP_CENTER = { lat: 45.516476848520064, lng: -73.52053208741675 };
+
 export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateMediaLocationModalProps) {
     const t = useTranslations('CreateMediaLocationModal');
+    const locale = useLocale();
     const [submitting, setSubmitting] = useState(false);
-    const [fetchingCoords, setFetchingCoords] = useState(false);
+    const [showPinMap, setShowPinMap] = useState(false);
+    const [resolvingPinAddress, setResolvingPinAddress] = useState(false);
+    const pinRequestSeq = useRef(0);
 
     const form = useForm<MediaLocationRequestDTO>({
         initialValues: {
@@ -70,6 +77,7 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
             postalCode: "",
             latitude: 0,
             longitude: 0,
+            manualCoordinates: false,
         },
         validate: {
             name: (value) => (!value.trim() ? t('validation.nameRequired') : value.length < 2 ? t('validation.nameTooShort') : null),
@@ -83,53 +91,66 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
 
     const handleClose = () => {
         setSubmitting(false);
-        setFetchingCoords(false);
+        setShowPinMap(false);
+        setResolvingPinAddress(false);
         form.reset();
         onClose();
     };
 
-    const fetchCoordinates = async () => {
-        const { street, city, province, country, postalCode } = form.values;
-        if (!street.trim() || !city.trim() || !province.trim() || !country.trim() || !postalCode.trim()) return;
+    const handleAddressSelect = (details: AddressDetails) => {
+        const fields = addressDetailsToLocationFields(details);
+        form.setValues({ ...fields, manualCoordinates: false });
+        form.clearErrors();
+    };
 
-        setFetchingCoords(true);
+    const handlePinChange = async (position: { lat: number; lng: number }) => {
+        form.setFieldValue('latitude', position.lat);
+        form.setFieldValue('longitude', position.lng);
+        form.setFieldValue('manualCoordinates', true);
+
+        const requestId = ++pinRequestSeq.current;
+        setResolvingPinAddress(true);
         try {
-            const query = `${street.trim()}, ${city.trim()}, ${province.trim()}, ${country.trim()}, ${postalCode.trim()}`;
-            const details = await GetAddressDetails(query, 'en');
-
+            const details = await ReverseGeocode(position.lat, position.lng, locale);
+            if (requestId !== pinRequestSeq.current) return; // a newer pin drop superseded this lookup
             if (details) {
-                form.setFieldValue('latitude', parseFloat(details.lat.toString()));
-                form.setFieldValue('longitude', parseFloat(details.lng.toString()));
+                const fields = addressDetailsToLocationFields(details);
+                form.setValues({ ...fields, latitude: position.lat, longitude: position.lng, manualCoordinates: true });
+                form.clearErrors();
             }
-        } catch (error) {
-            console.error("Failed to fetch coordinates", error);
         } finally {
-            setFetchingCoords(false);
+            if (requestId === pinRequestSeq.current) setResolvingPinAddress(false);
         }
     };
 
     const handleSubmit = async (values: MediaLocationRequestDTO) => {
         setSubmitting(true);
         try {
-            // Ensure coordinates are fetched if 0,0 (though user should ideally verify)
-            if (values.latitude === 0 && values.longitude === 0) {
-                await fetchCoordinates();
-            }
-            // Re-read values in case fetchCoordinates updated them
-            await onSuccess(form.values);
+            await onSuccess(values);
             handleClose();
         } catch (error) {
             const validationResponse = getValidationResponse(error);
-            if (validationResponse?.fieldErrors && Object.keys(validationResponse.fieldErrors).length > 0) {
-                form.setErrors(mapServerFieldErrors(validationResponse.fieldErrors, t));
+            const fieldErrors = validationResponse?.fieldErrors;
+            const hasFieldErrors = !!fieldErrors && Object.keys(fieldErrors).length > 0;
+            if (hasFieldErrors) {
+                form.setErrors(mapServerFieldErrors(fieldErrors, t));
             }
+            notifications.show({
+                title: t('error.title'),
+                message: validationResponse?.message || t('error.message'),
+                color: "red",
+            });
         } finally {
             setSubmitting(false);
         }
     };
 
+    const pinValue = form.values.latitude || form.values.longitude
+        ? { lat: form.values.latitude, lng: form.values.longitude }
+        : null;
+
     return (
-        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}>
+        <Modal opened={opened} onClose={handleClose} title={t('title')} centered closeOnClickOutside={!submitting} radius="lg" overlayProps={{ backgroundOpacity: 0.55 }}>
             <form onSubmit={form.onSubmit(handleSubmit)} noValidate>
                 <Stack gap="md">
                     <TextInput
@@ -139,7 +160,14 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
                         {...form.getInputProps('name')}
                     />
 
-
+                    <AddressAutocomplete
+                        label={t('labels.addressSearch')}
+                        placeholder={t('placeholders.addressSearch')}
+                        description={t('descriptions.addressSearch')}
+                        noResultsText={t('addressSearch.noResults')}
+                        language={locale}
+                        onSelect={handleAddressSelect}
+                    />
 
                     <TextInput
                         label={t('labels.street')}
@@ -185,9 +213,29 @@ export function CreateMediaLocationModal({ opened, onClose, onSuccess }: CreateM
                         {...form.getInputProps('region')}
                     />
 
+                    <div>
+                        <Anchor component="button" type="button" size="sm" onClick={() => setShowPinMap((prev) => !prev)}>
+                            {showPinMap ? t('buttons.hidePin') : t('buttons.dropPin')}
+                        </Anchor>
+                        {showPinMap && (
+                            <Stack gap="xs" mt="xs">
+                                <Group gap="xs">
+                                    <Text size="xs" c="dimmed">{t('descriptions.pinMap')}</Text>
+                                    {resolvingPinAddress && (
+                                        <Group gap={4}>
+                                            <Loader size="xs" />
+                                            <Text size="xs" c="dimmed">{t('descriptions.resolvingPin')}</Text>
+                                        </Group>
+                                    )}
+                                </Group>
+                                <PinDropMap center={DEFAULT_MAP_CENTER} value={pinValue} onChange={handlePinChange} />
+                            </Stack>
+                        )}
+                    </div>
+
                     <Group justify="flex-end" mt="md">
                         <Button type="button" variant="default" onClick={handleClose} disabled={submitting}>{t('buttons.cancel')}</Button>
-                        <Button type="submit" variant="gradient" loading={submitting || fetchingCoords}>
+                        <Button type="submit" variant="gradient" loading={submitting}>
                             {t('buttons.create')}
                         </Button>
                     </Group>

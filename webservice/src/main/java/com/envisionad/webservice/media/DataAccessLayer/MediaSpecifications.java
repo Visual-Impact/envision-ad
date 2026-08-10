@@ -110,6 +110,22 @@ public class MediaSpecifications {
         };
     }
 
+    /**
+     * Eager-fetches {@code mediaLocation} (a {@code @ManyToOne}, so this can never
+     * multiply rows) so callers that read city/region per row don't lazy-load it once
+     * per {@code Media} — see {@code BundleServiceImpl.getRuleMatchedMedias}. AND-able
+     * onto any other spec; skipped for a count query since a fetch there is meaningless
+     * and some JPA providers reject it.
+     */
+    public static Specification<Media> fetchMediaLocation() {
+        return (root, query, cb) -> {
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("mediaLocation", JoinType.LEFT);
+            }
+            return cb.conjunction();
+        };
+    }
+
     public static Specification<Media> withinBounds(List<Double> bounds) {
         return (root, query, cb) -> {
             if (bounds == null || bounds.size() != 4) {

@@ -693,11 +693,11 @@ class MediaControllerUnitTest {
 
         @Test
         void deleteMedia_ShouldReturnNoContent() {
-                ResponseEntity<Void> response = mediaController.deleteMedia(String.valueOf(mediaId));
+                ResponseEntity<Void> response = mediaController.deleteMedia(mediaToken, String.valueOf(mediaId));
 
                 assertNotNull(response);
                 assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
                 assertNull(response.getBody());
-                verify(mediaService, times(1)).deleteMedia(mediaId);
+                verify(mediaService, times(1)).deleteMedia(mediaToken, mediaId);
         }
 }
