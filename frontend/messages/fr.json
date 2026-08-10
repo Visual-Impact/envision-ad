@@ -245,7 +245,7 @@
     "heroTitlePart2": "Grand Montréal",
     "heroDescription": "Diffusez votre message sur {count} écrans numériques stratégiquement placés à travers la Rive-Sud et l'île de Montréal — toutes les 2 à 3 minutes.",
     "ctaMeeting": "Réserver une réunion",
-    "ctaPackages": "Voir les forfaits",
+    "ctaPackages": "Voir nos écrans",
     "stats": {
       "screens": "ÉCRANS ACTIFS",
       "cities": "VILLES COUVERTES",
@@ -329,11 +329,10 @@
     "scheduleTitle": "Horaire",
     "monthsTitle": "Mois",
     "hoursTitle": "Heures",
-    "pricePerWeek": "{price} par semaine",
+    "pricePerWeek": "{price} par mois",
     "priceUnavailable": "Prix non disponible",
     "loopDurationSeconds": "{seconds} secondes",
     "weeklyImpressions": "~{count} impressions",
-    "weeklyImpressionsPerWeek": "~{count} impressions par semaine",
     "months": {
       "january": "Jan",
       "february": "Fév",
@@ -373,7 +372,7 @@
     "browseBundlesNote": "Les écrans sont vendus dans le cadre d'un abonnement mensuel à un forfait."
   },
   "mediacard": {
-    "perWeek": "{price} par semaine",
+    "perWeek": "{price} par mois",
     "weeklyImpressions": "~{weeklyImpressions} impressions par semaine",
     "typeOfDisplay": {
       "DIGITAL": "Numérique",
@@ -682,7 +681,8 @@
       "uploadProofImages": "Téléverser des images de preuve",
       "clear": "Effacer",
       "submitProof": "Soumettre la preuve",
-      "close": "Fermer"
+      "close": "Fermer",
+      "retry": "Réessayer"
     },
     "completed": {
       "title": "Preuve soumise",
@@ -701,6 +701,18 @@
       "action": "Action",
       "addProof": "Ajouter une preuve",
       "noMedia": "Aucun média trouvé"
+    },
+    "errors": {
+      "notInActiveSubscription": "Ce média ne fait pas partie d’un abonnement actif pour la campagne sélectionnée.",
+      "submitFailed": "Échec de l’envoi de la preuve. Veuillez réessayer.",
+      "loadCampaignsFailed": "Échec du chargement des campagnes pour ce média. Veuillez réessayer."
+    },
+    "pagination": {
+      "previous": "Page précédente",
+      "next": "Page suivante",
+      "first": "Première page",
+      "last": "Dernière page",
+      "page": "Page {page}"
     }
   },
   "mediaModal": {
@@ -744,7 +756,7 @@
       "resolutionHeight": "Résolution - Hauteur (px)",
       "width": "Largeur (cm)",
       "height": "Hauteur (cm)",
-      "price": "Prix (par semaine)",
+      "price": "Prix (par mois)",
       "dailyImpressions": "Impressions quotidiennes",
       "venueType": "Type de lieu",
       "previewCorners": "Prévisualiser et définir les coins",
@@ -989,8 +1001,6 @@
       "startDate": "Date de début",
       "endDate": "Date de fin",
       "duration": "Durée",
-      "oneWeek": "1 semaine",
-      "weeks": "{count} semaines",
       "totalPrice": "Prix total",
       "approve": "Approuver",
       "deny": "Refuser",
@@ -1060,7 +1070,6 @@
         },
         "error": {
           "title": "Erreur",
-          "tiedReservationMessage": "Échec de l’enregistrement de l’annonce car la campagne a des réservations à venir ou en cours. Veuillez attendre que toutes les réservations pour cette campagne soient terminées avant d’ajouter une nouvelle annonce.",
           "genericMessage": "Échec de l’enregistrement de l’annonce"
         }
       },
@@ -1071,8 +1080,7 @@
         },
         "error": {
           "title": "Erreur",
-          "genericMessage": "Échec de la suppression de l’annonce",
-          "tiedReservationMessage": "Échec de la suppression de l’annonce car la campagne a des réservations à venir ou en cours. Veuillez attendre que toutes les réservations pour cette campagne soient terminées avant de supprimer une annonce."
+          "genericMessage": "Échec de la suppression de l’annonce"
         }
       },
       "deleteCampaign": {
@@ -1082,7 +1090,7 @@
         },
         "error": {
           "title": "Erreur",
-          "tiedReservationMessage": "Échec de la suppression de la campagne car elle a encore des réservations à venir ou en cours. Veuillez attendre que toutes les réservations pour cette campagne soient terminées avant de supprimer.",
+          "tiedReservationMessage": "Échec de la suppression de la campagne car elle a encore un abonnement en cours. Veuillez attendre que l’abonnement pour cette campagne soit terminé avant de supprimer.",
           "genericMessage": "Échec de la suppression de la campagne"
         }
       },
@@ -1154,8 +1162,11 @@
       "errors": {
         "title": "Erreur",
         "approveFailed": "Échec de l’approbation du statut de vérification de l’organisation.",
-        "denyFailed": "Échec du refus du statut de vérification de l’organisation."
+        "denyFailed": "Échec du refus du statut de vérification de l’organisation.",
+        "loadRequestsFailed": "Échec du chargement des demandes de vérification. Réessayer.",
+        "loadDetailsFailed": "Échec du chargement des détails de cette organisation."
       },
+      "retry": "Réessayer",
       "mediaLocationReview": {
         "title": "Emplacement média",
         "description": "Ce média appartient à l’emplacement ci-dessous. Vérifiez la région, qui détermine le regroupement en forfaits régionaux.",
@@ -1341,7 +1352,8 @@
         },
         "error": {
           "title": "Erreur",
-          "message": "Échec de la création du média."
+          "message": "Échec de la création du média.",
+          "stripeNotOnboarded": "Votre entreprise doit avoir un compte Stripe entièrement configuré pour créer un média. Veuillez compléter votre intégration Stripe."
         }
       },
       "delete": {
@@ -1403,6 +1415,7 @@
         "title": "Modifier l'emplacement média",
         "fields": {
           "name": "Nom",
+          "addressSearch": "Rechercher votre adresse",
           "street": "Rue",
           "city": "Ville",
           "province": "Province/État",
@@ -1414,6 +1427,7 @@
         },
         "placeholders": {
           "name": "Ex. Panneaux Centre-ville",
+          "addressSearch": "Commencez à taper une adresse...",
           "street": "123 Rue Principale",
           "city": "Montréal",
           "province": "QC",
@@ -1422,7 +1436,13 @@
           "postalCode": "H1A 1A1"
         },
         "descriptions": {
-          "region": "Facultatif. Sert à regrouper cet écran dans les forfaits régionaux."
+          "region": "Facultatif. Sert à regrouper cet écran dans les forfaits régionaux.",
+          "addressSearch": "Choisissez une suggestion pour remplir automatiquement les champs ci-dessous.",
+          "pinMap": "Cliquez ou faites glisser l'épingle pour définir l'emplacement exact.",
+          "resolvingPin": "Recherche de l'adresse pour cette épingle..."
+        },
+        "addressSearch": {
+          "noResults": "Aucun résultat trouvé"
         },
         "validation": {
           "name": "Le nom est trop court",
@@ -1442,7 +1462,9 @@
         },
         "buttons": {
           "cancel": "Annuler",
-          "save": "Enregistrer"
+          "save": "Enregistrer",
+          "dropPin": "Vous ne trouvez pas votre adresse? Placez une épingle",
+          "hidePin": "Masquer la carte"
         },
         "success": {
           "title": "Succès",
@@ -1489,6 +1511,7 @@
     },
     "labels": {
       "name": "Nom",
+      "addressSearch": "Rechercher votre adresse",
       "street": "Rue",
       "city": "Ville",
       "province": "Province/État",
@@ -1500,6 +1523,7 @@
     },
     "placeholders": {
       "name": "Ex. Panneaux Centre-ville",
+      "addressSearch": "Commencez à taper une adresse...",
       "street": "123 Rue Principale",
       "city": "Montréal",
       "province": "QC",
@@ -1508,11 +1532,23 @@
       "postalCode": "H1A 1A1"
     },
     "descriptions": {
-      "region": "Facultatif. Sert à regrouper cet écran dans les forfaits régionaux."
+      "region": "Facultatif. Sert à regrouper cet écran dans les forfaits régionaux.",
+      "addressSearch": "Choisissez une suggestion pour remplir automatiquement les champs ci-dessous.",
+      "pinMap": "Cliquez ou faites glisser l'épingle pour définir l'emplacement exact.",
+      "resolvingPin": "Recherche de l'adresse pour cette épingle..."
+    },
+    "addressSearch": {
+      "noResults": "Aucun résultat trouvé"
     },
     "buttons": {
       "cancel": "Annuler",
-      "create": "Créer"
+      "create": "Créer",
+      "dropPin": "Vous ne trouvez pas votre adresse? Placez une épingle",
+      "hidePin": "Masquer la carte"
+    },
+    "error": {
+      "title": "Erreur",
+      "message": "Échec de la création de l'emplacement"
     }
   },
   "venueManagement": {
@@ -1690,7 +1726,7 @@
       "manageSubscription": "Gérer l'abonnement",
       "eyebrow": "Couverture complète",
       "perScreenHook": "{price} par écran",
-      "reassurance": "Annulable à tout moment · sans frais d’installation",
+      "reassurance": "Annulable à tout moment · sans frais",
       "networkVenueTypes": [
         "Centres commerciaux & vitrines",
         "Collège & campus étudiant",
@@ -1698,7 +1734,7 @@
         "Barbiers & salons de coiffure",
         "Restaurant & gym"
       ],
-      "networkFrequency": "Toutes les 2–3 min, toute la journée",
+      "networkFrequency": "Toutes les 3 min, toute la journée",
       "discountBadge": "−{percent} %",
       "sublineDiscounted": "{now} × {count, plural, =1 {# écran} other {# écrans}} (au lieu de {was})",
       "perScreenHookDiscounted": "{now} par écran — au lieu de {was}"
@@ -1737,10 +1773,11 @@
       "noCampaigns": "Vous devez avoir une campagne avec au moins une publicité avant de vous abonner.",
       "createCampaign": "Créer une campagne",
       "noScreens": "Ce forfait n'a aucun écran disponible pour le moment; l'abonnement est impossible.",
-      "recurringNote": "Facturé mensuellement. Annulez à tout moment — aucuns frais d'installation.",
+      "recurringNote": "Facturé mensuellement. Annulez à tout moment — sans frais.",
       "cancel": "Annuler",
       "proceed": "Passer au paiement",
       "loadFailed": "Impossible de charger le prix de ce forfait. Veuillez réessayer.",
+      "notAdvertiser": "Cette entreprise n'est pas configurée comme annonceur et ne peut donc pas s'abonner à un forfait. Passez à une entreprise annonceur ou contactez-nous pour ajouter l'accès annonceur.",
       "errorTitle": "Échec de l'abonnement",
       "initFailed": "Impossible de démarrer le paiement. Veuillez réessayer.",
       "missingKey": "Paiement indisponible : la clé Stripe n'est pas configurée.",
