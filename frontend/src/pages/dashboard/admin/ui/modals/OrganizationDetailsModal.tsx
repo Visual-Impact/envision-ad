@@ -9,8 +9,8 @@ interface OrganizationDetailsModalProps {
     opened: boolean;
     onClose: () => void;
     organization: OrganizationResponseDTO | null;
-    onApprove: () => void;
-    onReject: (reason: string) => void;
+    onApprove: () => void | Promise<void>;
+    onReject: (reason: string) => void | Promise<void>;
 }
 
 export function OrganizationDetailsModal({
@@ -25,6 +25,7 @@ export function OrganizationDetailsModal({
     const [showReasonInput, setShowReasonInput] = useState(false);
     const [showApproveConfirm, setShowApproveConfirm] = useState(false);
     const [reason, setReason] = useState("");
+    const [submitting, setSubmitting] = useState(false);
 
     if (!organization) return null;
 
@@ -36,15 +37,25 @@ export function OrganizationDetailsModal({
         setShowApproveConfirm(true);
     };
 
-    const handleConfirmDeny = () => {
-        onReject(reason);
-        setShowReasonInput(false);
-        setReason("");
+    const handleConfirmDeny = async () => {
+        setSubmitting(true);
+        try {
+            await onReject(reason);
+            setShowReasonInput(false);
+            setReason("");
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const handleConfirmApprove = () => {
-        onApprove();
-        setShowApproveConfirm(false);
+    const handleConfirmApprove = async () => {
+        setSubmitting(true);
+        try {
+            await onApprove();
+            setShowApproveConfirm(false);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleCancelDeny = () => {
@@ -57,6 +68,7 @@ export function OrganizationDetailsModal({
     };
 
     const handleModalClose = () => {
+        if (submitting) return;
         setShowReasonInput(false);
         setShowApproveConfirm(false);
         setReason("");
@@ -71,7 +83,7 @@ export function OrganizationDetailsModal({
             size="lg"
             closeButtonProps={{ "aria-label": t("close") }}
             radius="lg"
-            overlayProps={{ backgroundOpacity: 0.55, blur: 2 }}
+            overlayProps={{ backgroundOpacity: 0.55 }}
         >
             <Stack gap="md">
                 <Stack gap={4}>
@@ -131,19 +143,25 @@ export function OrganizationDetailsModal({
                 <Group justify="flex-end" mt="md">
                     {showReasonInput ? (
                         <>
-                            <Button variant="default" onClick={handleCancelDeny}>
+                            <Button variant="default" onClick={handleCancelDeny} disabled={submitting}>
                                 {t("cancel")}
                             </Button>
-                            <Button color="red" variant="outline" onClick={handleConfirmDeny} disabled={!reason.trim()}>
+                            <Button
+                                color="red"
+                                variant="outline"
+                                onClick={handleConfirmDeny}
+                                disabled={!reason.trim() || submitting}
+                                loading={submitting}
+                            >
                                 {t("deny")}
                             </Button>
                         </>
                     ) : showApproveConfirm ? (
                         <>
-                            <Button variant="default" onClick={handleCancelApprove}>
+                            <Button variant="default" onClick={handleCancelApprove} disabled={submitting}>
                                 {t("cancel")}
                             </Button>
-                            <Button variant="gradient" onClick={handleConfirmApprove}>
+                            <Button variant="gradient" onClick={handleConfirmApprove} disabled={submitting} loading={submitting}>
                                 {t("approve")}
                             </Button>
                         </>
