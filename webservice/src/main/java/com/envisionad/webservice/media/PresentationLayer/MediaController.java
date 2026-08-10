@@ -49,7 +49,7 @@ public class MediaController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('get:media')")
+    @PreAuthorize("hasAuthority('readAll:media')")
     public List<MediaResponseModel> getAllMedia() {
         return responseMapper.entityListToResponseModelList(mediaService.getAllMedia());
     }
@@ -162,7 +162,7 @@ public class MediaController {
     }
 
     @GetMapping("/pending")
-    @PreAuthorize("hasAuthority('get:media')")
+    @PreAuthorize("hasAuthority('readAll:media')")
     public List<MediaResponseModel> getPendingMedia() {
         return responseMapper.entityListToResponseModelList(
                 mediaService.getMediaByStatus(Status.PENDING)

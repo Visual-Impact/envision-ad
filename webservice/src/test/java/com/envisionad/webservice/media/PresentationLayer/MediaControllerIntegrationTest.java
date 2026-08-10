@@ -68,7 +68,7 @@ class MediaControllerIntegrationTest extends BaseIntegrationTest {
                                                 "create:employee",
                                                 "create:media",
                                                 "delete:employee",
-                                                "get:media",
+                                                "readAll:media",
                                                 "read:employee",
                                                 "update:business",
                                                 "update:media"))
