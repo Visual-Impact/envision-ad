@@ -76,6 +76,7 @@
       "pendingOrganizations": "Verification Requests",
       "venues": "Venue Tags",
       "bundles": "Bundles",
+      "coupons": "Coupons",
       "settings": "Settings"
     }
   },
@@ -1692,6 +1693,67 @@
       "createFailed": "Failed to create bundle.",
       "updateFailed": "Failed to update bundle.",
       "deleteFailed": "Failed to delete bundle."
+    }
+  },
+  "couponManagement": {
+    "title": "Coupons",
+    "addCoupon": "Create Coupon",
+    "table": {
+      "code": "Code",
+      "discount": "Discount",
+      "duration": "Duration",
+      "expires": "Expires",
+      "redemptions": "Redemptions",
+      "status": "Status",
+      "actions": "Actions",
+      "noExpiry": "Never",
+      "noCoupons": "No coupon codes yet. Create your first one to get started.",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "statusArchived": "Archived"
+    },
+    "duration": {
+      "once": "Once",
+      "repeating": "{months} months",
+      "forever": "Forever"
+    },
+    "form": {
+      "createTitle": "Create Coupon",
+      "codeLabel": "Code",
+      "codePlaceholder": "e.g. WELCOME20",
+      "codeInvalid": "Code must be 3-40 characters: letters, numbers, hyphens, or underscores only.",
+      "discountTypePercent": "Percent off",
+      "discountTypeFixed": "Fixed amount off",
+      "percentOffLabel": "Percent off",
+      "percentOffInvalid": "Enter a percentage between 1 and 100.",
+      "amountOffLabel": "Amount off (CAD)",
+      "amountOffInvalid": "Enter an amount greater than $0.",
+      "durationLabel": "Duration",
+      "durationOnce": "Once (first invoice only)",
+      "durationRepeating": "Repeating (first N months)",
+      "durationForever": "Forever (every renewal)",
+      "durationForeverWarning": "This discount recurs on every monthly renewal for as long as the subscription is active — it is a standing cost to the platform, not a one-time promo.",
+      "durationInMonthsLabel": "Number of months",
+      "durationInMonthsInvalid": "Enter a number of months between 2 and 12.",
+      "expiresAtLabel": "Expiry date (optional)",
+      "maxRedemptionsLabel": "Max redemptions (optional)",
+      "cancel": "Cancel",
+      "create": "Create"
+    },
+    "delete": {
+      "title": "Delete Coupon",
+      "message": "This will deactivate \"{code}\". Advertisers with active subscriptions using it will be unaffected; the code can no longer be redeemed.",
+      "confirm": "Delete",
+      "cancel": "Cancel"
+    },
+    "notifications": {
+      "created": "Coupon created successfully.",
+      "updated": "Coupon updated successfully.",
+      "deleted": "Coupon deactivated successfully.",
+      "loadFailed": "Failed to load coupons.",
+      "createFailed": "Failed to create coupon.",
+      "updateFailed": "Failed to update coupon.",
+      "deleteFailed": "Failed to deactivate coupon."
     }
   },
   "bundles": {

@@ -76,6 +76,7 @@
       "pendingOrganizations": "Demandes de vérification",
       "venues": "Tags de lieu",
       "bundles": "Forfaits",
+      "coupons": "Codes promo",
       "settings": "Paramètres"
     }
   },
@@ -1692,6 +1693,67 @@
       "createFailed": "Échec de la création du forfait.",
       "updateFailed": "Échec de la mise à jour du forfait.",
       "deleteFailed": "Échec de la suppression du forfait."
+    }
+  },
+  "couponManagement": {
+    "title": "Codes promo",
+    "addCoupon": "Créer un code promo",
+    "table": {
+      "code": "Code",
+      "discount": "Remise",
+      "duration": "Durée",
+      "expires": "Expire",
+      "redemptions": "Utilisations",
+      "status": "Statut",
+      "actions": "Actions",
+      "noExpiry": "Jamais",
+      "noCoupons": "Aucun code promo pour le moment. Créez votre premier code pour commencer.",
+      "statusActive": "Actif",
+      "statusInactive": "Inactif",
+      "statusArchived": "Archivé"
+    },
+    "duration": {
+      "once": "Une fois",
+      "repeating": "{months} mois",
+      "forever": "Pour toujours"
+    },
+    "form": {
+      "createTitle": "Créer un code promo",
+      "codeLabel": "Code",
+      "codePlaceholder": "ex. WELCOME20",
+      "codeInvalid": "Le code doit comporter de 3 à 40 caractères : lettres, chiffres, tirets ou tirets bas uniquement.",
+      "discountTypePercent": "Pourcentage de réduction",
+      "discountTypeFixed": "Montant fixe de réduction",
+      "percentOffLabel": "Pourcentage de réduction",
+      "percentOffInvalid": "Entrez un pourcentage entre 1 et 100.",
+      "amountOffLabel": "Montant de réduction (CAD)",
+      "amountOffInvalid": "Entrez un montant supérieur à 0 $.",
+      "durationLabel": "Durée",
+      "durationOnce": "Une fois (première facture seulement)",
+      "durationRepeating": "Répétée (les N premiers mois)",
+      "durationForever": "Pour toujours (à chaque renouvellement)",
+      "durationForeverWarning": "Cette remise s'applique à chaque renouvellement mensuel tant que l'abonnement est actif — il s'agit d'un coût récurrent pour la plateforme, pas d'une promotion ponctuelle.",
+      "durationInMonthsLabel": "Nombre de mois",
+      "durationInMonthsInvalid": "Entrez un nombre de mois entre 2 et 12.",
+      "expiresAtLabel": "Date d'expiration (optionnel)",
+      "maxRedemptionsLabel": "Nombre maximal d'utilisations (optionnel)",
+      "cancel": "Annuler",
+      "create": "Créer"
+    },
+    "delete": {
+      "title": "Supprimer le code promo",
+      "message": "Ceci désactivera « {code} ». Les annonceurs ayant un abonnement actif utilisant ce code ne seront pas affectés; le code ne pourra plus être utilisé.",
+      "confirm": "Supprimer",
+      "cancel": "Annuler"
+    },
+    "notifications": {
+      "created": "Code promo créé avec succès.",
+      "updated": "Code promo mis à jour avec succès.",
+      "deleted": "Code promo désactivé avec succès.",
+      "loadFailed": "Échec du chargement des codes promo.",
+      "createFailed": "Échec de la création du code promo.",
+      "updateFailed": "Échec de la mise à jour du code promo.",
+      "deleteFailed": "Échec de la désactivation du code promo."
     }
   },
   "bundles": {

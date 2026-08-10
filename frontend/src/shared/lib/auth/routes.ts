@@ -15,6 +15,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | undefined> = {
     '/dashboard/admin/metrics': 'patch:media_status',
     '/dashboard/admin/venues': 'manage:venues',
     '/dashboard/admin/bundles': 'manage:bundles',
+    '/dashboard/admin/coupons': 'manage:coupons',
     '/dashboard/admin/settings': 'manage:settings',
 
     '/dashboard/organization/overview': undefined,
