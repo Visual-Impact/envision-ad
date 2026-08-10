@@ -9,14 +9,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class ExceptionsTest {
 
     @Test
-    void invalidAdDurationException_messageContainsProvidedSeconds() {
-        var ex = new InvalidAdDurationException(7);
-        assertNotNull(ex.getMessage());
-        assertTrue(ex.getMessage().contains("7"));
-        assertTrue(ex.getMessage().contains("10, 15, and 30"));
-    }
-
-    @Test
     void invalidAdTypeException_messageContainsProvidedType() {
         var ex = new InvalidAdTypeException("gif");
         assertNotNull(ex.getMessage());

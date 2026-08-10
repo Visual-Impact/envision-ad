@@ -128,6 +128,10 @@ public class AdCampaignServiceImpl implements AdCampaignService {
             throw new InvalidAdTypeException(adRequestModel.getAdType());
         }
 
+        if (newAd.getAdType() == AdType.VIDEO) {
+            validateVideoDuration(newAd.getAdUrl());
+        }
+
         newAd.setCampaign(adCampaign);
         adCampaign.getAds().add(newAd);
 
@@ -193,6 +197,39 @@ public class AdCampaignServiceImpl implements AdCampaignService {
 
         adCampaignRepository.delete(adCampaign);
         return adCampaignResponseMapper.entityToResponseModel(adCampaign);
+    }
+
+    /** Mirrors the client-side cap in AddAdModal.tsx — this is the defense against a direct API
+     * call bypassing that check, not the primary UX path. */
+    private static final int MAX_VIDEO_DURATION_SECONDS = 30;
+
+    /**
+     * Re-derives the video's real duration from Cloudinary rather than trusting a client-supplied
+     * value, since the upload payload only carries the resulting URL. Fails open (logs and lets
+     * the ad through) on a lookup error — this is a business-rule guard, not a security boundary,
+     * and a Cloudinary Admin API hiccup shouldn't block ad creation.
+     */
+    private void validateVideoDuration(String adUrl) {
+        String publicId = CloudinaryConfig.getPublicIdFromUrl(adUrl);
+        if (publicId == null || publicId.isBlank()) return;
+
+        try {
+            Map<String, Object> options = new HashMap<>();
+            options.put("resource_type", "video");
+            Map<?, ?> resource = cloudinary.api().resource(publicId, options);
+
+            Object durationObj = resource.get("duration");
+            if (durationObj instanceof Number durationNumber) {
+                double duration = durationNumber.doubleValue();
+                if (duration > MAX_VIDEO_DURATION_SECONDS) {
+                    throw new VideoTooLongException(duration, MAX_VIDEO_DURATION_SECONDS);
+                }
+            }
+        } catch (VideoTooLongException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Failed to verify video duration via Cloudinary for url={}", adUrl, e);
+        }
     }
 
     private void deleteCloudinaryAssetIfPresent(String url) {

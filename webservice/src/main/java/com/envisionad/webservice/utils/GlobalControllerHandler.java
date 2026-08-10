@@ -104,8 +104,8 @@ public class GlobalControllerHandler {
     }
 
     @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-    @ExceptionHandler(InvalidAdDurationException.class)
-    public HttpErrorInfo handleInvalidAdDuration(InvalidAdDurationException ex) {
+    @ExceptionHandler(VideoTooLongException.class)
+    public HttpErrorInfo handleVideoTooLong(VideoTooLongException ex) {
         return createHttpErrorInfo(HttpStatus.UNPROCESSABLE_ENTITY, ex);
     }
 

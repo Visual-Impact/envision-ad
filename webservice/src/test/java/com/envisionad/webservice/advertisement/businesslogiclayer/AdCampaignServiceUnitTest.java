@@ -2,6 +2,8 @@ package com.envisionad.webservice.advertisement.businesslogiclayer;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import com.cloudinary.api.ApiResponse;
+import com.cloudinary.api.RateLimit;
 import com.envisionad.webservice.advertisement.dataaccesslayer.*;
 import com.envisionad.webservice.advertisement.datamapperlayer.AdRequestMapper;
 import com.envisionad.webservice.advertisement.datamapperlayer.AdResponseMapper;
@@ -36,6 +38,7 @@ class AdCampaignServiceUnitTest {
 
     @Mock private Cloudinary cloudinary;
     @Mock private Uploader uploader;
+    @Mock private com.cloudinary.Api api;
     @Mock private JwtUtils jwtUtils;
 
     @InjectMocks private AdCampaignServiceImpl service;
@@ -44,6 +47,7 @@ class AdCampaignServiceUnitTest {
     @BeforeEach
     void setUp() {
         lenient().when(cloudinary.uploader()).thenReturn(uploader);
+        lenient().when(cloudinary.api()).thenReturn(api);
         advertiserToken = createJwtToken(
                 List.of("read:campaign", "create:campaign", "update:campaign", "update:business",
                         "read:employee", "create:employee", "delete:employee", "read:verification", "create:verification",
@@ -326,6 +330,20 @@ class AdCampaignServiceUnitTest {
 
     // ---------------- Helpers ----------------
 
+    /** Minimal ApiResponse (Map + the 2 rate-limit accessors) so tests can stub cloudinary.api()
+     * without pulling in the real HTTP client. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static class FakeApiResponse extends HashMap implements ApiResponse {
+        @Override public Map<String, RateLimit> rateLimits() { return Map.of(); }
+        @Override public RateLimit apiRateLimit() { return null; }
+    }
+
+    private static ApiResponse apiResponseWithDuration(double durationSeconds) {
+        FakeApiResponse response = new FakeApiResponse();
+        response.put("duration", durationSeconds);
+        return response;
+    }
+
     private static class CampaignAndAdId {
         final AdCampaign campaign;
         final String adId;
@@ -489,6 +507,87 @@ class AdCampaignServiceUnitTest {
         verify(adCampaignRepository).save(campaign);
         assertEquals(1, campaign.getAds().size());
         verify(bundleSubscriptionRepository, never()).existsByCampaignId(any());
+    }
+
+    @Test
+    void addAdToCampaign_whenVideoWithinLimit_addsTheAd() throws Exception {
+        // Arrange
+        String campaignId = "camp-video-ok";
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
+        campaign.setAds(new ArrayList<>());
+
+        Ad videoAd = new Ad();
+        videoAd.setAdUrl("https://res.cloudinary.com/demo/video/upload/v12345/envisionad/ads/spot_ok.mp4");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenReturn(videoAd);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(adResponseMapper.entityToResponseModel(any())).thenReturn(null);
+        when(api.resource(anyString(), anyMap())).thenReturn(apiResponseWithDuration(20.0));
+
+        AdRequestModel adRequestModel = mock(AdRequestModel.class);
+        when(adRequestModel.getAdType()).thenReturn("VIDEO");
+
+        // Act
+        service.addAdToCampaign(campaignId, adRequestModel);
+
+        // Assert
+        verify(adCampaignRepository).save(campaign);
+        assertEquals(1, campaign.getAds().size());
+    }
+
+    @Test
+    void addAdToCampaign_whenVideoExceedsLimit_throwsAndDoesNotAddTheAd() throws Exception {
+        // Arrange
+        String campaignId = "camp-video-too-long";
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
+        campaign.setAds(new ArrayList<>());
+
+        Ad videoAd = new Ad();
+        videoAd.setAdUrl("https://res.cloudinary.com/demo/video/upload/v12345/envisionad/ads/spot_long.mp4");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenReturn(videoAd);
+        when(api.resource(anyString(), anyMap())).thenReturn(apiResponseWithDuration(45.0));
+
+        AdRequestModel adRequestModel = mock(AdRequestModel.class);
+        when(adRequestModel.getAdType()).thenReturn("VIDEO");
+
+        // Act & Assert
+        assertThrows(VideoTooLongException.class, () -> service.addAdToCampaign(campaignId, adRequestModel));
+        verify(adCampaignRepository, never()).save(any());
+        assertEquals(0, campaign.getAds().size());
+    }
+
+    @Test
+    void addAdToCampaign_whenCloudinaryDurationLookupFails_stillAddsTheAd() throws Exception {
+        // Arrange — a Cloudinary Admin API hiccup is a business-rule guard, not a security
+        // boundary, so a lookup failure must fail open rather than block ad creation.
+        String campaignId = "camp-video-lookup-fails";
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
+        campaign.setAds(new ArrayList<>());
+
+        Ad videoAd = new Ad();
+        videoAd.setAdUrl("https://res.cloudinary.com/demo/video/upload/v12345/envisionad/ads/spot_unknown.mp4");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenReturn(videoAd);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(adResponseMapper.entityToResponseModel(any())).thenReturn(null);
+        when(api.resource(anyString(), anyMap())).thenThrow(new RuntimeException("Cloudinary down"));
+
+        AdRequestModel adRequestModel = mock(AdRequestModel.class);
+        when(adRequestModel.getAdType()).thenReturn("VIDEO");
+
+        // Act
+        service.addAdToCampaign(campaignId, adRequestModel);
+
+        // Assert
+        verify(adCampaignRepository).save(campaign);
+        assertEquals(1, campaign.getAds().size());
     }
 
     /**
