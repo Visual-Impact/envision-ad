@@ -138,7 +138,7 @@ export function AdCampaignsTable({
                                         ))
                                     ) : (
                                         <Table.Tr>
-                                            <Table.Td colSpan={5} align="center">
+                                            <Table.Td colSpan={4} align="center">
                                                 <Text ta="center" c="dimmed" py="xl">
                                                     {t('noAds')}
                                                 </Text>
