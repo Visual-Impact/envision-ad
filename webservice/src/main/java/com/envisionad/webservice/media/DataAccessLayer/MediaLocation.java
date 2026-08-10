@@ -58,6 +58,15 @@ public class MediaLocation {
     @Column(name = "geocoding_response", columnDefinition = "TEXT")
     private String geocodingResponse;
 
+    /**
+     * Not persisted. Set by the request mapper when the media owner placed a pin
+     * on the map themselves instead of picking an autocomplete suggestion — tells
+     * the service layer to trust the submitted latitude/longitude as-is rather
+     * than re-geocoding.
+     */
+    @Transient
+    private Boolean manualCoordinates;
+
     @OneToMany(mappedBy = "mediaLocation", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<Media> mediaList = new ArrayList<>();
 }

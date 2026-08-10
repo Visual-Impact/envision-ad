@@ -25,6 +25,7 @@ class MediaLocationRequestMapperUnitTest {
         requestModel.setLatitude(45.5017);
         requestModel.setLongitude(-73.5673);
         requestModel.setBusinessId(UUID.randomUUID().toString());
+        requestModel.setManualCoordinates(true);
 
         MediaLocation entity = mapper.requestModelToEntity(requestModel);
 
@@ -38,5 +39,6 @@ class MediaLocationRequestMapperUnitTest {
         assertEquals(45.5017, entity.getLatitude());
         assertEquals(-73.5673, entity.getLongitude());
         assertEquals(UUID.fromString(requestModel.getBusinessId()), entity.getBusinessId());
+        assertEquals(Boolean.TRUE, entity.getManualCoordinates());
     }
 }

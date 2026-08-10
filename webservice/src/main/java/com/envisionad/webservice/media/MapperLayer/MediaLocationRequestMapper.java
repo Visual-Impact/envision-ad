@@ -20,6 +20,7 @@ public class MediaLocationRequestMapper {
         mediaLocation.setPostalCode(requestModel.getPostalCode());
         mediaLocation.setLatitude(requestModel.getLatitude());
         mediaLocation.setLongitude(requestModel.getLongitude());
+        mediaLocation.setManualCoordinates(requestModel.getManualCoordinates());
         if (requestModel.getBusinessId() != null) {
             mediaLocation.setBusinessId(UUID.fromString(requestModel.getBusinessId()));
         }

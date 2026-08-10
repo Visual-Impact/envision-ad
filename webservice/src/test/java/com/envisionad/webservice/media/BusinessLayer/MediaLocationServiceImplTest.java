@@ -19,9 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
-import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -60,17 +58,14 @@ class MediaLocationServiceImplTest {
         mediaLocation.setPostalCode("12345");
     }
 
-    @Test
-    void createMediaLocation_ValidAddress_SavesLocationWithCoordinates() throws Exception {
-        Jwt jwt = mock(Jwt.class);
+    private void mockAuthenticatedBusiness(Jwt jwt) {
         when(jwt.getSubject()).thenReturn("auth0|123");
         BusinessResponseModel businessModel = new BusinessResponseModel();
         businessModel.setBusinessId(businessId.toString());
         when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+    }
 
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.of(geocodingJson));
-        when(mediaLocationRepository.save(any(MediaLocation.class))).thenReturn(mediaLocation);
-
+    private void mockGeocodedCoordinates() throws Exception {
         JsonNode rootNode = mock(JsonNode.class);
         JsonNode firstResult = mock(JsonNode.class);
         JsonNode latNode = mock(JsonNode.class);
@@ -86,46 +81,17 @@ class MediaLocationServiceImplTest {
         when(firstResult.has("lon")).thenReturn(true);
         when(firstResult.get("lon")).thenReturn(lonNode);
         when(lonNode.asText()).thenReturn("20.0");
-
-        MediaLocation result = mediaLocationService.createMediaLocation(mediaLocation, jwt);
-
-        assertNotNull(result);
-        assertEquals(10.0, result.getLatitude());
-        assertEquals(20.0, result.getLongitude());
-        assertEquals(geocodingJson, result.getGeocodingResponse());
-        verify(mediaLocationRepository).save(mediaLocation);
     }
 
     @Test
-    void createMediaLocation_FallbackAddressQuery_SavesLocationWithCoordinates() throws Exception {
+    void createMediaLocation_StructuredMatch_SavesLocationWithCoordinates() throws Exception {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
 
-        // First candidate (strict full format) fails, fallback candidate succeeds.
-        when(geocodingService.geocodeAddress(eq("123 Main St, City, Province, Country, 12345")))
-                .thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("123 Main St, City, Province, 12345, Country")))
+        when(geocodingService.geocodeStructuredAddress(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(Optional.of(geocodingJson));
         when(mediaLocationRepository.save(any(MediaLocation.class))).thenReturn(mediaLocation);
-
-        JsonNode rootNode = mock(JsonNode.class);
-        JsonNode firstResult = mock(JsonNode.class);
-        JsonNode latNode = mock(JsonNode.class);
-        JsonNode lonNode = mock(JsonNode.class);
-
-        when(objectMapper.readTree(anyString())).thenReturn(rootNode);
-        when(rootNode.isArray()).thenReturn(true);
-        when(rootNode.size()).thenReturn(1);
-        when(rootNode.get(0)).thenReturn(firstResult);
-        when(firstResult.has("lat")).thenReturn(true);
-        when(firstResult.get("lat")).thenReturn(latNode);
-        when(latNode.asText()).thenReturn("10.0");
-        when(firstResult.has("lon")).thenReturn(true);
-        when(firstResult.get("lon")).thenReturn(lonNode);
-        when(lonNode.asText()).thenReturn("20.0");
+        mockGeocodedCoordinates();
 
         MediaLocation result = mediaLocationService.createMediaLocation(mediaLocation, jwt);
 
@@ -133,120 +99,58 @@ class MediaLocationServiceImplTest {
         assertEquals(10.0, result.getLatitude());
         assertEquals(20.0, result.getLongitude());
         assertEquals(geocodingJson, result.getGeocodingResponse());
-        verify(geocodingService, atLeast(2)).geocodeAddress(anyString());
+        verify(geocodingService, never()).geocodeAddress(anyString());
         verify(mediaLocationRepository).save(mediaLocation);
     }
 
     @Test
-    void createMediaLocation_InvalidAddress_ThrowsException() {
+    void createMediaLocation_StructuredMatchMisses_FallsBackToFreeTextQuery() throws Exception {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
 
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("123 Main St, City, Province, 12345"))).thenReturn(Optional.of(geocodingJson));
-
-        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class, () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-        assertEquals("Address could not be verified. Please verify the country.",
-                exception.getMessage());
-        assertTrue(exception.getFieldErrors().containsKey("country"));
-        assertEquals(1, exception.getFieldErrors().size());
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_GeocodedAddressHasDifferentProvince_ThrowsProvinceValidationError() throws Exception {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        mediaLocation.setProvince("WrongProvince");
-        String geocodingWithAddress = "[{\"lat\":\"10.0\",\"lon\":\"20.0\",\"address\":{\"country\":\"Country\",\"state\":\"Province\",\"city\":\"City\",\"postcode\":\"12345\",\"road\":\"Main St\",\"house_number\":\"123\"}}]";
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.of(geocodingWithAddress));
-
-        JsonNode realRoot = new ObjectMapper().readTree(geocodingWithAddress);
-        when(objectMapper.readTree(anyString())).thenReturn(realRoot);
-
-        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
-                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-
-        assertEquals("Address could not be verified. Please verify the province/state.", exception.getMessage());
-        assertTrue(exception.getFieldErrors().containsKey("province"));
-        assertEquals(1, exception.getFieldErrors().size());
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_ValidBilingualAddressConsistency_SavesSuccessfully() throws Exception {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        mediaLocation.setStreet("3040 Sherbrooke St W");
-        mediaLocation.setCity("Montreal");
-        mediaLocation.setProvince("QC");
-        mediaLocation.setCountry("Canada");
-        mediaLocation.setPostalCode("H3Z 1A4");
-
-        String geocodingWithAddress = "[{\"lat\":\"45.4958\",\"lon\":\"-73.5935\",\"address\":{\"country\":\"Canada\",\"country_code\":\"ca\",\"state\":\"Quebec\",\"ISO3166-2-lvl4\":\"CA-QC\",\"city\":\"Montréal\",\"postcode\":\"H3Z1A4\",\"road\":\"Rue Sherbrooke Ouest\",\"house_number\":\"3040\"}}]";
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.of(geocodingWithAddress));
+        when(geocodingService.geocodeStructuredAddress(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        when(geocodingService.geocodeAddress(eq("123 Main St, City, Province, Country, 12345")))
+                .thenReturn(Optional.of(geocodingJson));
         when(mediaLocationRepository.save(any(MediaLocation.class))).thenReturn(mediaLocation);
-
-        JsonNode realRoot = new ObjectMapper().readTree(geocodingWithAddress);
-        when(objectMapper.readTree(anyString())).thenReturn(realRoot);
+        mockGeocodedCoordinates();
 
         MediaLocation result = mediaLocationService.createMediaLocation(mediaLocation, jwt);
 
         assertNotNull(result);
+        assertEquals(10.0, result.getLatitude());
+        assertEquals(20.0, result.getLongitude());
         verify(mediaLocationRepository).save(mediaLocation);
     }
 
     @Test
-    void createMediaLocation_WrongCity_PinpointsCityOnly() throws Exception {
+    void createMediaLocation_NoGeocodingMatch_ThrowsValidationExceptionForAllAddressFields() {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
 
-        mediaLocation.setStreet("4873 Westmount Ave");
-        mediaLocation.setCity("Brossard");
-        mediaLocation.setProvince("QC");
-        mediaLocation.setCountry("Canada");
-        mediaLocation.setPostalCode("H3Y 1X9");
-
-        String referenceJson = "[{\"lat\":\"45.4864\",\"lon\":\"-73.5967\",\"address\":{\"country\":\"Canada\",\"country_code\":\"ca\",\"state\":\"Quebec\",\"ISO3166-2-lvl4\":\"CA-QC\",\"city\":\"Westmount\",\"postcode\":\"H3Y1X9\",\"road\":\"Avenue Westmount\",\"house_number\":\"4873\"}}]";
+        when(geocodingService.geocodeStructuredAddress(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Optional.empty());
         when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("H3Y 1X9, Canada"))).thenReturn(Optional.of(referenceJson));
-
-        JsonNode referenceRoot = new ObjectMapper().readTree(referenceJson);
-        when(objectMapper.readTree(eq(referenceJson)))
-                .thenReturn(referenceRoot);
 
         MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
                 () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
 
-        assertEquals("Address could not be verified. Please verify the city.", exception.getMessage());
+        assertTrue(exception.getMessage().contains("couldn't verify this address"));
+        assertEquals(5, exception.getFieldErrors().size());
+        assertTrue(exception.getFieldErrors().containsKey("street"));
         assertTrue(exception.getFieldErrors().containsKey("city"));
-        assertEquals(1, exception.getFieldErrors().size());
+        assertTrue(exception.getFieldErrors().containsKey("province"));
+        assertTrue(exception.getFieldErrors().containsKey("country"));
+        assertTrue(exception.getFieldErrors().containsKey("postalCode"));
         verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
     }
 
     @Test
     void createMediaLocation_GeocodingUnavailable_ThrowsServiceUnavailableException() {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
 
-        when(geocodingService.geocodeAddress(anyString()))
+        when(geocodingService.geocodeStructuredAddress(anyString(), anyString(), anyString(), anyString(), anyString()))
                 .thenThrow(new GeocodingServiceUnavailableException("Address validation service is temporarily unavailable.",
                         new RuntimeException("timeout")));
 
@@ -261,12 +165,10 @@ class MediaLocationServiceImplTest {
     @Test
     void createMediaLocation_InvalidCoordinateFormat_ThrowsExceptionAndDoesNotSave() throws Exception {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
 
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.of(geocodingJson));
+        when(geocodingService.geocodeStructuredAddress(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Optional.of(geocodingJson));
 
         JsonNode rootNode = mock(JsonNode.class);
         JsonNode firstResult = mock(JsonNode.class);
@@ -284,24 +186,15 @@ class MediaLocationServiceImplTest {
         MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
                 () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
 
-        assertEquals(
-                "Address was matched but coordinates could not be determined. Please check street, city, province/state, country, and postal code.",
-                exception.getMessage());
-        assertTrue(exception.getFieldErrors().containsKey("street"));
-        assertTrue(exception.getFieldErrors().containsKey("city"));
-        assertTrue(exception.getFieldErrors().containsKey("province"));
-        assertTrue(exception.getFieldErrors().containsKey("country"));
-        assertTrue(exception.getFieldErrors().containsKey("postalCode"));
+        assertTrue(exception.getMessage().startsWith("Address was matched but coordinates could not be determined."));
+        assertTrue(exception.getFieldErrors().isEmpty());
         verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
     }
 
     @Test
     void createMediaLocation_MissingPostalCode_ThrowsValidationException() {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
         mediaLocation.setPostalCode("   ");
 
         MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
@@ -311,7 +204,59 @@ class MediaLocationServiceImplTest {
                 exception.getMessage());
         assertEquals("Postal code is required.", exception.getFieldErrors().get("postalCode"));
         verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-        verify(geocodingService, never()).geocodeAddress(anyString());
+        verifyNoInteractions(geocodingService);
+    }
+
+    @Test
+    void createMediaLocation_ManualCoordinates_SkipsGeocodingAndTrustsSubmittedCoordinates() {
+        Jwt jwt = mock(Jwt.class);
+        mockAuthenticatedBusiness(jwt);
+
+        mediaLocation.setManualCoordinates(true);
+        mediaLocation.setLatitude(45.5);
+        mediaLocation.setLongitude(-73.6);
+        when(mediaLocationRepository.save(any(MediaLocation.class))).thenReturn(mediaLocation);
+
+        MediaLocation result = mediaLocationService.createMediaLocation(mediaLocation, jwt);
+
+        assertNotNull(result);
+        assertEquals(45.5, result.getLatitude());
+        assertEquals(-73.6, result.getLongitude());
+        assertNull(result.getGeocodingResponse());
+        verifyNoInteractions(geocodingService);
+        verify(mediaLocationRepository).save(mediaLocation);
+    }
+
+    @Test
+    void createMediaLocation_ManualCoordinatesOutOfRange_ThrowsValidationException() {
+        Jwt jwt = mock(Jwt.class);
+        mockAuthenticatedBusiness(jwt);
+
+        mediaLocation.setManualCoordinates(true);
+        mediaLocation.setLatitude(200.0);
+        mediaLocation.setLongitude(-73.6);
+
+        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
+                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
+
+        assertTrue(exception.getFieldErrors().containsKey("latitude"));
+        verifyNoInteractions(geocodingService);
+        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
+    }
+
+    @Test
+    void createMediaLocation_ManualCoordinatesMissing_ThrowsValidationException() {
+        Jwt jwt = mock(Jwt.class);
+        mockAuthenticatedBusiness(jwt);
+
+        mediaLocation.setManualCoordinates(true);
+
+        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
+                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
+
+        assertTrue(exception.getFieldErrors().containsKey("latitude"));
+        assertTrue(exception.getFieldErrors().containsKey("longitude"));
+        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
     }
 
     @Test
@@ -325,16 +270,13 @@ class MediaLocationServiceImplTest {
 
         assertEquals("Business ID is required to create a media location.", exception.getMessage());
         verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-        verify(geocodingService, never()).geocodeAddress(anyString());
+        verifyNoInteractions(geocodingService);
     }
 
     @Test
     void createMediaLocation_WhenProvidedBusinessIdDiffersFromJwt_ThrowsIllegalArgumentException() {
         Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
+        mockAuthenticatedBusiness(jwt);
 
         mediaLocation.setBusinessId(UUID.randomUUID());
 
@@ -483,23 +425,9 @@ class MediaLocationServiceImplTest {
         when(mediaLocationRepository.findById(id)).thenReturn(Optional.of(existing));
         when(mediaLocationRepository.save(any(MediaLocation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.of(geocodingJson));
-
-        JsonNode rootNode = mock(JsonNode.class);
-        JsonNode firstResult = mock(JsonNode.class);
-        JsonNode latNode = mock(JsonNode.class);
-        JsonNode lonNode = mock(JsonNode.class);
-
-        when(objectMapper.readTree(anyString())).thenReturn(rootNode);
-        when(rootNode.isArray()).thenReturn(true);
-        when(rootNode.size()).thenReturn(1);
-        when(rootNode.get(0)).thenReturn(firstResult);
-        when(firstResult.has("lat")).thenReturn(true);
-        when(firstResult.has("lon")).thenReturn(true);
-        when(firstResult.get("lat")).thenReturn(latNode);
-        when(firstResult.get("lon")).thenReturn(lonNode);
-        when(latNode.asText()).thenReturn("10.0");
-        when(lonNode.asText()).thenReturn("20.0");
+        when(geocodingService.geocodeStructuredAddress(anyString(), anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Optional.of(geocodingJson));
+        mockGeocodedCoordinates();
 
         MediaLocation result = mediaLocationService.updateMediaLocation(id, mediaLocation);
 
@@ -581,180 +509,5 @@ class MediaLocationServiceImplTest {
 
         assertEquals("Cannot delete media location while active, pending, or rejected media are assigned. Please delete those media first.", exception.getMessage());
         verify(mediaLocationRepository, never()).delete(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_InvalidAddress_WrongPostalCode_PinpointsPostalCodeOnly() {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        String geocodingWithWrongPostal = "[{\"lat\":\"10.0\",\"lon\":\"20.0\",\"address\":{\"country\":\"Country\",\"state\":\"Province\",\"city\":\"City\",\"postcode\":\"99999\",\"road\":\"Main St\",\"house_number\":\"123\"}}]";
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.of(geocodingWithWrongPostal));
-        try {
-            JsonNode realRoot = new ObjectMapper().readTree(geocodingWithWrongPostal);
-            when(objectMapper.readTree(anyString())).thenReturn(realRoot);
-        } catch (Exception e) {
-            fail("Failed to parse test geocoding JSON");
-        }
-
-        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
-                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-
-        assertEquals("Address could not be verified. Please verify the postal code.", exception.getMessage());
-        assertEquals(1, exception.getFieldErrors().size());
-        assertTrue(exception.getFieldErrors().containsKey("postalCode"));
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_InvalidAddress_WrongStreet_PinpointsStreetOnly() {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("City, Province, Country, 12345")))
-                .thenReturn(Optional.of(geocodingJson));
-
-        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
-                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-
-        assertEquals("Address could not be verified. Please verify the street.", exception.getMessage());
-        assertEquals(1, exception.getFieldErrors().size());
-        assertTrue(exception.getFieldErrors().containsKey("street"));
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_InvalidAddress_WithReferenceLookupParseError_ReturnsAllFieldErrors() throws Exception {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("12345, Country"))).thenReturn(Optional.of("not-json"));
-        when(objectMapper.readTree(eq("not-json"))).thenThrow(new RuntimeException("bad json"));
-
-        MediaLocationValidationException exception = assertThrows(MediaLocationValidationException.class,
-                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-
-        assertTrue(exception.getMessage().startsWith("Address could not be verified. Please verify:"));
-        assertEquals(5, exception.getFieldErrors().size());
-        assertTrue(exception.getFieldErrors().containsKey("country"));
-        assertTrue(exception.getFieldErrors().containsKey("province"));
-        assertTrue(exception.getFieldErrors().containsKey("city"));
-        assertTrue(exception.getFieldErrors().containsKey("street"));
-        assertTrue(exception.getFieldErrors().containsKey("postalCode"));
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_InvalidAddress_WhenReferenceLookupUnavailable_ThrowsServiceUnavailable() {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("12345, Country")))
-                .thenThrow(new GeocodingServiceUnavailableException("service down", new RuntimeException("timeout")));
-
-        GeocodingServiceUnavailableException exception = assertThrows(GeocodingServiceUnavailableException.class,
-                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-
-        assertEquals("Address validation service is temporarily unavailable. Please try again shortly.",
-                exception.getMessage());
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void createMediaLocation_InvalidAddress_WhenDiagnosticQueryUnavailable_ThrowsServiceUnavailable() {
-        Jwt jwt = mock(Jwt.class);
-        when(jwt.getSubject()).thenReturn("auth0|123");
-        BusinessResponseModel businessModel = new BusinessResponseModel();
-        businessModel.setBusinessId(businessId.toString());
-        when(businessService.getBusinessByUserId(any(), anyString())).thenReturn(businessModel);
-
-        // Initial address candidates all miss, then first diagnostic query throws in hasGeocodingMatch(...).
-        when(geocodingService.geocodeAddress(anyString())).thenReturn(Optional.empty());
-        when(geocodingService.geocodeAddress(eq("123 Main St, City, Province, 12345")))
-                .thenThrow(new GeocodingServiceUnavailableException("service down", new RuntimeException("timeout")));
-
-        GeocodingServiceUnavailableException exception = assertThrows(GeocodingServiceUnavailableException.class,
-                () -> mediaLocationService.createMediaLocation(mediaLocation, jwt));
-
-        assertEquals("Address validation service is temporarily unavailable. Please try again shortly.",
-                exception.getMessage());
-        verify(mediaLocationRepository, never()).save(any(MediaLocation.class));
-    }
-
-    @Test
-    void privateHelpers_NullFieldErrorsAndUnknownField_ReturnExpectedValues() throws Exception {
-        Method buildMessage = MediaLocationServiceImpl.class
-                .getDeclaredMethod("buildAddressVerificationMessage", String.class, Map.class);
-        buildMessage.setAccessible(true);
-        String baseMessage = "Address could not be verified.";
-        String unchangedMessage = (String) buildMessage.invoke(mediaLocationService, baseMessage, null);
-
-        Method readableField = MediaLocationServiceImpl.class
-                .getDeclaredMethod("toReadableFieldName", String.class);
-        readableField.setAccessible(true);
-        String unknown = (String) readableField.invoke(mediaLocationService, "customField");
-
-        assertEquals(baseMessage, unchangedMessage);
-        assertEquals("customField", unknown);
-    }
-
-    @Test
-    void collectAddressMismatches_WhenCountryAndStreetDiffer_ReturnsOnlyCountryAndStreetErrors() throws Exception {
-        Method collectMismatches = MediaLocationServiceImpl.class.getDeclaredMethod(
-                "collectAddressMismatches",
-                String.class,
-                String.class,
-                String.class,
-                String.class,
-                String.class,
-                JsonNode.class
-        );
-        collectMismatches.setAccessible(true);
-
-        String geocodedAddressJson = """
-                {
-                  "country": "Canada",
-                  "country_code": "ca",
-                  "state": "Quebec",
-                  "city": "Montreal",
-                  "postcode": "H3Z1A4",
-                  "road": "Rue Sherbrooke Ouest",
-                  "house_number": "3040"
-                }
-                """;
-        JsonNode addressNode = new ObjectMapper().readTree(geocodedAddressJson);
-
-        @SuppressWarnings("unchecked")
-        Map<String, String> mismatches = (Map<String, String>) collectMismatches.invoke(
-                mediaLocationService,
-                "999 Unknown Road",
-                "Montreal",
-                "Quebec",
-                "United States",
-                "H3Z 1A4",
-                addressNode
-        );
-
-        assertEquals(2, mismatches.size());
-        assertTrue(mismatches.containsKey("country"));
-        assertTrue(mismatches.containsKey("street"));
-        assertFalse(mismatches.containsKey("province"));
-        assertFalse(mismatches.containsKey("city"));
-        assertFalse(mismatches.containsKey("postalCode"));
     }
 }

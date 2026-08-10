@@ -16,4 +16,6 @@ public class MediaLocationRequestModel {
     private Double latitude;
     private Double longitude;
     private String businessId;
+    /** True when the media owner placed a pin manually instead of picking an autocomplete suggestion. */
+    private Boolean manualCoordinates;
 }

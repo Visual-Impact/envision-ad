@@ -29,34 +29,60 @@ function storeLatLngSession(latlng: LatLngLiteral) {
     sessionStorage.setItem(userLocationKey, JSON.stringify(item));
 }
 
+export interface AddressComponents {
+  road?: string,
+  house_number?: string,
+  city?: string,
+  town?: string,
+  village?: string,
+  suburb?: string,
+  county?: string,
+  state?: string,
+  province?: string,
+  country?: string,
+  country_code?: string,
+  postcode?: string,
+}
+
 export interface AddressDetails {
   display_name: string,
   lat: number,
   lng: number,
-  address?: {
-    road?: string,
-    house_number?: string,
-    city?: string,
-    state?: string,
-    country?: string
-  },
-  
+  address?: AddressComponents,
 }
 
+// Raw shape returned by Nominatim's /search endpoint: lat/lon come back as strings
+// under the key `lon`, not `lng`.
+interface NominatimResult {
+  display_name: string,
+  lat: string,
+  lon: string,
+  address?: AddressComponents,
+}
+
+function toAddressDetails(item: NominatimResult): AddressDetails {
+  return {
+    display_name: item.display_name,
+    address: item.address,
+    lat: parseFloat(item.lat),
+    lng: parseFloat(item.lon),
+  };
+}
 
 /**
  * Searches for locations using the OpenStreetMap Nominatim API and returns a list
- * of matching entries with their display names.
+ * of matching entries, each with its display name, structured address fields, and
+ * coordinates — enough to populate an address form directly from a chosen result.
  *
  * If the search query is empty or shorter than three characters, no request is
  * sent to the API and the function immediately resolves to an empty array.
  *
  * @param {string} query - The text to search for (e.g. address or place name).
  * @param {string} language - The preferred language code for localized results.
- * @returns {Promise<Array<{ display_name: string }>>} A promise that resolves to
- * an array of simplified search results, each containing only a display_name.
+ * @returns {Promise<AddressDetails[]>} A promise that resolves to an array of
+ * matching address details.
  */
-export async function SearchLocations(query: string, language: string) {
+export async function SearchLocations(query: string, language: string): Promise<AddressDetails[]> {
   if (!query || query.length < 3) return [];
 
   try {
@@ -79,11 +105,9 @@ export async function SearchLocations(query: string, language: string) {
       return [];
     }
 
-    const data = await res.json();
+    const data: NominatimResult[] = await res.json();
 
-    return data.map((item: AddressDetails) => ({
-      display_name: item.display_name
-    }));
+    return data.map(toAddressDetails);
   } catch (error) {
     console.error("SearchLocations request error:", error);
     return [];
@@ -111,20 +135,60 @@ export async function GetAddressDetails(query: string, language: string): Promis
     }
   );
 
-  const data = await res.json();
+  const data: NominatimResult[] = await res.json();
 
-  if (data.size === 0){
+  if (data.length === 0) {
     return null;
   }
 
-  const addressDetails:AddressDetails = {
-    display_name: data[0].display_name,
-    address: data[0].address,
-    lat: data[0].lat,
-    lng: data[0].lon
-  };
+  return toAddressDetails(data[0]);
+}
 
-  return addressDetails;
+/**
+ * Resolves the address at a given coordinate using Nominatim's reverse-geocoding
+ * endpoint. Used to auto-fill the address fields after the user drops a pin on a
+ * map, so they don't have to type the street/city/etc. by hand.
+ *
+ * @param lat - Latitude to resolve.
+ * @param lng - Longitude to resolve.
+ * @param language - The preferred language code (e.g. "en", "de") for the result.
+ * @returns A promise that resolves to an {@link AddressDetails} object, or `null`
+ *          if Nominatim has no address data for that coordinate (e.g. open water,
+ *          unmapped area).
+ */
+export async function ReverseGeocode(lat: number, lng: number, language: string): Promise<AddressDetails | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?` +
+        `format=json&addressdetails=1` +
+        `&lat=${encodeURIComponent(lat)}` +
+        `&lon=${encodeURIComponent(lng)}` +
+        `&accept-language=${encodeURIComponent(language)}`,
+      {
+        headers: {
+          "User-Agent": "Visual-Impact"
+        }
+      }
+    );
+
+    if (!res.ok) {
+      console.error(
+        `ReverseGeocode request failed with status ${res.status} ${res.statusText}`
+      );
+      return null;
+    }
+
+    const data = await res.json();
+
+    if (!data || data.error || !data.address) {
+      return null;
+    }
+
+    return toAddressDetails(data as NominatimResult);
+  } catch (error) {
+    console.error("ReverseGeocode request error:", error);
+    return null;
+  }
 }
 
 // Get the user's latitude and longitude

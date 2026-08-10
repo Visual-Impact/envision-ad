@@ -160,6 +160,85 @@ class GeocodingServiceImplTest {
     }
 
     @Test
+    void geocodeStructuredAddress_ValidAddress_ReturnsJson() {
+        String jsonResponse = "[{\"lat\":\"45.5017\", \"lon\":\"-73.5673\"}]";
+
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(any(Function.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(jsonResponse));
+
+        Optional<String> result = geocodingService.geocodeStructuredAddress(
+                "3040 Sherbrooke St W", "Montreal", "QC", "Canada", "H3Z 1A4");
+
+        assertTrue(result.isPresent());
+        assertEquals(jsonResponse, result.get());
+    }
+
+    @Test
+    void geocodeStructuredAddress_BuildsExpectedUriAndQueryParams() throws Exception {
+        String jsonResponse = "[{\"lat\":\"45.5017\", \"lon\":\"-73.5673\"}]";
+
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(any(Function.class))).thenAnswer(invocation -> {
+            Function<UriBuilder, URI> uriFunction = invocation.getArgument(0);
+            uriFunction.apply(uriBuilder);
+            return requestHeadersSpec;
+        });
+        when(uriBuilder.path("/search")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("street", "3040 Sherbrooke St W")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("city", "Montreal")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("state", "QC")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("country", "Canada")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("postalcode", "H3Z 1A4")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("format", "json")).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("addressdetails", 1)).thenReturn(uriBuilder);
+        when(uriBuilder.queryParam("limit", 1)).thenReturn(uriBuilder);
+        when(uriBuilder.build()).thenReturn(new URI("https://nominatim.openstreetmap.org/search"));
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just(jsonResponse));
+
+        Optional<String> result = geocodingService.geocodeStructuredAddress(
+                "3040 Sherbrooke St W", "Montreal", "QC", "Canada", "H3Z 1A4");
+
+        assertTrue(result.isPresent());
+        verify(uriBuilder).queryParam("street", "3040 Sherbrooke St W");
+        verify(uriBuilder).queryParam("city", "Montreal");
+        verify(uriBuilder).queryParam("state", "QC");
+        verify(uriBuilder).queryParam("country", "Canada");
+        verify(uriBuilder).queryParam("postalcode", "H3Z 1A4");
+    }
+
+    @Test
+    void geocodeStructuredAddress_InvalidAddress_ReturnsEmpty() {
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(any(Function.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.just("[]"));
+
+        Optional<String> result = geocodingService.geocodeStructuredAddress(
+                "Nowhere", "Nowhere", "Nowhere", "Nowhere", "00000");
+
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void geocodeStructuredAddress_ApiError_ThrowsServiceUnavailableException() {
+        when(webClient.get()).thenReturn(requestHeadersUriSpec);
+        when(requestHeadersUriSpec.uri(any(Function.class))).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.header(anyString(), anyString())).thenReturn(requestHeadersSpec);
+        when(requestHeadersSpec.retrieve()).thenReturn(responseSpec);
+        when(responseSpec.bodyToMono(String.class)).thenReturn(Mono.error(new RuntimeException("API Error")));
+
+        GeocodingServiceUnavailableException exception = assertThrows(GeocodingServiceUnavailableException.class,
+                () -> geocodingService.geocodeStructuredAddress("St", "City", "State", "Country", "12345"));
+        assertEquals("Address validation service is temporarily unavailable.", exception.getMessage());
+    }
+
+    @Test
     void getCached_WhenEntryMissing_ReturnsNull() throws Exception {
         Method getCached = GeocodingServiceImpl.class.getDeclaredMethod("getCached", String.class);
         getCached.setAccessible(true);
