@@ -5,10 +5,12 @@ import com.envisionad.webservice.bundle.exceptions.BundleHasActiveSubscriptionsE
 import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaException;
 import com.envisionad.webservice.bundle.exceptions.BundleNotActiveException;
 import com.envisionad.webservice.bundle.exceptions.BundleNotFoundException;
+import com.envisionad.webservice.bundle.exceptions.NotAdvertiserException;
 import com.envisionad.webservice.business.exceptions.*;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
+import com.envisionad.webservice.payment.exceptions.StripeAccountNotOnboardedException;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -207,6 +209,18 @@ public class GlobalControllerHandler {
     @ExceptionHandler({SecurityException.class, AccessDeniedException.class})
     public HttpErrorInfo handleForbidden(Exception ex) {
         return createHttpErrorInfo(FORBIDDEN, ex);
+    }
+
+    @ResponseStatus(FORBIDDEN)
+    @ExceptionHandler(NotAdvertiserException.class)
+    public HttpErrorInfo handleNotAdvertiserException(NotAdvertiserException ex) {
+        return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "NOT_ADVERTISER");
+    }
+
+    @ResponseStatus(FORBIDDEN)
+    @ExceptionHandler(StripeAccountNotOnboardedException.class)
+    public HttpErrorInfo handleStripeAccountNotOnboardedException(StripeAccountNotOnboardedException ex) {
+        return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "STRIPE_NOT_ONBOARDED");
     }
 
     @ResponseStatus(BAD_REQUEST)

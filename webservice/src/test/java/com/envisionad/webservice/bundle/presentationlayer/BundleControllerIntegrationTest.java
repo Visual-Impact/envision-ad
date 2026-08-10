@@ -5,10 +5,15 @@ import com.envisionad.webservice.bundle.presentationlayer.models.BundleCandidate
 import com.envisionad.webservice.bundle.presentationlayer.models.BundlePriceQuoteResponseModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleRequestModel;
 import com.envisionad.webservice.bundle.presentationlayer.models.BundleResponseModel;
+import com.envisionad.webservice.business.dataaccesslayer.Address;
+import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.dataaccesslayer.Employee;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
+import com.envisionad.webservice.business.dataaccesslayer.OrganizationSize;
+import com.envisionad.webservice.business.dataaccesslayer.Roles;
 import com.envisionad.webservice.config.BaseIntegrationTest;
 import com.envisionad.webservice.media.DataAccessLayer.*;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
@@ -60,6 +65,9 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private VenueRepository venueRepository;
 
+    @Autowired
+    private BusinessRepository businessRepository;
+
     private Media montrealMedia;
     private Media lavalMedia;
 
@@ -72,6 +80,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         mediaLocationRepository.deleteAll();
         venueRepository.deleteAll();
         employeeRepository.deleteAll();
+        businessRepository.deleteAll();
 
         Jwt adminJwt = Jwt.withTokenValue(ADMIN_TOKEN)
                 .header("alg", "none")
@@ -369,6 +378,33 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .value(body -> assertNull(body.getRuleValue()));
     }
 
+    /**
+     * MediaSpecifications' *EqualsIgnoreCase() treats a blank value as "no filter" — a
+     * whitespace-only rule value would silently widen the bundle to every ACTIVE screen
+     * on the network instead of the intended city/region/venue slice.
+     */
+    @Test
+    void createBundle_withBlankRuleValueForCity_isBadRequest() {
+        webTestClient.post().uri(BASE_URI)
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestModel(BundleRuleType.CITY, "   "))
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    void createBundle_trimsRuleValue() {
+        webTestClient.post().uri(BASE_URI)
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestModel(BundleRuleType.CITY, "  Montreal  "))
+                .exchange()
+                .expectStatus().isCreated()
+                .expectBody(BundleResponseModel.class)
+                .value(body -> assertEquals("Montreal", body.getRuleValue()));
+    }
+
     @Test
     void createBundle_withoutPermission_isRejected() {
         Jwt plainJwt = Jwt.withTokenValue("plain-token")
@@ -415,6 +451,22 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                     assertFalse(body.isActive());
                     assertEquals(1, body.getScreenCount(), "now matches the Laval board");
                 });
+    }
+
+    @Test
+    void updateBundle_withBlankRuleValueForRegion_isBadRequest() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        BundleRequestModel request = requestModel(BundleRuleType.REGION, "   ");
+
+        webTestClient.put().uri(BASE_URI + "/" + bundle.getBundleId())
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .exchange()
+                .expectStatus().isBadRequest();
+
+        assertEquals("Montreal", bundleRepository.findByBundleId(bundle.getBundleId())
+                .orElseThrow().getRuleValue(), "the rejected update must not have persisted");
     }
 
     @Test
@@ -529,6 +581,30 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                     assertFalse(kept.isExcluded());
                     assertEquals("Laval", excluded.getCity());
                     assertEquals("Laurentides", excluded.getRegion());
+                });
+    }
+
+    /**
+     * A CITY-rule bundle already INNER JOINs mediaLocation to filter (see
+     * {@code MediaSpecifications.cityEqualsIgnoreCase}); this exercises that path
+     * alongside the eager-fetch spec added to avoid per-row lazy loads, confirming
+     * the two joins on the same association don't duplicate rows or break the query.
+     */
+    @Test
+    void candidateMedias_forACityRuleBundle_stillReturnsCorrectLocationFields() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+
+        webTestClient.get().uri(BASE_URI + "/" + bundle.getBundleId() + "/candidate-medias")
+                .header("Authorization", "Bearer " + ADMIN_TOKEN)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(BundleCandidateMediaResponseModel.class)
+                .hasSize(1)
+                .value(candidates -> {
+                    BundleCandidateMediaResponseModel media = candidates.get(0);
+                    assertEquals(montrealMedia.getId(), media.getMediaId());
+                    assertEquals("Montreal", media.getCity());
+                    assertEquals("Montérégie", media.getRegion());
                 });
     }
 
@@ -752,6 +828,27 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         employeeRepository.save(employee);
     }
 
+    private void givenBuyerBusiness(boolean isAdvertiser, boolean isMediaOwner) {
+        Business business = new Business();
+        business.setBusinessId(new BusinessIdentifier(BUYER_BUSINESS_ID));
+        business.setName("Buyer business");
+        business.setOwnerId(BUYER_USER_ID);
+        business.setOrganizationSize(OrganizationSize.SMALL);
+        business.setVerified(true);
+        Address address = new Address();
+        address.setCity("Montreal");
+        address.setStreet("1 Main St");
+        address.setCountry("Canada");
+        address.setState("QC");
+        address.setZipCode("H1H 1H1");
+        business.setAddress(address);
+        Roles roles = new Roles();
+        roles.setAdvertiser(isAdvertiser);
+        roles.setMediaOwner(isMediaOwner);
+        business.setRoles(roles);
+        businessRepository.save(business);
+    }
+
     private void authAs(String token, String userId, List<String> permissions) {
         Jwt jwt = Jwt.withTokenValue(token)
                 .header("alg", "none")
@@ -765,6 +862,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
     void quote_forAnEmployeeOfTheBusiness_returnsScreenCountAndPrice() {
         Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
         givenBuyerEmployee();
+        givenBuyerBusiness(true, false);
         authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
 
         webTestClient.get()
@@ -807,9 +905,32 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().isForbidden();
     }
 
+    /**
+     * A media-owner-only business is a legitimate employee (passes the employee check) but
+     * has no business subscribing to bundles — bundles are advertiser inventory. The response
+     * must carry the "NOT_ADVERTISER" code so the frontend can show something more useful
+     * than a generic "couldn't load price" message.
+     */
+    @Test
+    void quote_forAMediaOwnerOnlyBusiness_isForbiddenWithNotAdvertiserCode() {
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        givenBuyerEmployee();
+        givenBuyerBusiness(false, true);
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/" + bundle.getBundleId() + "/quote?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isForbidden()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo("NOT_ADVERTISER");
+    }
+
     @Test
     void quote_forAnUnknownBundle_isNotFound() {
         givenBuyerEmployee();
+        givenBuyerBusiness(true, false);
         authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
 
         webTestClient.get()
