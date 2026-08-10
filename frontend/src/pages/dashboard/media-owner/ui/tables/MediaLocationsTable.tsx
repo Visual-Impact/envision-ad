@@ -1,5 +1,5 @@
 import React from "react";
-import { Accordion, ActionIcon, Button, Group, Table, Text, Box, Flex, VisuallyHidden } from "@mantine/core";
+import { Accordion, ActionIcon, Button, Group, Table, Text, Box, Flex, Tooltip, VisuallyHidden } from "@mantine/core";
 import { IconTrash, IconPlus, IconMapPin } from "@tabler/icons-react";
 import { MediaLocation } from "@/entities/media-location/model/mediaLocation";
 import { useTranslations } from "next-intl";
@@ -18,6 +18,7 @@ interface MediaLocationsTableProps {
         id: string | number,
         nextStatus: MediaStatusEnum.ACTIVE | MediaStatusEnum.INACTIVE
     ) => void | Promise<void>;
+    addMediaDisabled?: boolean;
 }
 
 export function MediaLocationsTable({
@@ -27,10 +28,12 @@ export function MediaLocationsTable({
     onEditLocation,
     onEditMedia,
     onDeleteMedia,
-    onToggleMediaStatus
+    onToggleMediaStatus,
+    addMediaDisabled = false
 }: MediaLocationsTableProps) {
     const t = useTranslations("mediaLocations.table");
     const tMedia = useTranslations("media.table");
+    const tStripe = useTranslations("media.stripe");
 
     if (locations.length === 0) {
         return (
@@ -58,17 +61,20 @@ export function MediaLocationsTable({
                         </Box>
 
                         <Group gap="xs" ml="md">
-                            <Button
-                                size="xs"
-                                variant="light"
-                                leftSection={<IconPlus size={14} />}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onAddMedia(location.id);
-                                }}
-                            >
-                                {t('addMedia')}
-                            </Button>
+                            <Tooltip label={tStripe('requiredMessage')} disabled={!addMediaDisabled} multiline w={260}>
+                                <Button
+                                    size="xs"
+                                    variant="light"
+                                    leftSection={<IconPlus size={14} />}
+                                    disabled={addMediaDisabled}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onAddMedia(location.id);
+                                    }}
+                                >
+                                    {t('addMedia')}
+                                </Button>
+                            </Tooltip>
                             <Button
                                 size="xs"
                                 variant="subtle"
