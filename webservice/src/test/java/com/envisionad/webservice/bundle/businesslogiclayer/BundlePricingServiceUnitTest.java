@@ -285,6 +285,33 @@ class BundlePricingServiceUnitTest {
         assertEquals(quote.basePrice(), quote.finalPrice());
     }
 
+    /**
+     * The {@code Bundle}-overload exists so a caller that already has the entity (e.g.
+     * a listing endpoint mapping N bundles) doesn't pay for a redundant re-fetch per
+     * bundle — {@code quote(String, ...)} still fetches once and delegates.
+     */
+    @Test
+    void bundleOverload_doesNotRefetchTheBundle() {
+        when(bundleService.getRuleMatchedMedias(bundle))
+                .thenReturn(List.of(media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
+        givenNoExclusions();
+
+        BundlePriceQuote quote = pricingService.quote(bundle, "business-1");
+
+        assertEquals(new BigDecimal("4.00"), quote.basePrice());
+        verify(bundleService, never()).getBundleByBundleId(anyString());
+    }
+
+    @Test
+    void stringOverload_fetchesOnceThenDelegates() {
+        givenRuleMatched(List.of(media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
+        givenNoExclusions();
+
+        pricingService.quote(BUNDLE_ID, "business-1");
+
+        verify(bundleService, times(1)).getBundleByBundleId(BUNDLE_ID);
+    }
+
     @Test
     void unknownBundlePropagatesTheNotFoundException() {
         when(bundleService.getBundleByBundleId("nope"))
