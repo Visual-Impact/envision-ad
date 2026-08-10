@@ -128,9 +128,13 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
                         )}
                     </Stack>
 
-                    <SimpleGrid cols={{ base: statBoxes.length, sm: statBoxes.length }} spacing="md">
+                    {/* Stacks to one full-width row per stat below the `xs` breakpoint —
+                        three side-by-side columns don't leave enough room for labels like
+                        "Venue Types" at phone widths, so the neighbouring card's background
+                        was clipping the overflow text instead of wrapping it. */}
+                    <SimpleGrid cols={{ base: 1, xs: statBoxes.length }} spacing="sm">
                         {statBoxes.map(({ value, label, Icon }) => (
-                            <Paper key={label} radius="md" p="md" withBorder bg="var(--mantine-color-body)">
+                            <Paper key={label} radius="md" p={{ base: "sm", xs: "md" }} withBorder bg="var(--mantine-color-body)">
                                 <Group gap={8} wrap="nowrap" align="center">
                                     <ThemeIcon variant="light" color="indigo" size={34} radius="md">
                                         <Icon size={18} stroke={1.6} />
@@ -195,13 +199,15 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
                             </Badge>
                         )}
 
-                        <Box>
+                        {/* nowrap + clamp keep the amount and "/ month" on one line at any
+                            card width instead of orphaning "month" onto its own line. */}
+                        <Box style={{ whiteSpace: "nowrap" }}>
                             <Text
                                 component="span"
                                 fw={800}
                                 variant="gradient"
                                 gradient={{ from: "#0795ed", to: "#a855f7", deg: 95 }}
-                                style={{ fontSize: "2.75rem", lineHeight: 1 }}
+                                style={{ fontSize: "clamp(2rem, 9vw, 2.75rem)", lineHeight: 1 }}
                             >
                                 {formatCurrency(bundle.finalPrice ?? 0, { locale })}
                             </Text>
