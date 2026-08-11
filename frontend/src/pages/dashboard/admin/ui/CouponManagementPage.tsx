@@ -40,9 +40,9 @@ export default function CouponManagementPage() {
     // matching VenueManagementPage's established pattern in this codebase.
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
 
         (async () => {
+            setLoading(true);
             try {
                 const data = await getAllCoupons(includeArchived);
                 if (!cancelled) setCoupons(data);
