@@ -469,8 +469,11 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                     Bundle bundle = bundleRepository.findByBundleId(subscription.getBundleId()).orElse(null);
                     AdCampaign campaign =
                             adCampaignRepository.findByCampaignId_CampaignId(subscription.getCampaignId());
+                    Coupon coupon = subscription.getCouponId() == null
+                            ? null
+                            : couponRepository.findById(subscription.getCouponId()).orElse(null);
                     return responseMapper.entityToResponseModel(
-                            subscription, bundle, campaign == null ? null : campaign.getName());
+                            subscription, bundle, campaign == null ? null : campaign.getName(), coupon);
                 })
                 .toList();
     }

@@ -3,6 +3,9 @@ package com.envisionad.webservice.payment.mappinglayer;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
+import com.envisionad.webservice.payment.dataaccesslayer.Coupon;
+import com.envisionad.webservice.payment.dataaccesslayer.CouponDuration;
+import com.envisionad.webservice.payment.dataaccesslayer.DiscountType;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +48,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setCurrentPeriodEnd(renewal);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale");
+                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale", null);
 
         assertEquals("sub-1", response.getSubscriptionId());
         assertEquals("bundle-1", response.getBundleId());
@@ -70,7 +73,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setCurrentPeriodEnd(null);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale");
+                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale", null);
 
         assertNull(response.getCurrentPeriodEnd());
     }
@@ -83,7 +86,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setCanceledAt(canceledAt);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale");
+                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale", null);
 
         assertEquals(BundleSubscriptionStatus.ACTIVE, response.getStatus());
         assertTrue(response.isCancelAtPeriodEnd());
@@ -100,7 +103,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setStatus(BundleSubscriptionStatus.CANCELED);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, null, "Winter Sale");
+                mapper.entityToResponseModel(subscription, null, "Winter Sale", null);
 
         assertEquals("sub-1", response.getSubscriptionId());
         assertNull(response.getBundleNameEn());
@@ -111,9 +114,39 @@ class BundleSubscriptionResponseMapperUnitTest {
     @Test
     void toleratesAnUnresolvableCampaignName() {
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription(), bundle(), null);
+                mapper.entityToResponseModel(subscription(), bundle(), null, null);
 
         assertEquals("camp-1", response.getCampaignId());
         assertNull(response.getCampaignName());
+    }
+
+    @Test
+    void mapsCouponTermsWhenACouponWasApplied() {
+        Coupon coupon = new Coupon();
+        coupon.setCode("WELCOME20");
+        coupon.setDiscountType(DiscountType.PERCENT);
+        coupon.setPercentOff(new BigDecimal("20.00"));
+        coupon.setDuration(CouponDuration.REPEATING);
+        coupon.setDurationInMonths(3);
+
+        BundleSubscriptionResponseModel response =
+                mapper.entityToResponseModel(subscription(), bundle(), "Winter Sale", coupon);
+
+        assertEquals("WELCOME20", response.getCouponCode());
+        assertEquals(DiscountType.PERCENT, response.getCouponDiscountType());
+        assertEquals(new BigDecimal("20.00"), response.getCouponPercentOff());
+        assertNull(response.getCouponAmountOffCents());
+        assertEquals(CouponDuration.REPEATING, response.getCouponDuration());
+        assertEquals(3, response.getCouponDurationInMonths());
+    }
+
+    @Test
+    void leavesCouponFieldsNullWhenNoCouponWasApplied() {
+        BundleSubscriptionResponseModel response =
+                mapper.entityToResponseModel(subscription(), bundle(), "Winter Sale", null);
+
+        assertNull(response.getCouponCode());
+        assertNull(response.getCouponDiscountType());
+        assertNull(response.getCouponDuration());
     }
 }

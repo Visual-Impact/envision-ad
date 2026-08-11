@@ -1,6 +1,8 @@
 package com.envisionad.webservice.payment.presentationlayer.models;
 
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
+import com.envisionad.webservice.payment.dataaccesslayer.CouponDuration;
+import com.envisionad.webservice.payment.dataaccesslayer.DiscountType;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -51,4 +53,19 @@ public class BundleSubscriptionResponseModel {
     /** The campaign running on this subscription's screens — P6's active-campaign slot. */
     private String campaignId;
     private String campaignName;
+
+    /**
+     * The coupon applied at signup, if any (P3) — all null when none was. Deliberately just the
+     * coupon's static terms, never a computed current-cycle price: {@link #monthlyAmount} stays
+     * the locked pre-coupon figure (must never reflect the coupon — see MASTER-BRIEF §5.4/D30),
+     * so the client shows both and lets the advertiser read the terms themselves rather than
+     * trusting a number we'd have to independently reconstruct Stripe's billing-cycle state to
+     * compute correctly.
+     */
+    private String couponCode;
+    private DiscountType couponDiscountType;
+    private BigDecimal couponPercentOff;
+    private Long couponAmountOffCents;
+    private CouponDuration couponDuration;
+    private Integer couponDurationInMonths;
 }
