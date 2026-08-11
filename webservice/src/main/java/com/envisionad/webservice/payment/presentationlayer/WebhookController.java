@@ -17,8 +17,11 @@ public class WebhookController {
 
     private final StripeWebhookService webhookService;
 
-    @Value("${stripe.webhook-secret}")
-    private String webhookSecret;
+    @Value("${stripe.webhook-secret-events}")
+    private String eventsWebhookSecret;
+
+    @Value("${stripe.webhook-secret-connect}")
+    private String connectWebhookSecret;
 
     public WebhookController(StripeWebhookService webhookService) {
         this.webhookService = webhookService;
@@ -32,8 +35,7 @@ public class WebhookController {
         Event event;
 
         try {
-            // Verify webhook signature
-            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+            event = verifySignature(payload, sigHeader);
         } catch (SignatureVerificationException e) {
             log.error("Invalid webhook signature: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid signature");
@@ -81,6 +83,21 @@ public class WebhookController {
             // Return 500 to trigger Stripe retry mechanism
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Webhook processing failed");
+        }
+    }
+
+    // Two Stripe destinations point at this endpoint (account-scoped events, connected-account
+    // events), each with its own signing secret — try both before rejecting.
+    private Event verifySignature(String payload, String sigHeader) throws SignatureVerificationException {
+        try {
+            return Webhook.constructEvent(payload, sigHeader, eventsWebhookSecret);
+        } catch (SignatureVerificationException eventsFailure) {
+            try {
+                return Webhook.constructEvent(payload, sigHeader, connectWebhookSecret);
+            } catch (SignatureVerificationException connectFailure) {
+                log.error("Webhook signature verification failed against both 'events' and 'connect' secrets");
+                throw connectFailure;
+            }
         }
     }
 }

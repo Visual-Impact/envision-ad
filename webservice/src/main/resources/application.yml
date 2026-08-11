@@ -59,7 +59,8 @@ app:
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  webhook-secret-events: ${STRIPE_EVENTS_WEBHOOK_SECRET}
+  webhook-secret-connect: ${STRIPE_CONNECT_WEBHOOK_SECRET}
   platform-fee-percent: 30
   connect:
     client-id: ${STRIPE_CONNECT_CLIENT_ID}

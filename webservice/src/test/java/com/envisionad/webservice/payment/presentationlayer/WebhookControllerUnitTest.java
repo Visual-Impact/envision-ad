@@ -32,13 +32,15 @@ class WebhookControllerUnitTest {
     @Mock
     private StripeWebhookService webhookService;
 
-    private static final String TEST_WEBHOOK_SECRET = "whsec_test123";
+    private static final String TEST_EVENTS_WEBHOOK_SECRET = "whsec_test_events123";
+    private static final String TEST_CONNECT_WEBHOOK_SECRET = "whsec_test_connect123";
     private static final String VALID_SIGNATURE = "valid_signature";
     private static final String INVALID_SIGNATURE = "invalid_signature";
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(webhookController, "webhookSecret", TEST_WEBHOOK_SECRET);
+        ReflectionTestUtils.setField(webhookController, "eventsWebhookSecret", TEST_EVENTS_WEBHOOK_SECRET);
+        ReflectionTestUtils.setField(webhookController, "connectWebhookSecret", TEST_CONNECT_WEBHOOK_SECRET);
     }
 
     @Test
@@ -49,7 +51,7 @@ class WebhookControllerUnitTest {
         when(mockEvent.getType()).thenReturn("checkout.session.completed");
 
         try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
+            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_EVENTS_WEBHOOK_SECRET))
                     .thenReturn(mockEvent);
 
             doNothing().when(webhookService).handleCheckoutSessionCompleted(mockEvent);
@@ -73,7 +75,7 @@ class WebhookControllerUnitTest {
         when(mockEvent.getType()).thenReturn("customer.created");
 
         try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
+            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_EVENTS_WEBHOOK_SECRET))
                     .thenReturn(mockEvent);
 
             // When
@@ -93,7 +95,9 @@ class WebhookControllerUnitTest {
         String payload = "{\"type\":\"checkout.session.completed\"}";
 
         try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, INVALID_SIGNATURE, TEST_WEBHOOK_SECRET))
+            webhookMock.when(() -> Webhook.constructEvent(payload, INVALID_SIGNATURE, TEST_EVENTS_WEBHOOK_SECRET))
+                    .thenThrow(new SignatureVerificationException("Invalid signature", "sig_header"));
+            webhookMock.when(() -> Webhook.constructEvent(payload, INVALID_SIGNATURE, TEST_CONNECT_WEBHOOK_SECRET))
                     .thenThrow(new SignatureVerificationException("Invalid signature", "sig_header"));
 
             // When
@@ -115,7 +119,7 @@ class WebhookControllerUnitTest {
         when(mockEvent.getType()).thenReturn("checkout.session.completed");
 
         try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
+            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_EVENTS_WEBHOOK_SECRET))
                     .thenReturn(mockEvent);
 
             doThrow(new RuntimeException("Database connection failed"))
@@ -140,7 +144,7 @@ class WebhookControllerUnitTest {
         when(mockEvent.getType()).thenReturn("invoice.paid");
 
         try (MockedStatic<Webhook> webhookMock = mockStatic(Webhook.class)) {
-            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_WEBHOOK_SECRET))
+            webhookMock.when(() -> Webhook.constructEvent(payload, VALID_SIGNATURE, TEST_EVENTS_WEBHOOK_SECRET))
                     .thenReturn(mockEvent);
 
             doThrow(new NullPointerException("Subscription not found"))
