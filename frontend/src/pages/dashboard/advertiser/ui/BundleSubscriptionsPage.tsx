@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import type { BundleSubscription, BundleSubscriptionStatus } from "@/entities/bundle-subscription";
 import { cancelBundleSubscription, getBundleSubscriptions } from "@/features/bundle-subscription";
 import { useOrganization } from "@/app/providers";
+import { formatCurrency } from "@/shared/lib/formatCurrency";
 
 /** Only a live subscription can be cancelled at Stripe; the rest are already closed out. */
 const CANCELLABLE: BundleSubscriptionStatus[] = ["ACTIVE", "PAST_DUE", "INCOMPLETE"];
@@ -144,6 +145,33 @@ export default function BundleSubscriptionsPage() {
         return name ?? t("page.bundleUnavailable");
     };
 
+    /**
+     * Static coupon terms only — never a computed current-cycle price. `monthlyAmount` stays the
+     * locked pre-coupon figure (must never reflect the coupon), so this exists purely to explain
+     * why the listed price and the advertiser's actual Stripe charge may differ, without this
+     * page trying to reconstruct Stripe's own billing-cycle state to compute an exact number
+     * (user decision, 2026-08-10 — see P3-PROGRESS.md).
+     */
+    const couponTermsLine = (subscription: BundleSubscription): string | null => {
+        if (!subscription.couponCode) return null;
+
+        const discount =
+            subscription.couponDiscountType === "PERCENT"
+                ? t("page.couponDiscountPercent", { percent: subscription.couponPercentOff ?? 0 })
+                : t("page.couponDiscountFixed", {
+                      amount: formatCurrency((subscription.couponAmountOffCents ?? 0) / 100, { locale }),
+                  });
+
+        const duration =
+            subscription.couponDuration === "REPEATING"
+                ? t("page.couponDurationRepeating", { months: subscription.couponDurationInMonths ?? 0 })
+                : subscription.couponDuration === "FOREVER"
+                  ? t("page.couponDurationForever")
+                  : t("page.couponDurationOnce");
+
+        return t("page.couponTerms", { code: subscription.couponCode, discount, duration });
+    };
+
     if (loading) {
         return (
             <Stack align="center" p="xl">
@@ -202,6 +230,11 @@ export default function BundleSubscriptionsPage() {
                                                 {t("status.cancelAtPeriodEnd")}
                                             </Badge>
                                         )}
+                                        {subscription.couponCode && (
+                                            <Badge color="grape" variant="light">
+                                                {t("page.couponBadge", { code: subscription.couponCode })}
+                                            </Badge>
+                                        )}
                                     </Group>
                                     <Text size="sm" c="dimmed">
                                         {t("page.screens", { count: subscription.screenCount })}
@@ -214,6 +247,11 @@ export default function BundleSubscriptionsPage() {
                                 </Stack>
 
                                 <Stack gap="xs" align="flex-end">
+                                    {couponTermsLine(subscription) && (
+                                        <Text size="xs" c="grape" ta="right" maw={260}>
+                                            {couponTermsLine(subscription)}
+                                        </Text>
+                                    )}
                                     <Text fw={700} size="xl">
                                         {new Intl.NumberFormat(locale === "fr" ? "fr-CA" : "en-CA", {
                                             style: "currency",

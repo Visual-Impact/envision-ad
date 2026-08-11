@@ -1888,7 +1888,14 @@
       "confirmBody": "Your ads keep running until the end of the period you have already paid for. Nothing is refunded, and the subscription will not renew.",
       "confirmAction": "Yes, cancel it",
       "confirmDismiss": "Keep it",
-      "subscriptionEnded": "Subscription ended"
+      "subscriptionEnded": "Subscription ended",
+      "couponBadge": "Coupon: {code}",
+      "couponDiscountPercent": "{percent}% off",
+      "couponDiscountFixed": "{amount} off",
+      "couponDurationOnce": "first month only",
+      "couponDurationRepeating": "first {months} months",
+      "couponDurationForever": "every renewal",
+      "couponTerms": "Coupon {code} applied: {discount}, {duration}"
     },
     "status": {
       "ACTIVE": "Active",

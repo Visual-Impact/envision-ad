@@ -1888,7 +1888,14 @@
       "confirmBody": "Vos publicités restent diffusées jusqu'à la fin de la période déjà payée. Aucun remboursement n'est effectué et l'abonnement ne sera pas renouvelé.",
       "confirmAction": "Oui, annuler",
       "confirmDismiss": "Conserver",
-      "subscriptionEnded": "Abonnement terminé"
+      "subscriptionEnded": "Abonnement terminé",
+      "couponBadge": "Code promo : {code}",
+      "couponDiscountPercent": "{percent} % de réduction",
+      "couponDiscountFixed": "{amount} de réduction",
+      "couponDurationOnce": "premier mois seulement",
+      "couponDurationRepeating": "les {months} premiers mois",
+      "couponDurationForever": "à chaque renouvellement",
+      "couponTerms": "Code {code} appliqué : {discount}, {duration}"
     },
     "status": {
       "ACTIVE": "Actif",

@@ -56,6 +56,20 @@ export interface BundleSubscription {
 
     campaignId: string;
     campaignName: string | null;
+
+    /**
+     * The coupon applied at signup, if any (P3) — all null when none was. Deliberately just the
+     * coupon's static terms, never a computed current-cycle price: `monthlyAmount` above stays
+     * the locked pre-coupon figure and must never reflect the coupon, so the UI shows both and
+     * lets the advertiser read the terms rather than trusting a number that would have to
+     * independently reconstruct Stripe's billing-cycle state to compute correctly.
+     */
+    couponCode: string | null;
+    couponDiscountType: "PERCENT" | "FIXED_AMOUNT" | null;
+    couponPercentOff: number | null;
+    couponAmountOffCents: number | null;
+    couponDuration: "ONCE" | "REPEATING" | "FOREVER" | null;
+    couponDurationInMonths: number | null;
 }
 
 /** A campaign running on a given screen, for the proof-of-display picker. */
