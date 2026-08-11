@@ -69,6 +69,11 @@ public class BundleSubscription {
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt;
 
+    /** The coupon applied at subscribe time, if any (P3). Set once at creation, never
+     * changes afterward — renewal-month application/expiry is Stripe's own doing. */
+    @Column(name = "coupon_id")
+    private Long couponId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

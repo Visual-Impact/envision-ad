@@ -19,6 +19,8 @@ import com.envisionad.webservice.proofofdisplay.presentationlayer.models.ProofOf
 import com.envisionad.webservice.utils.EmailService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -74,8 +76,9 @@ public class ProofOfDisplayService {
             UUID mediaId = UUID.fromString(request.getMediaId());
             String campaignId = request.getCampaignId();
 
-            // Validate / fetch media
-            Media media = mediaRepository.findById(mediaId)
+            // Validate / fetch media (with location eagerly fetched for the email body below)
+            Media media = mediaRepository.findAllByIdWithLocation(List.of(mediaId)).stream()
+                    .findFirst()
                     .orElseThrow(() -> new MediaNotFoundException(request.getMediaId()));
 
             // Validate / fetch campaign
@@ -124,7 +127,18 @@ public class ProofOfDisplayService {
             body.append("Hi there,\n\n");
             body.append("Great news, your ad has been displayed!\n\n");
             body.append("Campaign: ").append(campaign.getName()).append("\n");
-            body.append("Media location: ").append(media.getTitle()).append("\n\n");
+            body.append("Media location: ").append(media.getTitle());
+            if (media.getMediaLocation() != null) {
+                body.append(" (")
+                        .append(media.getMediaLocation().getName())
+                        .append(", ")
+                        .append(media.getMediaLocation().getCity())
+                        .append(")");
+            }
+            body.append("\n");
+            body.append("Submitted: ")
+                    .append(LocalDateTime.now().format(DateTimeFormatter.ofPattern("MMMM d, yyyy 'at' h:mm a")))
+                    .append("\n\n");
 
             body.append("Proof images:\n");
             for (String url : urls) {

@@ -20,6 +20,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
+import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.stripe.exception.StripeException;
@@ -80,6 +81,7 @@ class BundleSubscriptionServiceUnitTest {
     @Mock private EmployeeRepository employeeRepository;
     @Mock private Auth0Service auth0Service;
     @Mock private EmailService emailService;
+    @Mock private CouponRepository couponRepository;
 
     private Jwt jwt;
     private Media montrealScreen;
@@ -92,7 +94,7 @@ class BundleSubscriptionServiceUnitTest {
         service = new BundleSubscriptionServiceImpl(bundleService, pricingService, adCampaignRepository,
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
                 bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
-                jwtUtils, employeeRepository, auth0Service, emailService);
+                jwtUtils, employeeRepository, auth0Service, emailService, couponRepository);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
 
@@ -423,7 +425,102 @@ class BundleSubscriptionServiceUnitTest {
                 .anyMatch(i -> i.getMonthlyAmount().compareTo(BigDecimal.ZERO) == 0));
     }
 
+    // ---------- coupons (P3) ----------
+
+    @Test
+    void createSubscriptionCheckout_withACouponCode_attachesThePromotionCodeDiscount() throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+        Coupon coupon = givenCoupon("WELCOME20", "promo_welcome20");
+        when(couponRepository.findByCodeIgnoreCase("WELCOME20")).thenReturn(Optional.of(coupon));
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            ArgumentCaptor<SessionCreateParams> params = ArgumentCaptor.forClass(SessionCreateParams.class);
+            sessions.when(() -> Session.create(params.capture(), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+
+            service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, "welcome20");
+
+            assertEquals(1, params.getValue().getDiscounts().size());
+            assertEquals("promo_welcome20", params.getValue().getDiscounts().get(0).getPromotionCode());
+        }
+
+        ArgumentCaptor<BundleSubscription> saved = ArgumentCaptor.forClass(BundleSubscription.class);
+        verify(bundleSubscriptionRepository).save(saved.capture());
+        assertEquals(coupon.getId(), saved.getValue().getCouponId());
+    }
+
+    @Test
+    void createSubscriptionCheckout_withoutACouponCode_sendsNoDiscountsAndLeavesCouponIdNull() throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            ArgumentCaptor<SessionCreateParams> params = ArgumentCaptor.forClass(SessionCreateParams.class);
+            sessions.when(() -> Session.create(params.capture(), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+
+            service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, null);
+
+            assertTrue(params.getValue().getDiscounts() == null || params.getValue().getDiscounts().isEmpty());
+        }
+        verify(couponRepository, never()).findByCodeIgnoreCase(any());
+
+        ArgumentCaptor<BundleSubscription> saved = ArgumentCaptor.forClass(BundleSubscription.class);
+        verify(bundleSubscriptionRepository).save(saved.capture());
+        assertNull(saved.getValue().getCouponId());
+    }
+
+    @Test
+    void createSubscriptionCheckout_withAnUnknownCouponCode_throwsInvalidCouponBeforeAnyStripeCall() {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        when(couponRepository.findByCodeIgnoreCase("NOPE")).thenReturn(Optional.empty());
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            assertThrows(InvalidCouponException.class, () -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, "NOPE"));
+            sessions.verifyNoInteractions();
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
+    /**
+     * Stripe validates and redeems the code atomically at session creation (brief §4.7.2) — a
+     * rejection there, even for a code that resolves locally, must surface the same
+     * InvalidCouponException as an unknown code, not a raw StripeException (brief §4.6.5).
+     */
+    @Test
+    void createSubscriptionCheckout_whenStripeRejectsTheCoupon_throwsInvalidCouponException() throws Exception {
+        givenValidPreconditions();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+        Coupon coupon = givenCoupon("EXPIRED10", "promo_expired10");
+        when(couponRepository.findByCodeIgnoreCase("EXPIRED10")).thenReturn(Optional.of(coupon));
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenThrow(mock(com.stripe.exception.InvalidRequestException.class));
+
+            assertThrows(InvalidCouponException.class, () -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID, "EXPIRED10"));
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
     // ---------- fixtures ----------
+
+    private Coupon givenCoupon(String code, String stripePromotionCodeId) {
+        Coupon coupon = new Coupon();
+        coupon.setId(42L);
+        coupon.setCouponId(UUID.randomUUID().toString());
+        coupon.setCode(code);
+        coupon.setStripeCouponId("stripe_coupon_" + code);
+        coupon.setStripePromotionCodeId(stripePromotionCodeId);
+        return coupon;
+    }
 
     private void givenValidPreconditions() {
         Bundle bundle = new Bundle();
@@ -489,6 +586,19 @@ class BundleSubscriptionServiceUnitTest {
         media.setId(UUID.randomUUID());
         media.setBusinessId(ownerBusinessId);
         media.setPrice(price == null ? null : new BigDecimal(price));
+        return media;
+    }
+
+    private Media givenMediaWithLocation(UUID ownerBusinessId, String title, String locationName, String city) {
+        Media media = new Media();
+        media.setId(UUID.randomUUID());
+        media.setBusinessId(ownerBusinessId);
+        media.setTitle(title);
+        com.envisionad.webservice.media.DataAccessLayer.MediaLocation location =
+                new com.envisionad.webservice.media.DataAccessLayer.MediaLocation();
+        location.setName(locationName);
+        location.setCity(city);
+        media.setMediaLocation(location);
         return media;
     }
 
@@ -637,22 +747,50 @@ class BundleSubscriptionServiceUnitTest {
     @Test
     void notifyMediaOwners_emailsEachDistinctOwnerExactlyOnce() {
         givenNotifiableSubscription();
-        Media secondMontrealScreen = givenMedia(ownerA, "3.00");
+        Media ownerAScreen = givenMediaWithLocation(ownerA, "Downtown Billboard", "Complexe Desjardins", "Montreal");
+        Media secondMontrealScreen =
+                givenMediaWithLocation(ownerA, "Metro Panel", "Berri-UQAM", "Montreal");
+        Media ownerBScreen = givenMediaWithLocation(ownerB, "Highway Sign", "Autoroute 15", "Laval");
         when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
-                givenSubscriptionItem(montrealScreen.getId(), ownerA),
+                givenSubscriptionItem(ownerAScreen.getId(), ownerA),
                 givenSubscriptionItem(secondMontrealScreen.getId(), ownerA), // same owner, must not double-email
-                givenSubscriptionItem(lavalScreen.getId(), ownerB)));
+                givenSubscriptionItem(ownerBScreen.getId(), ownerB)));
+        // Map.groupingBy preserves each key's values in the source stream's order, so the
+        // media-id list handed to each owner's lookup is deterministic here.
+        when(mediaRepository.findAllByIdWithLocation(List.of(ownerAScreen.getId(), secondMontrealScreen.getId())))
+                .thenReturn(List.of(ownerAScreen, secondMontrealScreen));
+        when(mediaRepository.findAllByIdWithLocation(List.of(ownerBScreen.getId())))
+                .thenReturn(List.of(ownerBScreen));
         givenResolvableOwnerEmail(ownerA.toString(), "auth0|ownerA", "ownerA@example.com");
         givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com");
 
         service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID);
 
-        ArgumentCaptor<String> bodies = ArgumentCaptor.forClass(String.class);
-        verify(emailService).sendSimpleEmail(eq("ownerA@example.com"), contains("Acme Co"), bodies.capture());
-        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), contains("Acme Co"), anyString());
+        ArgumentCaptor<String> ownerABody = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> ownerBBody = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("ownerA@example.com"), contains("Acme Co"), ownerABody.capture());
+        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), contains("Acme Co"), ownerBBody.capture());
         verifyNoMoreInteractions(emailService);
-        assertTrue(bodies.getValue().contains("Billboard Creative"));
-        assertTrue(bodies.getValue().contains("https://cdn.example.com/ad.jpg"));
+
+        assertTrue(ownerABody.getValue().contains("Billboard Creative"));
+        assertTrue(ownerABody.getValue().contains("https://cdn.example.com/ad.jpg"));
+        assertTrue(ownerABody.getValue().contains("Full Network"), "must name the bundle the advertiser joined");
+        assertTrue(ownerABody.getValue().contains("Downtown Billboard"), "owner A must see their own screen title");
+        assertTrue(ownerABody.getValue().contains("Metro Panel"), "owner A must see their second screen too");
+        assertTrue(ownerABody.getValue().contains("Complexe Desjardins"));
+        assertTrue(ownerABody.getValue().contains("Montreal"));
+        assertFalse(ownerABody.getValue().contains("Highway Sign"),
+                "owner A must not see owner B's screen — each owner only sees their own");
+        assertTrue(ownerABody.getValue().contains("You'll earn $8.00/month"),
+                "owner A has two items at $4.00 each, so their total must be summed");
+
+        assertTrue(ownerBBody.getValue().contains("Full Network"));
+        assertTrue(ownerBBody.getValue().contains("Highway Sign"), "owner B must see their own screen title");
+        assertTrue(ownerBBody.getValue().contains("Autoroute 15"));
+        assertTrue(ownerBBody.getValue().contains("Laval"));
+        assertFalse(ownerBBody.getValue().contains("Downtown Billboard"),
+                "owner B must not see owner A's screens");
+        assertTrue(ownerBBody.getValue().contains("You'll earn $4.00/month"));
     }
 
     @Test
@@ -730,6 +868,12 @@ class BundleSubscriptionServiceUnitTest {
                 .thenReturn(Optional.of(subscription));
         when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(givenCampaignWithAds());
         when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Co"));
+
+        Bundle bundle = new Bundle();
+        bundle.setBundleId(BUNDLE_ID);
+        bundle.setNameEn("Full Network");
+        bundle.setNameFr("Réseau complet");
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
     }
 
     private BundleSubscription givenSubscriptionRow() {

@@ -216,8 +216,25 @@
 
 
 @media (max-width: 48em) {
+  .hero {
+    padding: 20px 0;
+  }
+
+  .heroContainer {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .heroGrid {
+    gap: 20px;
+  }
+
   .heroTitle {
     font-size: 36px !important;
+  }
+
+  .heroDescription {
+    display: none;
   }
 
   .statValue {

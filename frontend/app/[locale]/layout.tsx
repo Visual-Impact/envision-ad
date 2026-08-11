@@ -6,14 +6,13 @@ import {ColorSchemeScript, mantineHtmlProps, MantineProvider} from "@mantine/cor
 import {josefinSans, lato, theme} from "@/app/theme";
 import type {ReactNode} from "react";
 import Footer from "@/widgets/Footer/Footer";
-import {NextIntlClientProvider} from "next-intl";
 import {getMessages, getTranslations} from "next-intl/server";
 import {Notifications} from "@mantine/notifications";
 import {Header} from "@/widgets/Header/Header";
 import {ModalsProvider} from "@mantine/modals";
 import {auth0} from "@/shared/api/auth0/auth0";
 import {Auth0Provider} from "@auth0/nextjs-auth0";
-import {OrganizationProvider, PermissionsProvider} from "@/app/providers";
+import {IntlErrorProvider, OrganizationProvider, PermissionsProvider} from "@/app/providers";
 import {Metadata, Viewport} from "next";
 
 export const viewport: Viewport = {
@@ -76,7 +75,7 @@ export default async function RootLayout({
                 <ColorSchemeScript defaultColorScheme="light"/>
             </head>
             <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-            <NextIntlClientProvider messages={messages} locale={locale}>
+            <IntlErrorProvider messages={messages} locale={locale}>
                 <Auth0Provider user={user}>
                     <PermissionsProvider>
                         <OrganizationProvider>
@@ -94,7 +93,7 @@ export default async function RootLayout({
                         </OrganizationProvider>
                     </PermissionsProvider>
                 </Auth0Provider>
-            </NextIntlClientProvider>
+            </IntlErrorProvider>
             </body>
         </html>
     );

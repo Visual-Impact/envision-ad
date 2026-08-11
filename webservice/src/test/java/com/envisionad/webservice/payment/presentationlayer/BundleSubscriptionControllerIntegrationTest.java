@@ -106,6 +106,17 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void subscribe_withAnUnknownCouponCode_returnsBadRequestWithoutReachingStripe() {
+        BundleSubscriptionRequestModel body = request(
+                bundle.getBundleId(), campaign.getCampaignId().getCampaignId(), businessId);
+        body.setCouponCode("NO-SUCH-CODE");
+
+        postSubscribe(body).expectStatus().isBadRequest();
+
+        assertTrue(subscriptionRepository.findAll().isEmpty());
+    }
+
+    @Test
     void subscribe_withInactiveBundle_returnsConflict() {
         Bundle inactive = givenBundle(false);
 
@@ -456,7 +467,7 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     private BundleSubscriptionRequestModel request(String bundleId, String campaignId, String businessId) {
-        return new BundleSubscriptionRequestModel(bundleId, campaignId, businessId);
+        return new BundleSubscriptionRequestModel(bundleId, campaignId, businessId, null);
     }
 
     private Bundle givenBundle(boolean active) {

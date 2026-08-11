@@ -94,6 +94,10 @@ export const routing = defineRouting({
       en: "/dashboard/admin/bundles",
       fr: "/tableau-de-bord/admin/forfaits",
     },
+    "/dashboard/admin/coupons": {
+      en: "/dashboard/admin/coupons",
+      fr: "/tableau-de-bord/admin/codes-promo",
+    },
     "/dashboard/admin/settings": {
       en: "/dashboard/admin/settings",
       fr: "/tableau-de-bord/admin/parametres",

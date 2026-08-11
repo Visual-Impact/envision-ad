@@ -9,7 +9,10 @@ import com.envisionad.webservice.bundle.exceptions.NotAdvertiserException;
 import com.envisionad.webservice.business.exceptions.*;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
+import com.envisionad.webservice.payment.exceptions.CouponNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
+import com.envisionad.webservice.payment.exceptions.DuplicateCouponCodeException;
+import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.payment.exceptions.StripeAccountNotOnboardedException;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -215,6 +218,24 @@ public class GlobalControllerHandler {
     @ExceptionHandler(NotAdvertiserException.class)
     public HttpErrorInfo handleNotAdvertiserException(NotAdvertiserException ex) {
         return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "NOT_ADVERTISER");
+    }
+
+    @ResponseStatus(NOT_FOUND)
+    @ExceptionHandler(CouponNotFoundException.class)
+    public HttpErrorInfo handleCouponNotFoundException(CouponNotFoundException ex) {
+        return createHttpErrorInfo(NOT_FOUND, ex);
+    }
+
+    @ResponseStatus(BAD_REQUEST)
+    @ExceptionHandler(DuplicateCouponCodeException.class)
+    public HttpErrorInfo handleDuplicateCouponCodeException(DuplicateCouponCodeException ex) {
+        return createHttpErrorInfo(BAD_REQUEST, ex);
+    }
+
+    @ResponseStatus(BAD_REQUEST)
+    @ExceptionHandler(InvalidCouponException.class)
+    public HttpErrorInfo handleInvalidCouponException(InvalidCouponException ex) {
+        return new HttpErrorInfo(BAD_REQUEST, ex.getMessage(), ex.getCode());
     }
 
     @ResponseStatus(FORBIDDEN)

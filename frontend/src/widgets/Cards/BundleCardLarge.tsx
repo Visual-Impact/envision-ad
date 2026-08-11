@@ -128,26 +128,22 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
                         )}
                     </Stack>
 
-                    {/* Stacks to one full-width row per stat below the `xs` breakpoint —
-                        three side-by-side columns don't leave enough room for labels like
-                        "Venue Types" at phone widths, so the neighbouring card's background
-                        was clipping the overflow text instead of wrapping it. */}
-                    <SimpleGrid cols={{ base: 1, xs: statBoxes.length }} spacing="sm">
+                    <SimpleGrid cols={statBoxes.length} spacing={{ base: 6, xs: "sm" }}>
                         {statBoxes.map(({ value, label, Icon }) => (
-                            <Paper key={label} radius="md" p={{ base: "sm", xs: "md" }} withBorder bg="var(--mantine-color-body)">
-                                <Group gap={8} wrap="nowrap" align="center">
-                                    <ThemeIcon variant="light" color="indigo" size={34} radius="md">
-                                        <Icon size={18} stroke={1.6} />
+                            <Paper key={label} radius="md" p={{ base: 6, xs: "md" }} withBorder bg="var(--mantine-color-body)">
+                                <Stack gap={2} align="center" ta="center">
+                                    {/* ThemeIcon's `size` prop only accepts MantineSize | string | number,
+                                        no responsive breakpoint object — fixed at one size. */}
+                                    <ThemeIcon variant="light" color="indigo" size={30} radius="md">
+                                        <Icon size={16} stroke={1.6} />
                                     </ThemeIcon>
-                                    <Box>
-                                        <Text fw={800} size="1.5rem" lh={1.1}>
-                                            {value}
-                                        </Text>
-                                        <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
-                                            {label}
-                                        </Text>
-                                    </Box>
-                                </Group>
+                                    <Text fw={800} size="1.5rem" lh={1.1}>
+                                        {value}
+                                    </Text>
+                                    <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+                                        {label}
+                                    </Text>
+                                </Stack>
                             </Paper>
                         ))}
                     </SimpleGrid>
@@ -156,8 +152,9 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
                         that nesting let the checkmark drift whenever a neighbouring cell's
                         text wrapped to a different number of lines. Pinning the icon to
                         the top of each self-contained row keeps every row aligned the
-                        same way regardless of text length. */}
-                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" verticalSpacing="sm">
+                        same way regardless of text length. Hidden on phone widths — too
+                        much vertical space for a full checklist above the fold there. */}
+                    <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs" verticalSpacing="sm" visibleFrom="xs">
                         {venueTypeRows.map((row, i) => (
                             <Group key={i} gap={8} wrap="nowrap" align="flex-start">
                                 <ThemeIcon color="teal" size={18} radius="xl" mt={2} style={{ flexShrink: 0 }}>

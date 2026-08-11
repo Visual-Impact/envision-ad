@@ -42,7 +42,8 @@ public class BundleSubscriptionController {
                 jwt,
                 request.getBundleId(),
                 request.getCampaignId(),
-                request.getBusinessId());
+                request.getBusinessId(),
+                request.getCouponCode());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new BundleSubscriptionCheckoutResponseModel(

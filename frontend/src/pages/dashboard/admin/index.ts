@@ -4,4 +4,5 @@ export { default as VerifyingOrganizationDashboard } from "./ui/VerifyingOrganiz
 export { default as VenueManagementPage } from "./ui/VenueManagementPage"
 export { default as BundleManagementPage } from "./ui/BundleManagementPage"
 export { default as AppSettingsPage } from "./ui/AppSettingsPage"
+export { default as CouponManagementPage } from "./ui/CouponManagementPage"
 

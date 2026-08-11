@@ -199,7 +199,15 @@ public class BusinessServiceImpl implements BusinessService {
         invitation.setTimeExpires(LocalDateTime.now().plusHours(1));
 
         String link = appBaseUrl + "/invite?businessId=" + businessId + "&token=" + token;
-        emailService.sendSimpleEmail(invitation.getEmail(), "Invitation to join " + business.getName() + " on Envision Ad", "Click on this link to join " + business.getName() + "\n" + link);
+        String subject = "Invitation to join " + business.getName() + " on Envision Ad";
+        String body = "Hi there,\n\n"
+                + "You've been invited to join " + business.getName() + " on Envision Ad, "
+                + "a platform connecting digital signage screens with advertisers.\n\n"
+                + "Click the link below to accept:\n"
+                + link + "\n\n"
+                + "This invitation link expires in 1 hour.\n\n"
+                + "— The Envision Ad Team";
+        emailService.sendSimpleEmail(invitation.getEmail(), subject, body);
 
         return invitationMapper.toResponse(invitationRepository.save(invitation));
     }
