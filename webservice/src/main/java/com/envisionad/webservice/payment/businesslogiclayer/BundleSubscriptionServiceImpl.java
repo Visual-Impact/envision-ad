@@ -48,9 +48,11 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -526,16 +528,19 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         String advertiserName =
                 advertiserBusiness != null ? advertiserBusiness.getName() : subscription.getAdvertiserBusinessId();
 
+        Bundle bundle = bundleRepository.findByBundleId(subscription.getBundleId()).orElse(null);
+        String bundleName = bundle != null ? bundle.getNameEn() : subscription.getBundleId();
+
         String subject = "New creatives for your Envision Ad screens — " + advertiserName;
-        String body = buildNewSubscriptionEmailBody(advertiserName, campaign);
 
-        List<String> ownerBusinessIds = bundleSubscriptionItemRepository.findAllBySubscriptionId(subscriptionId)
-                .stream()
-                .map(BundleSubscriptionItem::getMediaOwnerBusinessId)
-                .distinct()
-                .toList();
+        List<BundleSubscriptionItem> items =
+                bundleSubscriptionItemRepository.findAllBySubscriptionId(subscriptionId);
 
-        for (String ownerBusinessId : ownerBusinessIds) {
+        Map<String, List<BundleSubscriptionItem>> itemsByOwner = items.stream()
+                .collect(Collectors.groupingBy(BundleSubscriptionItem::getMediaOwnerBusinessId));
+
+        for (Map.Entry<String, List<BundleSubscriptionItem>> entry : itemsByOwner.entrySet()) {
+            String ownerBusinessId = entry.getKey();
             try {
                 Optional<String> ownerEmail = resolveOwnerEmail(ownerBusinessId);
                 if (ownerEmail.isEmpty()) {
@@ -543,6 +548,17 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                             ownerBusinessId);
                     continue;
                 }
+                List<BundleSubscriptionItem> ownerItems = entry.getValue();
+                List<UUID> ownerMediaIds = ownerItems.stream()
+                        .map(BundleSubscriptionItem::getMediaId)
+                        .toList();
+                List<Media> ownerMedias = mediaRepository.findAllByIdWithLocation(ownerMediaIds);
+                BigDecimal ownerMonthlyTotal = ownerItems.stream()
+                        .map(BundleSubscriptionItem::getMonthlyAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
+                String body = buildNewSubscriptionEmailBody(
+                        advertiserName, bundleName, campaign, ownerMedias, ownerMonthlyTotal);
                 emailService.sendSimpleEmail(ownerEmail.get(), subject, body);
             } catch (Exception e) {
                 // A mail-server hiccup or a lookup failure for one owner must not stop the
@@ -553,12 +569,31 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         }
     }
 
-    private String buildNewSubscriptionEmailBody(String advertiserName, AdCampaign campaign) {
+    private String buildNewSubscriptionEmailBody(
+            String advertiserName,
+            String bundleName,
+            AdCampaign campaign,
+            List<Media> ownerMedias,
+            BigDecimal ownerMonthlyTotal) {
         StringBuilder body = new StringBuilder();
         body.append("Hi there,\n\n");
         body.append(advertiserName)
-                .append(" just subscribed to a bundle that includes one or more of your screens.\n\n");
-        body.append("Campaign: ").append(campaign.getName()).append("\n\n");
+                .append(" just subscribed to the \"")
+                .append(bundleName)
+                .append("\" bundle, which includes the following of your screens:\n\n");
+        for (Media media : ownerMedias) {
+            body.append("- ").append(media.getTitle());
+            if (media.getMediaLocation() != null) {
+                body.append(" (")
+                        .append(media.getMediaLocation().getName())
+                        .append(", ")
+                        .append(media.getMediaLocation().getCity())
+                        .append(")");
+            }
+            body.append("\n");
+        }
+        body.append("\nYou'll earn $").append(ownerMonthlyTotal).append("/month from this subscription.\n");
+        body.append("\nCampaign: ").append(campaign.getName()).append("\n\n");
         body.append("Please update your display(s) with the following creatives:\n\n");
         for (Ad ad : campaign.getAds()) {
             body.append("- ").append(ad.getName()).append(": ").append(ad.getAdUrl()).append("\n");

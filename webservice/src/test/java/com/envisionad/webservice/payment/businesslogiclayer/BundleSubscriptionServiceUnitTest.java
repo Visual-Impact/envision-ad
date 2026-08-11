@@ -589,6 +589,19 @@ class BundleSubscriptionServiceUnitTest {
         return media;
     }
 
+    private Media givenMediaWithLocation(UUID ownerBusinessId, String title, String locationName, String city) {
+        Media media = new Media();
+        media.setId(UUID.randomUUID());
+        media.setBusinessId(ownerBusinessId);
+        media.setTitle(title);
+        com.envisionad.webservice.media.DataAccessLayer.MediaLocation location =
+                new com.envisionad.webservice.media.DataAccessLayer.MediaLocation();
+        location.setName(locationName);
+        location.setCity(city);
+        media.setMediaLocation(location);
+        return media;
+    }
+
     // ---------- retry: retiring the abandoned session (M5) ----------
 
     /**
@@ -734,22 +747,50 @@ class BundleSubscriptionServiceUnitTest {
     @Test
     void notifyMediaOwners_emailsEachDistinctOwnerExactlyOnce() {
         givenNotifiableSubscription();
-        Media secondMontrealScreen = givenMedia(ownerA, "3.00");
+        Media ownerAScreen = givenMediaWithLocation(ownerA, "Downtown Billboard", "Complexe Desjardins", "Montreal");
+        Media secondMontrealScreen =
+                givenMediaWithLocation(ownerA, "Metro Panel", "Berri-UQAM", "Montreal");
+        Media ownerBScreen = givenMediaWithLocation(ownerB, "Highway Sign", "Autoroute 15", "Laval");
         when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
-                givenSubscriptionItem(montrealScreen.getId(), ownerA),
+                givenSubscriptionItem(ownerAScreen.getId(), ownerA),
                 givenSubscriptionItem(secondMontrealScreen.getId(), ownerA), // same owner, must not double-email
-                givenSubscriptionItem(lavalScreen.getId(), ownerB)));
+                givenSubscriptionItem(ownerBScreen.getId(), ownerB)));
+        // Map.groupingBy preserves each key's values in the source stream's order, so the
+        // media-id list handed to each owner's lookup is deterministic here.
+        when(mediaRepository.findAllByIdWithLocation(List.of(ownerAScreen.getId(), secondMontrealScreen.getId())))
+                .thenReturn(List.of(ownerAScreen, secondMontrealScreen));
+        when(mediaRepository.findAllByIdWithLocation(List.of(ownerBScreen.getId())))
+                .thenReturn(List.of(ownerBScreen));
         givenResolvableOwnerEmail(ownerA.toString(), "auth0|ownerA", "ownerA@example.com");
         givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com");
 
         service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID);
 
-        ArgumentCaptor<String> bodies = ArgumentCaptor.forClass(String.class);
-        verify(emailService).sendSimpleEmail(eq("ownerA@example.com"), contains("Acme Co"), bodies.capture());
-        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), contains("Acme Co"), anyString());
+        ArgumentCaptor<String> ownerABody = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> ownerBBody = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("ownerA@example.com"), contains("Acme Co"), ownerABody.capture());
+        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), contains("Acme Co"), ownerBBody.capture());
         verifyNoMoreInteractions(emailService);
-        assertTrue(bodies.getValue().contains("Billboard Creative"));
-        assertTrue(bodies.getValue().contains("https://cdn.example.com/ad.jpg"));
+
+        assertTrue(ownerABody.getValue().contains("Billboard Creative"));
+        assertTrue(ownerABody.getValue().contains("https://cdn.example.com/ad.jpg"));
+        assertTrue(ownerABody.getValue().contains("Full Network"), "must name the bundle the advertiser joined");
+        assertTrue(ownerABody.getValue().contains("Downtown Billboard"), "owner A must see their own screen title");
+        assertTrue(ownerABody.getValue().contains("Metro Panel"), "owner A must see their second screen too");
+        assertTrue(ownerABody.getValue().contains("Complexe Desjardins"));
+        assertTrue(ownerABody.getValue().contains("Montreal"));
+        assertFalse(ownerABody.getValue().contains("Highway Sign"),
+                "owner A must not see owner B's screen — each owner only sees their own");
+        assertTrue(ownerABody.getValue().contains("You'll earn $8.00/month"),
+                "owner A has two items at $4.00 each, so their total must be summed");
+
+        assertTrue(ownerBBody.getValue().contains("Full Network"));
+        assertTrue(ownerBBody.getValue().contains("Highway Sign"), "owner B must see their own screen title");
+        assertTrue(ownerBBody.getValue().contains("Autoroute 15"));
+        assertTrue(ownerBBody.getValue().contains("Laval"));
+        assertFalse(ownerBBody.getValue().contains("Downtown Billboard"),
+                "owner B must not see owner A's screens");
+        assertTrue(ownerBBody.getValue().contains("You'll earn $4.00/month"));
     }
 
     @Test
@@ -827,6 +868,12 @@ class BundleSubscriptionServiceUnitTest {
                 .thenReturn(Optional.of(subscription));
         when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(givenCampaignWithAds());
         when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Co"));
+
+        Bundle bundle = new Bundle();
+        bundle.setBundleId(BUNDLE_ID);
+        bundle.setNameEn("Full Network");
+        bundle.setNameFr("Réseau complet");
+        when(bundleRepository.findByBundleId(BUNDLE_ID)).thenReturn(Optional.of(bundle));
     }
 
     private BundleSubscription givenSubscriptionRow() {
