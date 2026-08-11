@@ -103,7 +103,12 @@ class ProofOfDisplayServiceUnitTest {
         Media media = mock(Media.class);
         when(media.getTitle()).thenReturn("Champlain E Block");
         when(media.getBusinessId()).thenReturn(UUID.randomUUID());
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        com.envisionad.webservice.media.DataAccessLayer.MediaLocation mediaLocation =
+                mock(com.envisionad.webservice.media.DataAccessLayer.MediaLocation.class);
+        when(mediaLocation.getName()).thenReturn("Complexe Desjardins");
+        when(mediaLocation.getCity()).thenReturn("Montreal");
+        when(media.getMediaLocation()).thenReturn(mediaLocation);
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         // Mock campaign + embedded business id
         AdCampaign campaign = mock(AdCampaign.class);
@@ -139,7 +144,8 @@ class ProofOfDisplayServiceUnitTest {
 
         String body = bodyCaptor.getValue();
         assertTrue(body.contains("Campaign: Winter Promo"));
-        assertTrue(body.contains("Media location: Champlain E Block"));
+        assertTrue(body.contains("Media location: Champlain E Block (Complexe Desjardins, Montreal)"));
+        assertTrue(body.contains("Submitted:"));
         assertTrue(body.contains("Proof images:"));
         assertTrue(body.contains("- https://img1.example"));
         assertTrue(body.contains("- https://img2.example"));
@@ -186,7 +192,7 @@ class ProofOfDisplayServiceUnitTest {
 
         Jwt jwt = mockJwtSubjectOnly();
 
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.empty());
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of());
 
         // Act + Assert
         assertThrows(MediaNotFoundException.class, () -> proofOfDisplayService.sendProofEmail(jwt, request));
@@ -205,7 +211,7 @@ class ProofOfDisplayServiceUnitTest {
         Jwt jwt = mockJwtSubjectOnly();
 
         Media media = mock(Media.class);
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         when(adCampaignRepository.findByCampaignId_CampaignId("camp-404")).thenReturn(null);
 
@@ -226,7 +232,7 @@ class ProofOfDisplayServiceUnitTest {
 
         Media media = mock(Media.class);
         when(media.getBusinessId()).thenReturn(UUID.randomUUID());
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         AdCampaign campaign = mock(AdCampaign.class);
 
@@ -264,7 +270,7 @@ class ProofOfDisplayServiceUnitTest {
 
         Media media = mock(Media.class);
         when(media.getBusinessId()).thenReturn(UUID.randomUUID());
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         AdCampaign campaign = mock(AdCampaign.class);
 
@@ -298,7 +304,7 @@ class ProofOfDisplayServiceUnitTest {
 
         Media media = mock(Media.class);
         when(media.getBusinessId()).thenReturn(UUID.randomUUID());
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         AdCampaign campaign = mock(AdCampaign.class);
         when(adCampaignRepository.findByCampaignId_CampaignId("camp-123")).thenReturn(campaign);
@@ -325,7 +331,7 @@ class ProofOfDisplayServiceUnitTest {
 
         Media media = mock(Media.class);
         when(media.getBusinessId()).thenReturn(UUID.randomUUID());
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         AdCampaign campaign = mock(AdCampaign.class);
         when(adCampaignRepository.findByCampaignId_CampaignId("camp-123")).thenReturn(campaign);
@@ -353,7 +359,7 @@ class ProofOfDisplayServiceUnitTest {
 
         Media media = mock(Media.class);
         when(media.getBusinessId()).thenReturn(null);
-        when(mediaRepository.findById(mediaUuid)).thenReturn(Optional.of(media));
+        when(mediaRepository.findAllByIdWithLocation(List.of(mediaUuid))).thenReturn(List.of(media));
 
         AdCampaign campaign = mock(AdCampaign.class);
         when(adCampaignRepository.findByCampaignId_CampaignId("camp-123")).thenReturn(campaign);
