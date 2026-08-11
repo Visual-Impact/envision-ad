@@ -617,8 +617,8 @@
       "rejected": "Rejected",
       "activateModalMessage": "Are you sure you want to activate this display? Users will be able to reserve this media.",
       "deactivateModalMessage": "Are you sure you want to deactivate this display? No new users will be able to make reservations.",
-      "activateModalTitle": "Activate {{name}}",
-      "deactivateModalTitle": "Deactivate {{name}}",
+      "activateModalTitle": "Activate {name}",
+      "deactivateModalTitle": "Deactivate {name}",
       "pendingToolTip": "This media is awaiting admin approval and cannot be activated yet.",
       "rejectedToolTip": "This media was rejected and cannot be activated."
     },

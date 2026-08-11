@@ -616,9 +616,9 @@
       "waitApproval": "En attente d'approbation",
       "rejected": "Rejeté",
       "activateModalMessage": "Êtes-vous sûr de vouloir activer cet affichage ? Les utilisateurs pourront réserver ce média.",
-      "activateModalTitle": "Activer {{name}}",
+      "activateModalTitle": "Activer {name}",
       "deactivateModalMessage": "Êtes-vous sûr de vouloir désactiver cet affichage ? Aucun nouvel utilisateur ne pourra effectuer une réservation.",
-      "deactivateModalTitle": "Désactiver {{name}}",
+      "deactivateModalTitle": "Désactiver {name}",
       "pendingToolTip": "Ce média est en attente d'approbation et ne peut pas être activé pour le moment.",
       "rejectedToolTip": "Ce média a été rejeté et ne peut pas être activé."
     },
