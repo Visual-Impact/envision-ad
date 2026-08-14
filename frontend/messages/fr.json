@@ -77,6 +77,7 @@
       "venues": "Tags de lieu",
       "bundles": "Forfaits",
       "coupons": "Codes promo",
+      "accounts": "Comptes",
       "settings": "Paramètres"
     }
   },
@@ -1595,6 +1596,57 @@
       "createFailed": "Échec de la création du tag de lieu.",
       "updateFailed": "Échec de la mise à jour du tag de lieu.",
       "deleteFailed": "Échec de la suppression du tag de lieu."
+    }
+  },
+  "accountManagement": {
+    "title": "Comptes clients",
+    "newAccount": "Nouveau compte",
+    "table": {
+      "business": "Entreprise",
+      "owner": "Propriétaire",
+      "roles": "Rôles",
+      "businessType": "Type d'entreprise",
+      "status": "Statut",
+      "dateCreated": "Créé le",
+      "actions": "Actions",
+      "noAccounts": "Aucun compte client. Créez le premier pour commencer."
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "actions": {
+      "resend": "Renvoyer les identifiants",
+      "deactivate": "Désactiver",
+      "reactivate": "Réactiver"
+    },
+    "form": {
+      "createTitle": "Créer un compte client",
+      "emailLabel": "Courriel",
+      "emailPlaceholder": "client@exemple.com",
+      "nameLabel": "Nom complet",
+      "namePlaceholder": "Jane Doe",
+      "businessTypeLabel": "Type d'entreprise (facultatif)",
+      "businessTypePlaceholder": "Sélectionner un type d'entreprise",
+      "cancel": "Annuler",
+      "submit": "Créer le compte",
+      "errors": {
+        "validationError": "Informations manquantes ou invalides.",
+        "emailRequired": "Le courriel est requis.",
+        "emailInvalid": "Adresse courriel invalide.",
+        "nameRequired": "Le nom complet est requis."
+      }
+    },
+    "notifications": {
+      "created": "Compte créé — identifiants envoyés.",
+      "createdWithWarnings": "Compte créé, mais le courriel de bienvenue n'a peut-être pas été envoyé. Utilisez « Renvoyer les identifiants » pour réessayer.",
+      "createFailed": "Échec de la création du compte.",
+      "duplicateEmail": "Un compte avec ce courriel existe déjà.",
+      "resent": "Identifiants renvoyés.",
+      "resendFailed": "Échec du renvoi des identifiants.",
+      "statusUpdated": "Statut du compte mis à jour.",
+      "statusUpdateFailed": "Échec de la mise à jour du statut du compte.",
+      "loadFailed": "Échec du chargement des comptes."
     }
   },
   "bundleManagement": {

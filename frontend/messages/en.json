@@ -77,6 +77,7 @@
       "venues": "Venue Tags",
       "bundles": "Bundles",
       "coupons": "Coupons",
+      "accounts": "Accounts",
       "settings": "Settings"
     }
   },
@@ -1595,6 +1596,57 @@
       "createFailed": "Failed to create venue tag.",
       "updateFailed": "Failed to update venue tag.",
       "deleteFailed": "Failed to delete venue tag."
+    }
+  },
+  "accountManagement": {
+    "title": "Client Accounts",
+    "newAccount": "New Account",
+    "table": {
+      "business": "Business",
+      "owner": "Owner",
+      "roles": "Roles",
+      "businessType": "Business Type",
+      "status": "Status",
+      "dateCreated": "Created",
+      "actions": "Actions",
+      "noAccounts": "No client accounts yet. Create the first one to get started."
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "resend": "Resend Credentials",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate"
+    },
+    "form": {
+      "createTitle": "Create Client Account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "client@example.com",
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Jane Doe",
+      "businessTypeLabel": "Business Type (optional)",
+      "businessTypePlaceholder": "Select a business type",
+      "cancel": "Cancel",
+      "submit": "Create Account",
+      "errors": {
+        "validationError": "Missing or invalid information.",
+        "emailRequired": "Email is required.",
+        "emailInvalid": "Invalid email address.",
+        "nameRequired": "Full name is required."
+      }
+    },
+    "notifications": {
+      "created": "Account created — credentials sent.",
+      "createdWithWarnings": "Account created, but the welcome email may not have sent. Use Resend Credentials to retry.",
+      "createFailed": "Failed to create account.",
+      "duplicateEmail": "An account with this email already exists.",
+      "resent": "Credentials resent.",
+      "resendFailed": "Failed to resend credentials.",
+      "statusUpdated": "Account status updated.",
+      "statusUpdateFailed": "Failed to update account status.",
+      "loadFailed": "Failed to load accounts."
     }
   },
   "bundleManagement": {

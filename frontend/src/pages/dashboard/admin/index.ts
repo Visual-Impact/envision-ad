@@ -5,4 +5,5 @@ export { default as VenueManagementPage } from "./ui/VenueManagementPage"
 export { default as BundleManagementPage } from "./ui/BundleManagementPage"
 export { default as AppSettingsPage } from "./ui/AppSettingsPage"
 export { default as CouponManagementPage } from "./ui/CouponManagementPage"
+export { default as AccountsManagementPage } from "./ui/AccountsManagementPage"
 
