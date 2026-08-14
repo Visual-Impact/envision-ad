@@ -7,12 +7,6 @@ import {
 } from "@mantine/core";
 import { useLocale, useTranslations } from "next-intl";
 import { useMediaQuery } from "@mantine/hooks";
-import { useUser } from "@auth0/nextjs-auth0/client";
-import { notifications } from "@mantine/notifications";
-import { useOrganizationForm } from "@/pages/dashboard/organization/hooks/useOrganizationForm";
-import { OrganizationModal } from "@/pages/dashboard/organization/ui/modals/OrganizationModal";
-import { createOrganization } from "@/features/organization-management/api";
-import { AUTH0_ROLES } from "@/shared/lib/auth/roles";
 import { useOrganization, usePermissions } from "@/app/providers";
 import { getStripeAccountStatus, createStripeConnection } from "@/features/payment";
 import {
@@ -44,11 +38,8 @@ interface Step {
 export default function OnboardingPage() {
     const t = useTranslations("onboarding");
     const locale = useLocale();
-    const { user } = useUser();
-    const { organization, refreshOrganization, loading: orgLoading } = useOrganization();
-    const { permissions, refreshPermissions, loading: permissionsLoading } = usePermissions();
-    const { formState, updateField, resetForm } = useOrganizationForm();
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const { organization, loading: orgLoading } = useOrganization();
+    const { permissions, loading: permissionsLoading } = usePermissions();
     const isMobile = useMediaQuery("(max-width: 48em)") ?? false;
     const router = useRouter();
 
@@ -207,42 +198,13 @@ export default function OnboardingPage() {
             .find((s) => s.status === "current");
     };
 
-    const handleCreate = async () => {
-        if (!user?.sub) return;
-        try {
-            await createOrganization(formState);
-            await fetch(`/api/auth0/update-user-roles/${encodeURIComponent(user.sub)}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    roles: [
-                        AUTH0_ROLES.BUSINESS_OWNER,
-                        ...(formState.roles.advertiser ? [AUTH0_ROLES.ADVERTISER] : []),
-                        ...(formState.roles.mediaOwner ? [AUTH0_ROLES.MEDIA_OWNER] : []),
-                    ],
-                }),
-            });
-            await refreshPermissions();
-            await refreshOrganization();
-            setIsModalOpen(false);
-            resetForm();
-            notifications.show({ title: t("success.title"), message: t("success.create"), color: "green" });
-        } catch (error) {
-            console.error("Failed to create organization", error);
-            notifications.show({ title: t("errors.title"), message: t("errors.createFailed"), color: "red" });
-        }
-    };
-
     // --- Render helpers ---
 
     const renderActionPanel = (stepKey: StepKey) => {
-        if (stepKey === "organization") return (
-            <Stack gap="sm">
-                <Text fw={500}>{t("actions.organization.prompt")}</Text>
-                <Text size="sm" c="dimmed">{t("actions.organization.hint")}</Text>
-                <Button fullWidth variant="gradient" onClick={() => setIsModalOpen(true)}>{t("actions.organization.cta")}</Button>
-            </Stack>
-        );
+        // No "organization" branch: by the time this page renders past the
+        // no-organization fallback below, the business is always admin-provisioned
+        // already (P5) — that step is always "complete", never "current", so this
+        // is never invoked with stepKey === "organization" in practice.
         if (stepKey === "stripe") return (
             <Stack gap="sm">
                 {isStripeLoading ? (
@@ -329,6 +291,24 @@ export default function OnboardingPage() {
         return (
             <Center h="100vh">
                 <Loader />
+            </Center>
+        );
+    }
+
+    // P5: there is no in-app way for a non-admin to create a business anymore — the
+    // admin provisions it before the client ever logs in. This state should be rare
+    // (a still-provisioning account, or a client logging in before the admin
+    // finishes), but must degrade to an explanatory message, not a broken step list.
+    if (!organization) {
+        return (
+            <Center h="100vh" px="md">
+                <Stack gap="sm" maw={480} align="center" ta="center">
+                    <ThemeIcon size={56} radius="xl" variant="gradient" color="gray">
+                        <IconBuilding size="1.75rem" />
+                    </ThemeIcon>
+                    <Title order={3}>{t("noOrganization.title")}</Title>
+                    <Text c="dimmed" size="sm">{t("noOrganization.description")}</Text>
+                </Stack>
             </Center>
         );
     }
@@ -454,15 +434,6 @@ export default function OnboardingPage() {
                     </Paper>
                 )}
             </Stack>
-
-            <OrganizationModal
-                opened={isModalOpen}
-                onClose={() => { setIsModalOpen(false); resetForm(); }}
-                onSave={handleCreate}
-                formState={formState}
-                onFieldChange={updateField}
-                editingId={null}
-            />
         </Center>
     );
 }

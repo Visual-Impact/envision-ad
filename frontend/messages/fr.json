@@ -113,7 +113,7 @@
     },
     "header": {
       "title": "Commencer",
-      "description": "Créez votre organisation ou demandez à son responsable de vous envoyer une invitation."
+      "description": "Complétez les étapes ci-dessous pour finaliser la configuration de votre compte."
     },
     "roles": {
       "mediaOwner": "Propriétaire de médias",
@@ -190,6 +190,10 @@
       "title": "Erreur",
       "loadFailed": "Échec du chargement de l'organisation pour modification.",
       "createFailed": "Échec de la création de l'organisation."
+    },
+    "noOrganization": {
+      "title": "Aucune entreprise associée",
+      "description": "Votre compte n'est associé à aucune entreprise pour le moment. Si vous venez de prendre rendez-vous avec nous, la configuration peut prendre quelques minutes — sinon, veuillez contacter votre représentant Envision Ad."
     }
   },
   "mediaOwnerMetrics": {

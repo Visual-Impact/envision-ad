@@ -113,7 +113,7 @@
     },
     "header": {
       "title": "Get started",
-      "description": "Create your organization or ask your organization owner to send you an invitation."
+      "description": "Complete the steps below to finish setting up your account."
     },
     "roles": {
       "mediaOwner": "Media Owner",
@@ -189,6 +189,10 @@
     "errors": {
       "title": "Error",
       "createFailed": "Failed to create organization."
+    },
+    "noOrganization": {
+      "title": "No business linked yet",
+      "description": "Your account isn't linked to a business yet. If you just booked a meeting with us, this can take a few minutes to set up — otherwise, please contact your Envision Ad representative."
     }
   },
   "mediaOwnerMetrics": {

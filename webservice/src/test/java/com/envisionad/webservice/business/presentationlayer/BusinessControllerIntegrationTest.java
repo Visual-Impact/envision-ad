@@ -161,7 +161,8 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
                 .claim("scope", "read write")
                 .claim("permissions", List.of(
                         "readAll:verification",
-                        "update:verification"
+                        "update:verification",
+                        "manage:accounts"
                 ))
                 .build();
 
@@ -223,7 +224,7 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void createBusiness_ShouldPersistAndReturnBusiness() {
+    void createBusiness_withManageAccountsPermission_shouldPersistAndReturnBusiness() {
         // Arrange
         BusinessRequestModel requestModel = new BusinessRequestModel();
         requestModel.setName("Integration Business");
@@ -242,12 +243,13 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
         roles.setMediaOwner(true);
         requestModel.setRoles(roles);
 
-        // Act & Assert
+        // Act & Assert — P5 FR 1.4: createBusiness is admin-only (manage:accounts) now,
+        // not "any authenticated user" — see createBusiness_withoutManageAccountsPermission_isForbidden.
         webTestClient.post()
                 .uri(BASE_URI_BUSINESSES)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> headers.setBearerAuth("newUser-token"))
+                .headers(headers -> headers.setBearerAuth("admin-token"))
                 .body(BodyInserters.fromValue(requestModel))
                 .exchange()
                 .expectStatus().isCreated()
@@ -260,6 +262,39 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
                 .jsonPath("$.address.city").isEqualTo("Integration City");
 
         assertEquals(6, businessRepository.count());
+    }
+
+    @Test
+    void createBusiness_withoutManageAccountsPermission_isForbidden() {
+        BusinessRequestModel requestModel = new BusinessRequestModel();
+        requestModel.setName("Should Not Be Created");
+        requestModel.setOrganizationSize(OrganizationSize.MEDIUM);
+
+        Address address = new Address();
+        address.setStreet("Integration St");
+        address.setCity("Integration City");
+        address.setState("State");
+        address.setZipCode("00000");
+        address.setCountry("Country");
+        requestModel.setAddress(address);
+
+        Roles roles = new Roles();
+        roles.setAdvertiser(true);
+        requestModel.setRoles(roles);
+
+        // newUser-token is authenticated but holds no permissions at all — this is the
+        // exact case P5 closes off: an authenticated user with no manage:accounts can
+        // no longer self-register a business.
+        webTestClient.post()
+                .uri(BASE_URI_BUSINESSES)
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("newUser-token"))
+                .body(BodyInserters.fromValue(requestModel))
+                .exchange()
+                .expectStatus().isForbidden();
+
+        assertEquals(5, businessRepository.count());
     }
 
     @Test
