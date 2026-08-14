@@ -1,5 +1,6 @@
 package com.envisionad.webservice.utils;
 
+import com.envisionad.webservice.admin.exceptions.DuplicateAccountException;
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.bundle.exceptions.BundleHasActiveSubscriptionsException;
 import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaException;
@@ -46,6 +47,12 @@ public class GlobalControllerHandler {
     @ExceptionHandler(DuplicateBusinessNameException.class)
     public HttpErrorInfo handleDuplicateBusinessNameException(DuplicateBusinessNameException ex) {
         return createHttpErrorInfo(BAD_REQUEST, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(DuplicateAccountException.class)
+    public HttpErrorInfo handleDuplicateAccountException(DuplicateAccountException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
     }
 
     @ResponseStatus(BAD_REQUEST)

@@ -36,6 +36,16 @@ public class Business {
 
     private boolean verified;
 
+    // Hook for P4's exclusion logic (nullable = no business type set); this brief only
+    // stores it. FK references venue(venue_id), not venue.id — see the P5 migration.
+    @Column(name = "business_type_venue_id")
+    private String businessTypeVenueId;
+
+    // Defaults true so every existing creation path (self-service createBusiness, the
+    // admin-account flow) produces an active business unless a P5 admin explicitly
+    // deactivates it afterward — deactivation is opt-in, not a side effect of creation.
+    private boolean active = true;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime dateCreated;

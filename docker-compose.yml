@@ -69,6 +69,7 @@ services:
       AUTH0_MGMT_CLIENT_ID: "${AUTH0_MGMT_CLIENT_ID}"
       AUTH0_MGMT_CLIENT_SECRET: "${AUTH0_MGMT_CLIENT_SECRET}"
       AUTH0_MGMT_DOMAIN: "${AUTH0_MGMT_DOMAIN}"
+      AUTH0_DB_CONNECTION: "${AUTH0_DB_CONNECTION}"
       # Spring datasource - Postgres runs natively on the host, reached via host.docker.internal
       SPRING_DATASOURCE_URL: "jdbc:postgresql://host.docker.internal:5432/${SPRING_DATASOURCE_DBNAME}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
