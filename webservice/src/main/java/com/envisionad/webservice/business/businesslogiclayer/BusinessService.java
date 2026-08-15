@@ -32,7 +32,7 @@ public interface BusinessService {
 
     List<EmployeeResponseModel> getAllEmployeesByBusinessId(Jwt jwt, String businessId);
 
-    EmployeeResponseModel addBusinessEmployee(Jwt jwt, String businessId, String token);
+    InvitationAcceptResponseModel addBusinessEmployee(Jwt jwt, String businessId, String token);
 
     void removeBusinessEmployeeById(Jwt jwt, String id, String employeeId);
 

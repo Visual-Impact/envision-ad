@@ -501,6 +501,9 @@
         "cancel": "Annuler",
         "email": "Courriel",
         "placeholder": "email@email.com",
+        "name": "Nom complet (facultatif)",
+        "namePlaceholder": "Jane Doe",
+        "nameHint": "Utilisé uniquement si cette personne n'a pas encore de compte Envision Ad.",
         "errors": {
           "error": "Erreur",
           "validationError": "Informations manquantes ou invalides.",
@@ -577,6 +580,10 @@
       "title": "Vous êtes connecté !",
       "message": "Vous avez rejoint l'organisation avec succès !",
       "redirecting": "Redirection vers le tableau de bord..."
+    },
+    "checkEmail": {
+      "title": "Presque terminé !",
+      "message": "Nous vous avons envoyé un courriel avec un lien pour définir votre mot de passe. Une fois cela fait, vous serez prêt à vous connecter."
     },
     "error": {
       "title": "Une erreur est survenue",

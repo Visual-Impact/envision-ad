@@ -7,4 +7,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class InvitationRequestModel {
     private String email;
+
+    // Optional — only used if accept-time provisioning is needed (P5 FR 3.2).
+    private String name;
 }

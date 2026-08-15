@@ -115,9 +115,13 @@ public class BusinessController {
         return ResponseEntity.ok(businessService.getAllEmployeesByBusinessId(jwt, businessId));
     }
 
+    // P5 FR 3.2: no longer @PreAuthorize("isAuthenticated()") — a brand-new invitee has
+    // no Auth0 account yet, so no JWT to authenticate with. jwt is null for an anonymous
+    // caller (SecurityConfig permits all requests at the filter-chain level; this is the
+    // only method-level gate that ever applied here). BusinessServiceImpl branches on
+    // jwt's presence to decide which of the three outcomes in InvitationAcceptStatus applies.
     @PostMapping("/{businessId}/employees")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<EmployeeResponseModel> addEmployeeToBusiness(@AuthenticationPrincipal Jwt jwt,
+    public ResponseEntity<InvitationAcceptResponseModel> addEmployeeToBusiness(@AuthenticationPrincipal Jwt jwt,
             @PathVariable String businessId, @RequestParam String token) {
         return ResponseEntity.ok(businessService.addBusinessEmployee(jwt, businessId, token));
     }

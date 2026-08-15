@@ -500,6 +500,9 @@
         "cancel": "Cancel",
         "email": "Email",
         "placeholder": "email@email.com",
+        "name": "Full Name (optional)",
+        "namePlaceholder": "Jane Doe",
+        "nameHint": "Only used if this person doesn't have an Envision Ad account yet.",
         "errors": {
           "error": "Error",
           "validationError": "Missing or Invalid information.",
@@ -576,6 +579,10 @@
       "title": "You're in!",
       "message": "You've successfully joined the organization!",
       "redirecting": "Redirecting to dashboard..."
+    },
+    "checkEmail": {
+      "title": "Almost there!",
+      "message": "We've sent you an email with a link to set your password. Once that's done, you'll be all set to log in."
     },
     "error": {
       "title": "Something went wrong",
