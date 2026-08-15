@@ -6,7 +6,7 @@ import {ColorSchemeScript, mantineHtmlProps, MantineProvider} from "@mantine/cor
 import {josefinSans, lato, theme} from "@/app/theme";
 import type {ReactNode} from "react";
 import Footer from "@/widgets/Footer/Footer";
-import {getMessages, getTranslations} from "next-intl/server";
+import {getMessages, getTimeZone, getTranslations} from "next-intl/server";
 import {Notifications} from "@mantine/notifications";
 import {Header} from "@/widgets/Header/Header";
 import {ModalsProvider} from "@mantine/modals";
@@ -45,6 +45,7 @@ export default async function RootLayout({
 }) {
     const {locale} = await params;
     const messages = await getMessages({locale});
+    const timeZone = await getTimeZone({locale});
 
     const session = await auth0.getSession();
     const user = session?.user;
@@ -75,7 +76,7 @@ export default async function RootLayout({
                 <ColorSchemeScript defaultColorScheme="light"/>
             </head>
             <body style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-            <IntlErrorProvider messages={messages} locale={locale}>
+            <IntlErrorProvider messages={messages} locale={locale} timeZone={timeZone}>
                 <Auth0Provider user={user}>
                     <PermissionsProvider>
                         <OrganizationProvider>

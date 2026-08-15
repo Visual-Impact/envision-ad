@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 interface IntlErrorProviderProps {
     locale: string;
+    timeZone: string;
     messages: AbstractIntlMessages;
     children: ReactNode;
 }
@@ -12,10 +13,11 @@ interface IntlErrorProviderProps {
 // next-intl strips IntlError messages in the production build, so a bare
 // `Error: INVALID_MESSAGE` in prod logs gives no indication of which key
 // caused it. getMessageFallback still receives the key, so log it here.
-export function IntlErrorProvider({ locale, messages, children }: IntlErrorProviderProps) {
+export function IntlErrorProvider({ locale, timeZone, messages, children }: IntlErrorProviderProps) {
     return (
         <NextIntlClientProvider
             locale={locale}
+            timeZone={timeZone}
             messages={messages}
             onError={(error) => console.error(error)}
             getMessageFallback={({ error, key, namespace }) => {
