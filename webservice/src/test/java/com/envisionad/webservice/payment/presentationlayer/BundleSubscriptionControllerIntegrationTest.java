@@ -4,7 +4,9 @@ import com.envisionad.webservice.advertisement.dataaccesslayer.*;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleRepository;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleRuleType;
+import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.dataaccesslayer.Employee;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
@@ -63,6 +65,9 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private EmployeeRepository employeeRepository;
 
+    @Autowired
+    private BusinessRepository businessRepository;
+
     private String businessId;
     private Bundle bundle;
     private AdCampaign campaign;
@@ -76,6 +81,7 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         mediaRepository.deleteAll();
         mediaLocationRepository.deleteAll();
         employeeRepository.deleteAll();
+        businessRepository.deleteAll();
 
         Jwt jwt = Jwt.withTokenValue(TOKEN)
                 .header("alg", "none")
@@ -89,6 +95,7 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         employee.setBusinessId(new BusinessIdentifier(businessId));
         employee.setUserId(USER_ID);
         employeeRepository.save(employee);
+        givenBusiness(businessId, true);
 
         givenMedia(Status.ACTIVE, "4.00");
         bundle = givenBundle(true);
@@ -122,6 +129,17 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
 
         postSubscribe(request(inactive.getBundleId(), campaign.getCampaignId().getCampaignId(), businessId))
                 .expectStatus().isEqualTo(409);
+    }
+
+    /** An advertiser whose organization has not cleared admin verification cannot subscribe. */
+    @Test
+    void subscribe_forAnUnverifiedBusiness_returnsForbidden() {
+        givenBusiness(businessId, false);
+
+        postSubscribe(request(bundle.getBundleId(), campaign.getCampaignId().getCampaignId(), businessId))
+                .expectStatus().isForbidden();
+
+        assertTrue(subscriptionRepository.findAll().isEmpty());
     }
 
     @Test
@@ -468,6 +486,17 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
 
     private BundleSubscriptionRequestModel request(String bundleId, String campaignId, String businessId) {
         return new BundleSubscriptionRequestModel(bundleId, campaignId, businessId, null);
+    }
+
+    private Business givenBusiness(String businessId, boolean verified) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null) {
+            business = new Business();
+            business.setBusinessId(new BusinessIdentifier(businessId));
+            business.setName("Test Business");
+        }
+        business.setVerified(verified);
+        return businessRepository.save(business);
     }
 
     private Bundle givenBundle(boolean active) {

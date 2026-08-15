@@ -227,6 +227,12 @@ public class GlobalControllerHandler {
         return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "NOT_ADVERTISER");
     }
 
+    @ResponseStatus(FORBIDDEN)
+    @ExceptionHandler(BusinessNotVerifiedException.class)
+    public HttpErrorInfo handleBusinessNotVerifiedException(BusinessNotVerifiedException ex) {
+        return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "BUSINESS_NOT_VERIFIED");
+    }
+
     @ResponseStatus(NOT_FOUND)
     @ExceptionHandler(CouponNotFoundException.class)
     public HttpErrorInfo handleCouponNotFoundException(CouponNotFoundException ex) {
