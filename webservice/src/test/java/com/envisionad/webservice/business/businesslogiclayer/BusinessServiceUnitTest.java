@@ -307,6 +307,10 @@ class BusinessServiceUnitTest {
         assertEquals("auth0|brandnew", result.getEmployee().getUserId());
         verify(invitationRepository).delete(invitation);
         verify(emailService).sendSimpleEmail(org.mockito.ArgumentMatchers.eq(TEST_EMAIL), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+        // createBusiness(true) is media-owner-only — the new employee should get exactly
+        // MEDIA_OWNER, matching the business's own roles (colleagues share the business's
+        // role flags; there's no per-employee role selection in this data model).
+        verify(auth0Service).assignRoles("auth0|brandnew", java.util.List.of(com.envisionad.webservice.config.Auth0Roles.MEDIA_OWNER));
     }
 
     @Test

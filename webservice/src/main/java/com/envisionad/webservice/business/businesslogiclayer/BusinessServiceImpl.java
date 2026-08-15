@@ -8,6 +8,7 @@ import com.envisionad.webservice.business.mappinglayer.InvitationMapper;
 import com.envisionad.webservice.business.mappinglayer.VerificationMapper;
 import com.envisionad.webservice.business.presentationlayer.models.*;
 import com.envisionad.webservice.business.utils.Validator;
+import com.envisionad.webservice.config.Auth0Roles;
 import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
@@ -18,6 +19,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -323,8 +325,21 @@ public class BusinessServiceImpl implements BusinessService {
         EmployeeResponseModel employeeResponse = employeeMapper.toResponse(employeeRepository.save(employee));
 
         // Best-effort, same posture as AdminAccountService (brief FR 4.2.d) — the
-        // employee row already exists; a ticket/email hiccup here means the invitee
-        // needs a fresh link, not that the whole accept should fail.
+        // employee row already exists; a role/ticket/email hiccup here means the invitee
+        // needs a fresh link (or a manual role fix), not that the whole accept should fail.
+        try {
+            List<String> roleIds = new ArrayList<>();
+            if (business.getRoles().isAdvertiser())
+                roleIds.add(Auth0Roles.ADVERTISER);
+            if (business.getRoles().isMediaOwner())
+                roleIds.add(Auth0Roles.MEDIA_OWNER);
+            if (!roleIds.isEmpty())
+                auth0Service.assignRoles(userId, roleIds);
+        } catch (RuntimeException e) {
+            log.warn("Role assignment failed for newly-provisioned invitee {} joining business {}",
+                    invitation.getEmail(), businessId, e);
+        }
+
         try {
             String ticketUrl = auth0Service.createPasswordChangeTicket(userId, appBaseUrl + "/auth/login");
             String subject = "Your Envision Ad account is ready";
