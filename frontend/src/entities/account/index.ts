@@ -3,4 +3,5 @@ export type {
     CreateAccountResponseDTO,
     AccountBusinessResponseDTO,
     AccountListItem,
+    AccountListPageResponse,
 } from './model/account';

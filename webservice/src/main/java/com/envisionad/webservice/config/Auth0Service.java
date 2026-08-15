@@ -22,12 +22,14 @@ import java.net.URI;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -137,6 +139,66 @@ public class Auth0Service {
         } catch (RestClientException e) {
             throw new Auth0ServiceUnavailableException(
                     "Failed to retrieve email for user '" + userId + "' from Auth0 Management API", e);
+        }
+    }
+
+    /** Auth0's default/max page size for the user-search endpoint below. */
+    private static final int USER_SEARCH_BATCH_SIZE = 50;
+
+    /**
+     * Resolves emails for many users in as few Management API calls as possible, via
+     * Auth0's user-search endpoint (Lucene-style query matching any of the given ids),
+     * chunked at {@link #USER_SEARCH_BATCH_SIZE}. Added for the admin Accounts page
+     * (P5 M6 live-testing fix): resolving N owners' emails one `GET /users/{id}` call at
+     * a time hit Auth0's rate limit as soon as the table held more than a handful of
+     * rows. A user id with no matching account simply doesn't appear in the result map —
+     * that's the search endpoint's normal behavior, not an error, unlike
+     * {@link #getUserEmailByUserId} which 404s per-id.
+     */
+    public Map<String, String> findEmailsByUserIds(List<String> userIds) {
+        if (userIds.isEmpty())
+            return Map.of();
+
+        Map<String, String> result = new HashMap<>();
+        for (int i = 0; i < userIds.size(); i += USER_SEARCH_BATCH_SIZE) {
+            List<String> chunk = userIds.subList(i, Math.min(i + USER_SEARCH_BATCH_SIZE, userIds.size()));
+            result.putAll(findEmailsForChunk(chunk));
+        }
+        return result;
+    }
+
+    private Map<String, String> findEmailsForChunk(List<String> userIds) {
+        String query = "user_id:(" + userIds.stream()
+                .map(id -> "\"" + id.replace("\"", "\\\"") + "\"")
+                .collect(Collectors.joining(" OR ")) + ")";
+
+        URI uri = UriComponentsBuilder.fromUriString(managementBaseUrl)
+                .pathSegment("api", "v2", "users")
+                .queryParam("q", query)
+                .queryParam("search_engine", "v3")
+                .queryParam("fields", "user_id,email")
+                .queryParam("include_fields", "true")
+                .queryParam("per_page", USER_SEARCH_BATCH_SIZE)
+                .build()
+                .toUri();
+
+        try {
+            ResponseEntity<List<Map<String, Object>>> response = exchangeWithTokenRetry(
+                    HttpMethod.GET, uri, null, new ParameterizedTypeReference<List<Map<String, Object>>>() {});
+            List<Map<String, Object>> body = response.getBody();
+            if (body == null)
+                return Map.of();
+            Map<String, String> chunkResult = new HashMap<>();
+            for (Map<String, Object> user : body) {
+                String userId = (String) user.get("user_id");
+                String email = (String) user.get("email");
+                if (userId != null && email != null)
+                    chunkResult.put(userId, email);
+            }
+            return chunkResult;
+        } catch (RestClientException e) {
+            throw new Auth0ServiceUnavailableException(
+                    "Failed to batch-lookup emails for " + userIds.size() + " users", e);
         }
     }
 

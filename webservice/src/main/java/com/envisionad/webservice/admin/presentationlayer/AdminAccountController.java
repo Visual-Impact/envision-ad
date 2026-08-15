@@ -6,12 +6,12 @@ import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequ
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.SetActiveRequestModel;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/accounts")
@@ -32,8 +32,8 @@ public class AdminAccountController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('manage:accounts')")
-    public ResponseEntity<List<AdminAccountListItemModel>> getAllAccounts() {
-        return ResponseEntity.ok(adminAccountService.getAllAccounts());
+    public ResponseEntity<Page<AdminAccountListItemModel>> getAllAccounts(Pageable pageable) {
+        return ResponseEntity.ok(adminAccountService.getAllAccounts(pageable));
     }
 
     @PostMapping("/{businessId}/resend-credentials")

@@ -46,3 +46,13 @@ export interface AccountListItem {
     active: boolean;
     dateCreated: string;
 }
+
+// Mirrors Spring Data's Page<AdminAccountListItemModel> JSON shape — same fields
+// MediaListResponseDTO already relies on for /media/active, same backend serialization.
+export interface AccountListPageResponse {
+    content: AccountListItem[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+}

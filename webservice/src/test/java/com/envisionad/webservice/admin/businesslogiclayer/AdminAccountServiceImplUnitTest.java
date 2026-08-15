@@ -293,33 +293,43 @@ class AdminAccountServiceImplUnitTest {
     // =========================================================================
 
     @Test
-    void whenGetAllAccounts_thenResolvesOwnerEmailForEachRow() {
+    void whenGetAllAccounts_thenResolvesOwnerEmailsViaOneBatchCall() {
         Business business = new Business();
         business.setBusinessId(new com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier(BUSINESS_ID));
         business.setName("Acme Signage");
         business.setOwnerId(USER_ID);
         business.setActive(true);
-        when(businessRepository.findAll()).thenReturn(List.of(business));
-        when(auth0Service.getUserEmailByUserId(USER_ID)).thenReturn(EMAIL);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
+        org.springframework.data.domain.Page<Business> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(business), pageable, 1);
+        when(businessRepository.findAll(pageable)).thenReturn(page);
+        when(auth0Service.findEmailsByUserIds(List.of(USER_ID))).thenReturn(java.util.Map.of(USER_ID, EMAIL));
 
-        List<AdminAccountListItemModel> result = adminAccountService.getAllAccounts();
+        org.springframework.data.domain.Page<AdminAccountListItemModel> result =
+                adminAccountService.getAllAccounts(pageable);
 
-        assertEquals(1, result.size());
-        assertEquals(EMAIL, result.get(0).getOwnerEmail());
+        assertEquals(1, result.getContent().size());
+        assertEquals(EMAIL, result.getContent().get(0).getOwnerEmail());
+        verify(auth0Service, never()).getUserEmailByUserId(anyString());
     }
 
     @Test
-    void whenGetAllAccounts_andOwnerEmailLookupFails_thenDegradesThatRowInsteadOfThrowing() {
+    void whenGetAllAccounts_andBatchLookupFails_thenDegradesEveryRowOnThatPageInsteadOfThrowing() {
         Business business = new Business();
         business.setBusinessId(new com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier(BUSINESS_ID));
         business.setName("Acme Signage");
         business.setOwnerId(USER_ID);
-        when(businessRepository.findAll()).thenReturn(List.of(business));
-        when(auth0Service.getUserEmailByUserId(USER_ID)).thenThrow(new Auth0ServiceUnavailableException("boom", null));
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 20);
+        org.springframework.data.domain.Page<Business> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(business), pageable, 1);
+        when(businessRepository.findAll(pageable)).thenReturn(page);
+        when(auth0Service.findEmailsByUserIds(List.of(USER_ID)))
+                .thenThrow(new Auth0ServiceUnavailableException("boom", null));
 
-        List<AdminAccountListItemModel> result = adminAccountService.getAllAccounts();
+        org.springframework.data.domain.Page<AdminAccountListItemModel> result =
+                adminAccountService.getAllAccounts(pageable);
 
-        assertEquals(1, result.size());
-        assertNull(result.get(0).getOwnerEmail());
+        assertEquals(1, result.getContent().size());
+        assertNull(result.getContent().get(0).getOwnerEmail());
     }
 }

@@ -21,11 +21,14 @@ import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.utils.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Orchestrates the admin "create client account" flow (brief FR 4.2): Auth0 user →
@@ -145,28 +148,34 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     }
 
     @Override
-    public List<AdminAccountListItemModel> getAllAccounts() {
-        return businessRepository.findAll().stream().map(business -> {
+    public Page<AdminAccountListItemModel> getAllAccounts(Pageable pageable) {
+        Page<Business> businessPage = businessRepository.findAll(pageable);
+        List<String> ownerIds = businessPage.getContent().stream()
+                .map(Business::getOwnerId).distinct().toList();
+        Map<String, String> emailsByOwnerId = safeFindEmails(ownerIds);
+
+        return businessPage.map(business -> {
             AdminAccountListItemModel item = new AdminAccountListItemModel();
             item.setBusinessId(business.getBusinessId().getBusinessId());
             item.setName(business.getName());
-            item.setOwnerEmail(safeGetOwnerEmail(business.getOwnerId()));
+            item.setOwnerEmail(emailsByOwnerId.get(business.getOwnerId()));
             item.setRoles(business.getRoles());
             item.setBusinessTypeVenueId(business.getBusinessTypeVenueId());
             item.setActive(business.isActive());
             item.setDateCreated(business.getDateCreated());
             return item;
-        }).toList();
+        });
     }
 
-    // One broken Auth0 lookup (e.g. a stale/manually-deleted user) shouldn't 500 the
-    // whole admin table — degrade that one row instead of failing the list.
-    private String safeGetOwnerEmail(String ownerId) {
+    // One failed batch lookup shouldn't 500 the whole page — degrade every row's owner
+    // email for this load rather than failing the list (D8's original per-row intent,
+    // now scoped to one failure point per page instead of N).
+    private Map<String, String> safeFindEmails(List<String> ownerIds) {
         try {
-            return auth0Service.getUserEmailByUserId(ownerId);
+            return auth0Service.findEmailsByUserIds(ownerIds);
         } catch (RuntimeException e) {
-            log.warn("Could not resolve owner email for business owner {}", ownerId, e);
-            return null;
+            log.warn("Could not resolve owner emails for {} business owner(s)", ownerIds.size(), e);
+            return Map.of();
         }
     }
 

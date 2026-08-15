@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Group, Loader, Stack, Title } from "@mantine/core";
+import { Button, Group, Loader, Pagination, Stack, Title } from "@mantine/core";
 import { IconUserPlus } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -13,6 +13,8 @@ import { getAllVenues } from "@/features/venue-management/api";
 import { AccountsTable } from "@/pages/dashboard/admin/ui/tables/AccountsTable";
 import { CreateAccountModal } from "@/pages/dashboard/admin/ui/modals/CreateAccountModal";
 
+const PAGE_SIZE = 20;
+
 export default function AccountsManagementPage() {
     const t = useTranslations("accountManagement");
 
@@ -21,30 +23,43 @@ export default function AccountsManagementPage() {
     const [loading, setLoading] = useState(true);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [pendingBusinessId, setPendingBusinessId] = useState<string | null>(null);
+    // 1-indexed for Mantine's Pagination, converted to 0-indexed on the request —
+    // same convention BrowsePage.tsx uses for /media/active.
+    const [activePage, setActivePage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     const refresh = useCallback(async () => {
         try {
-            const [accountsData, venuesData] = await Promise.all([getAllAccounts(), getAllVenues()]);
-            setAccounts(accountsData);
+            const [accountsData, venuesData] = await Promise.all([
+                getAllAccounts(activePage - 1, PAGE_SIZE),
+                getAllVenues(),
+            ]);
+            setAccounts(accountsData.content);
+            setTotalPages(accountsData.totalPages);
             setVenues(venuesData);
         } catch {
             notifications.show({ title: t("notifications.loadFailed"), message: "", color: "red" });
         } finally {
             setLoading(false);
         }
-    }, [t]);
+    }, [activePage, t]);
 
-    // Initial load inlined (not calling `refresh`) so the effect's own state updates
-    // stay local to it with proper unmount cancellation — same pattern as
-    // VenueManagementPage; `refresh` is for the post-mutation refreshes below.
+    // Initial/page-change load inlined (not calling `refresh`) so the effect's own state
+    // updates stay local to it with proper unmount cancellation — same pattern as
+    // VenueManagementPage; `refresh` is for the post-mutation refreshes below. Re-runs
+    // whenever `activePage` changes, so paging re-fetches that page.
     useEffect(() => {
         let cancelled = false;
 
         (async () => {
             try {
-                const [accountsData, venuesData] = await Promise.all([getAllAccounts(), getAllVenues()]);
+                const [accountsData, venuesData] = await Promise.all([
+                    getAllAccounts(activePage - 1, PAGE_SIZE),
+                    getAllVenues(),
+                ]);
                 if (!cancelled) {
-                    setAccounts(accountsData);
+                    setAccounts(accountsData.content);
+                    setTotalPages(accountsData.totalPages);
                     setVenues(venuesData);
                 }
             } catch {
@@ -59,7 +74,7 @@ export default function AccountsManagementPage() {
         return () => {
             cancelled = true;
         };
-    }, [t]);
+    }, [activePage, t]);
 
     const handleCreate = async (data: CreateAccountRequestDTO) => {
         try {
@@ -118,13 +133,20 @@ export default function AccountsManagementPage() {
             {loading ? (
                 <Loader />
             ) : (
-                <AccountsTable
-                    accounts={accounts}
-                    venues={venues}
-                    onResend={handleResend}
-                    onToggleActive={handleToggleActive}
-                    pendingBusinessId={pendingBusinessId}
-                />
+                <>
+                    <AccountsTable
+                        accounts={accounts}
+                        venues={venues}
+                        onResend={handleResend}
+                        onToggleActive={handleToggleActive}
+                        pendingBusinessId={pendingBusinessId}
+                    />
+                    {totalPages > 1 && (
+                        <Group justify="center" mt="md">
+                            <Pagination total={totalPages} value={activePage} onChange={setActivePage} />
+                        </Group>
+                    )}
+                </>
             )}
 
             <CreateAccountModal

@@ -313,6 +313,91 @@ class Auth0ServiceUnitTest {
     }
 
     // =========================================================================
+    // findEmailsByUserIds (P5 M6 fix — batch owner-email lookup)
+    // =========================================================================
+
+    private static URI usersSearchUri(List<String> userIds) {
+        String query = "user_id:(" + userIds.stream()
+                .map(id -> "\"" + id + "\"")
+                .collect(java.util.stream.Collectors.joining(" OR ")) + ")";
+        return UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users")
+                .queryParam("q", query)
+                .queryParam("search_engine", "v3")
+                .queryParam("fields", "user_id,email")
+                .queryParam("include_fields", "true")
+                .queryParam("per_page", 50)
+                .build()
+                .toUri();
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_withEmptyInput_thenReturnsEmptyMapWithoutAnyCall() {
+        Map<String, String> result = auth0Service.findEmailsByUserIds(List.of());
+
+        assertTrue(result.isEmpty());
+        verify(restTemplate, never()).exchange(
+                any(URI.class), any(HttpMethod.class), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_withSingleChunk_thenReturnsMatchedEmailsAndOmitsMissingIds() {
+        List<String> requested = List.of(USER_ID, "auth0|missing123");
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(requested)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(
+                List.of(Map.of("user_id", USER_ID, "email", USER_EMAIL)), HttpStatus.OK));
+
+        Map<String, String> result = auth0Service.findEmailsByUserIds(requested);
+
+        assertEquals(1, result.size());
+        assertEquals(USER_EMAIL, result.get(USER_ID));
+        assertFalse(result.containsKey("auth0|missing123"));
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_withMoreThanBatchSize_thenIssuesMultipleChunkedCalls() {
+        List<String> requested = new java.util.ArrayList<>();
+        for (int i = 0; i < 75; i++) requested.add("auth0|user" + i);
+        List<String> firstChunk = requested.subList(0, 50);
+        List<String> secondChunk = requested.subList(50, 75);
+
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(firstChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
+        when(restTemplate.exchange(
+                eq(usersSearchUri(secondChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
+
+        auth0Service.findEmailsByUserIds(requested);
+
+        verify(restTemplate, times(1)).exchange(
+                eq(usersSearchUri(firstChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+        verify(restTemplate, times(1)).exchange(
+                eq(usersSearchUri(secondChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_andAuth0Fails_thenThrowsAuth0ServiceUnavailableException() {
+        List<String> requested = List.of(USER_ID);
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(requested)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenThrow(new ResourceAccessException("Connection refused"));
+
+        assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.findEmailsByUserIds(requested));
+    }
+
+    // =========================================================================
     // createUser (P5)
     // =========================================================================
 
