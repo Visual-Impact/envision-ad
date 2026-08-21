@@ -124,6 +124,11 @@ public class BusinessServiceImpl implements BusinessService {
         newBusiness.setId(existingBusiness.getId());
         newBusiness.setBusinessId(existingBusiness.getBusinessId());
         newBusiness.setOwnerId(existingBusiness.getOwnerId());
+        // Roles are admin-only post-creation (PATCH /api/v1/admin/accounts/{businessId}/roles) —
+        // whatever this payload says about roles is ignored so an owner/employee with
+        // update:business can't flip their own MEDIA_OWNER/ADVERTISER flags, which used to
+        // be possible here with no dependent-data checks and no Auth0 role resync.
+        newBusiness.setRoles(existingBusiness.getRoles());
 
         return businessMapper.toResponse(businessRepository.save(newBusiness));
     }
@@ -204,6 +209,8 @@ public class BusinessServiceImpl implements BusinessService {
         invitation.setBusinessId(new BusinessIdentifier(businessId));
         invitation.setTimeExpires(LocalDateTime.now().plusHours(1));
 
+        Invitation savedInvitation = invitationRepository.save(invitation);
+
         String link = appBaseUrl + "/invite?businessId=" + businessId + "&token=" + token;
         String subject = "Invitation to join " + business.getName() + " on Envision Ad";
         String body = "Hi there,\n\n"
@@ -215,7 +222,7 @@ public class BusinessServiceImpl implements BusinessService {
                 + "— The Envision Ad Team";
         emailService.sendSimpleEmail(invitation.getEmail(), subject, body);
 
-        return invitationMapper.toResponse(invitationRepository.save(invitation));
+        return invitationMapper.toResponse(savedInvitation);
     }
 
     @Override

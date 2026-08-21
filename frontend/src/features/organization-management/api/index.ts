@@ -11,6 +11,4 @@ export { getAllOrganizationInvitations } from './invitation/getAllOrganizationIn
 export { addEmployeeToOrganization } from './employee/addEmployeeToOrganization';
 export { approveOrganizationVerification } from './verification/approveOrganizationVerification';
 export { denyOrganizationVerification } from './verification/denyOrganizationVerification';
-export { getAllOrganizationVerifications } from './verification/getAllOrganizationVerifications';
 export { getAllVerificationRequests } from './verification/getAllVerificationRequests';
-export { requestOrganizationVerification } from './verification/requestOrganizationVerification';

@@ -11,11 +11,17 @@ interface BusinessDetailsFormProps {
         field: K,
         value: OrganizationRequestDTO[K]
     ) => void;
+    // Roles are admin-only post-creation (PATCH /api/v1/admin/accounts/{businessId}/roles) —
+    // the admin "create client account" flow still sets them here at creation time, but the
+    // business owner's self-service "edit organization" flow (OrganizationModal) must not
+    // expose them, since the backend now ignores whatever this form sends anyway.
+    showRoles?: boolean;
 }
 
 export function OrganizationDetailsForm({
                                         formState,
                                         onFieldChange,
+                                        showRoles = true,
                                     }: BusinessDetailsFormProps) {
     const t = useTranslations("organization");
 
@@ -92,19 +98,23 @@ export function OrganizationDetailsForm({
                 />
             </div>
 
-            <h4>{t("form.roleLabel")}</h4>
-            <div style={{display: "flex", flexDirection: "column", gap: 12}}>
-                <Checkbox
-                    label={t("roles.advertiser")}
-                    checked={formState.roles.advertiser}
-                    onChange={(e) => onFieldChange("roles", {...formState.roles, advertiser: e.currentTarget.checked,})}
-                />
-                <Checkbox
-                    label={t("roles.mediaOwner")}
-                    checked={formState.roles.mediaOwner}
-                    onChange={(e) => onFieldChange("roles", {...formState.roles, mediaOwner: e.currentTarget.checked,})}
-                />
-            </div>
+            {showRoles && (
+                <>
+                    <h4>{t("form.roleLabel")}</h4>
+                    <div style={{display: "flex", flexDirection: "column", gap: 12}}>
+                        <Checkbox
+                            label={t("roles.advertiser")}
+                            checked={formState.roles.advertiser}
+                            onChange={(e) => onFieldChange("roles", {...formState.roles, advertiser: e.currentTarget.checked,})}
+                        />
+                        <Checkbox
+                            label={t("roles.mediaOwner")}
+                            checked={formState.roles.mediaOwner}
+                            onChange={(e) => onFieldChange("roles", {...formState.roles, mediaOwner: e.currentTarget.checked,})}
+                        />
+                    </div>
+                </>
+            )}
         </>
     );
 }

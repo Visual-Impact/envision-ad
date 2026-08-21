@@ -51,4 +51,23 @@ public interface BundleSubscriptionItemRepository extends JpaRepository<BundleSu
     List<String> findLiveCampaignIdsByMediaId(
             @Param("mediaId") UUID mediaId,
             @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
+
+    /**
+     * The Media-Owner-role-removal guard (admin role-change endpoint): true when at
+     * least one of this business's screens is locked into a live subscription, via the
+     * denormalized {@code mediaOwnerBusinessId} (same id space as {@code business.business_id},
+     * see that field's own javadoc) rather than joining through {@code Media} — the
+     * subscription may belong to a different business than the one losing the role,
+     * which is exactly the case this guard exists to catch.
+     */
+    @Query("""
+            SELECT (COUNT(i) > 0)
+            FROM BundleSubscriptionItem i, BundleSubscription s
+            WHERE i.subscriptionId = s.subscriptionId
+              AND i.mediaOwnerBusinessId = :businessId
+              AND s.status IN :statuses
+            """)
+    boolean existsLiveSubscriptionForMediaOwnerBusinessId(
+            @Param("businessId") String businessId,
+            @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
 }

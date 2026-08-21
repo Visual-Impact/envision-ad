@@ -4,4 +4,6 @@ export type {
     AccountBusinessResponseDTO,
     AccountListItem,
     AccountListPageResponse,
+    UpdateRolesResponseDTO,
+    RoleRemovalEligibilityDTO,
 } from './model/account';

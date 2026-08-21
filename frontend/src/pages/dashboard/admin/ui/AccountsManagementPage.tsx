@@ -7,11 +7,13 @@ import { useCallback, useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
 import axios from "axios";
 import { AccountListItem, CreateAccountRequestDTO } from "@/entities/account";
+import { Roles } from "@/entities/organization";
 import { Venue } from "@/entities/venue";
-import { createAccount, getAllAccounts, resendCredentials, setAccountActive } from "@/features/account-management/api";
+import { createAccount, getAllAccounts, resendCredentials, setAccountActive, updateAccountRoles } from "@/features/account-management/api";
 import { getAllVenues } from "@/features/venue-management/api";
 import { AccountsTable } from "@/pages/dashboard/admin/ui/tables/AccountsTable";
 import { CreateAccountModal } from "@/pages/dashboard/admin/ui/modals/CreateAccountModal";
+import { EditRolesModal } from "@/pages/dashboard/admin/ui/modals/EditRolesModal";
 
 const PAGE_SIZE = 20;
 
@@ -22,6 +24,7 @@ export default function AccountsManagementPage() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [loading, setLoading] = useState(true);
     const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [editRolesAccount, setEditRolesAccount] = useState<AccountListItem | null>(null);
     const [pendingBusinessId, setPendingBusinessId] = useState<string | null>(null);
     // 1-indexed for Mantine's Pagination, converted to 0-indexed on the request —
     // same convention BrowsePage.tsx uses for /media/active.
@@ -121,6 +124,30 @@ export default function AccountsManagementPage() {
         }
     };
 
+    const handleUpdateRoles = async (roles: Roles) => {
+        if (!editRolesAccount) return;
+        try {
+            const result = await updateAccountRoles(editRolesAccount.businessId, roles);
+            notifications.show({
+                title: result.warnings.length > 0 ? t("notifications.rolesUpdatedWithWarnings") : t("notifications.rolesUpdated"),
+                message: "",
+                color: result.warnings.length > 0 ? "yellow" : "green",
+            });
+            setEditRolesAccount(null);
+            await refresh();
+        } catch (error) {
+            // 409 covers both the removal-blocked guards (live subscription tied to the
+            // role being removed) and the "at least one role required" rule — both are
+            // the admin needing to resolve something before retrying, not a system error.
+            const isBlocked = axios.isAxiosError(error) && error.response?.status === 409;
+            notifications.show({
+                title: isBlocked ? t("notifications.rolesUpdateBlocked") : t("notifications.rolesUpdateFailed"),
+                message: "",
+                color: "red",
+            });
+        }
+    };
+
     return (
         <Stack component="main" gap="md" p="md" style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" align="center">
@@ -139,6 +166,7 @@ export default function AccountsManagementPage() {
                         venues={venues}
                         onResend={handleResend}
                         onToggleActive={handleToggleActive}
+                        onEditRoles={setEditRolesAccount}
                         pendingBusinessId={pendingBusinessId}
                     />
                     {totalPages > 1 && (
@@ -154,6 +182,13 @@ export default function AccountsManagementPage() {
                 onClose={() => setCreateModalOpen(false)}
                 onSave={handleCreate}
                 venues={venues}
+            />
+
+            <EditRolesModal
+                opened={editRolesAccount !== null}
+                onClose={() => setEditRolesAccount(null)}
+                onSave={handleUpdateRoles}
+                account={editRolesAccount}
             />
         </Stack>
     );

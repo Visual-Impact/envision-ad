@@ -61,6 +61,18 @@ public class GlobalControllerHandler {
         return createHttpErrorInfo(BAD_REQUEST, ex);
     }
 
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(MediaOwnerRoleRemovalBlockedException.class)
+    public HttpErrorInfo handleMediaOwnerRoleRemovalBlockedException(MediaOwnerRoleRemovalBlockedException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(AdvertiserRoleRemovalBlockedException.class)
+    public HttpErrorInfo handleAdvertiserRoleRemovalBlockedException(AdvertiserRoleRemovalBlockedException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
     @ResponseStatus(NOT_FOUND)
     @ExceptionHandler(BusinessEmployeeNotFoundException.class)
     public HttpErrorInfo handleBusinessEmployeeNotFoundException(BusinessEmployeeNotFoundException ex) {

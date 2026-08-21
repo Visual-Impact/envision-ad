@@ -23,8 +23,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -182,6 +184,39 @@ class BusinessServiceUnitTest {
 
         assertThrows(BusinessNotFoundException.class,
                 () -> businessService.updateBusinessById(mediaToken, NOT_FOUND_BUSINESS_ID, businessRequestModel));
+    }
+
+    @Test
+    public void whenUpdateBusinessById_thenRolesArePreservedFromExistingBusinessRegardlessOfPayload() {
+        // The gap this closes: PUT used to let any employee/owner with update:business
+        // flip their own MEDIA_OWNER/ADVERTISER flags with no dependent-data checks and
+        // no Auth0 resync. Roles are now admin-only post-creation (PATCH
+        // /api/v1/admin/accounts/{businessId}/roles) — this payload's roles must be
+        // silently ignored no matter what it asks for.
+        Business existingBusiness = createBusiness(true); // mediaOwnerRoles: mediaOwner=true, advertiser=false
+
+        BusinessRequestModel requestModel = createBusinessRequestModel();
+        Roles attemptedRoles = new Roles();
+        attemptedRoles.setAdvertiser(true);
+        attemptedRoles.setMediaOwner(false);
+        requestModel.setRoles(attemptedRoles);
+
+        Business mappedFromRequest = new Business();
+        mappedFromRequest.setName(requestModel.getName());
+        mappedFromRequest.setRoles(attemptedRoles);
+
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(existingBusiness);
+        when(businessRepository.existsByNameAndBusinessId_BusinessIdNot(requestModel.getName(), BUSINESS_ID))
+                .thenReturn(false);
+        when(businessMapper.toEntity(requestModel)).thenReturn(mappedFromRequest);
+        when(businessRepository.save(mappedFromRequest)).thenReturn(mappedFromRequest);
+        when(businessMapper.toResponse(mappedFromRequest))
+                .thenReturn(new com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel());
+
+        businessService.updateBusinessById(mediaToken, BUSINESS_ID, requestModel);
+
+        assertTrue(mappedFromRequest.getRoles().isMediaOwner());
+        assertFalse(mappedFromRequest.getRoles().isAdvertiser());
     }
 
     @Test

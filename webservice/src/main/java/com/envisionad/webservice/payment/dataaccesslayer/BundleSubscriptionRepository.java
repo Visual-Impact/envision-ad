@@ -19,6 +19,13 @@ public interface BundleSubscriptionRepository extends JpaRepository<BundleSubscr
 
     List<BundleSubscription> findAllByAdvertiserBusinessId(String advertiserBusinessId);
 
+    /**
+     * The Advertiser-role-removal guard (admin role-change endpoint): a business with
+     * any live subscription still bills it, so the role can't be dropped without first
+     * cancelling. Mirrors {@link #countByBundleIdAndStatusIn}'s status-scoping.
+     */
+    long countByAdvertiserBusinessIdAndStatusIn(String advertiserBusinessId, Collection<BundleSubscriptionStatus> statuses);
+
     List<BundleSubscription> findAllByBundleIdAndStatusIn(
             String bundleId, Collection<BundleSubscriptionStatus> statuses);
 

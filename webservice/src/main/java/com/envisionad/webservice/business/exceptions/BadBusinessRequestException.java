@@ -4,4 +4,8 @@ public class BadBusinessRequestException extends RuntimeException {
     public BadBusinessRequestException() {
         super("Bad Business Request");
     }
+
+    public BadBusinessRequestException(String message) {
+        super(message);
+    }
 }

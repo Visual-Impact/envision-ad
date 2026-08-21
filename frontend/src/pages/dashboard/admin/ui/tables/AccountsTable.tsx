@@ -1,7 +1,7 @@
 "use client";
 
 import { ActionIcon, Badge, Group, Paper, ScrollArea, Table, Text, Tooltip } from "@mantine/core";
-import { IconMailForward, IconPlayerPause, IconPlayerPlay } from "@tabler/icons-react";
+import { IconMailForward, IconPlayerPause, IconPlayerPlay, IconUserCog } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { AccountListItem } from "@/entities/account";
 import { Venue } from "@/entities/venue";
@@ -11,10 +11,11 @@ interface AccountsTableProps {
     venues: Venue[];
     onResend: (account: AccountListItem) => void;
     onToggleActive: (account: AccountListItem) => void;
+    onEditRoles: (account: AccountListItem) => void;
     pendingBusinessId: string | null;
 }
 
-export function AccountsTable({ accounts, venues, onResend, onToggleActive, pendingBusinessId }: AccountsTableProps) {
+export function AccountsTable({ accounts, venues, onResend, onToggleActive, onEditRoles, pendingBusinessId }: AccountsTableProps) {
     const t = useTranslations("accountManagement");
     // Reuses the existing organization.roles.* keys rather than duplicating "Advertiser"/
     // "Media Owner" strings under a new namespace.
@@ -90,7 +91,7 @@ export function AccountsTable({ accounts, venues, onResend, onToggleActive, pend
                                                 <Text c="dimmed">—</Text>
                                             )}
                                         </Table.Td>
-                                        <Table.Td>
+                                        <Table.Td style={{ whiteSpace: "nowrap" }}>
                                             <Badge color={account.active ? "green" : "red"} variant="light">
                                                 {account.active ? t("status.active") : t("status.inactive")}
                                             </Badge>
@@ -100,6 +101,16 @@ export function AccountsTable({ accounts, venues, onResend, onToggleActive, pend
                                         </Table.Td>
                                         <Table.Td>
                                             <Group gap="xs">
+                                                <Tooltip label={t("actions.editRoles")}>
+                                                    <ActionIcon
+                                                        variant="subtle"
+                                                        color="grape"
+                                                        loading={isPending}
+                                                        onClick={() => onEditRoles(account)}
+                                                    >
+                                                        <IconUserCog size={18} stroke={1.5} />
+                                                    </ActionIcon>
+                                                </Tooltip>
                                                 <Tooltip label={t("actions.resend")}>
                                                     <ActionIcon
                                                         variant="subtle"

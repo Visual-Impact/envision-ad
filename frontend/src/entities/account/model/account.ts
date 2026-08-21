@@ -56,3 +56,22 @@ export interface AccountListPageResponse {
     number: number;
     size: number;
 }
+
+// Mirrors UpdateRolesResponseModel — response for
+// PATCH /admin/accounts/{businessId}/roles. warnings is non-empty when the role
+// change committed but resyncing one or more employees' Auth0 roles failed —
+// retrying the same PATCH is safe and re-applies the full target state.
+export interface UpdateRolesResponseDTO {
+    business: AccountBusinessResponseDTO;
+    warnings: string[];
+}
+
+// Mirrors RoleRemovalEligibilityResponseModel — read-only precheck for the roles-edit
+// UI, called before the admin tries to save so the modal can gray out the save action
+// and explain why instead of surfacing the block only after a failed PATCH. `true`
+// means "removing this role right now would succeed" — it says nothing about whether
+// the business currently holds the role at all.
+export interface RoleRemovalEligibilityDTO {
+    mediaOwnerRemovable: boolean;
+    advertiserRemovable: boolean;
+}

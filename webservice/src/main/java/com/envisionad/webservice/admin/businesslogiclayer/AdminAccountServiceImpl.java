@@ -4,6 +4,8 @@ import com.envisionad.webservice.admin.exceptions.DuplicateAccountException;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountListItemModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.UpdateRolesResponseModel;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
@@ -11,13 +13,19 @@ import com.envisionad.webservice.business.dataaccesslayer.Employee;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
 import com.envisionad.webservice.business.dataaccesslayer.Roles;
+import com.envisionad.webservice.business.exceptions.AdvertiserRoleRemovalBlockedException;
+import com.envisionad.webservice.business.exceptions.BadBusinessRequestException;
 import com.envisionad.webservice.business.exceptions.BusinessNotFoundException;
 import com.envisionad.webservice.business.exceptions.DuplicateBusinessNameException;
+import com.envisionad.webservice.business.exceptions.MediaOwnerRoleRemovalBlockedException;
 import com.envisionad.webservice.business.mappinglayer.BusinessMapper;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel;
 import com.envisionad.webservice.business.utils.Validator;
 import com.envisionad.webservice.config.Auth0Roles;
 import com.envisionad.webservice.config.Auth0Service;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,16 +55,30 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     @Value("${app.base.url}")
     private String appBaseUrl;
 
+    /** The "live" bundle-subscription statuses this service blocks role removal on — matches the
+     * set every other guard in this codebase uses (e.g. AdCampaignServiceImpl, ProofOfDisplayService),
+     * not the wider INCOMPLETE-inclusive set BundleSubscriptionStatus's javadoc describes for the
+     * duplicate-subscription unique index. INCOMPLETE means checkout was started but never
+     * confirmed by Stripe — not a live commercial commitment yet. */
+    private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
+            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
+
     private final BusinessRepository businessRepository;
     private final EmployeeRepository employeeRepository;
+    private final BundleSubscriptionRepository bundleSubscriptionRepository;
+    private final BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
     private final BusinessMapper businessMapper;
     private final Auth0Service auth0Service;
     private final EmailService emailService;
 
     public AdminAccountServiceImpl(BusinessRepository businessRepository, EmployeeRepository employeeRepository,
+            BundleSubscriptionRepository bundleSubscriptionRepository,
+            BundleSubscriptionItemRepository bundleSubscriptionItemRepository,
             BusinessMapper businessMapper, Auth0Service auth0Service, EmailService emailService) {
         this.businessRepository = businessRepository;
         this.employeeRepository = employeeRepository;
+        this.bundleSubscriptionRepository = bundleSubscriptionRepository;
+        this.bundleSubscriptionItemRepository = bundleSubscriptionItemRepository;
         this.businessMapper = businessMapper;
         this.auth0Service = auth0Service;
         this.emailService = emailService;
@@ -145,6 +167,128 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         auth0Service.setUserBlocked(business.getOwnerId(), !active);
 
         return businessMapper.toResponse(business);
+    }
+
+    /**
+     * PATCH /api/v1/admin/accounts/{businessId}/roles. Replaces the client-facing
+     * PUT /businesses/{businessId} as the only way a business's MEDIA_OWNER/ADVERTISER
+     * flags can change post-creation — that endpoint used to allow this too (any
+     * employee with update:business, no dependent-data checks, no Auth0 resync); it now
+     * always preserves the business's existing roles regardless of payload (see
+     * BusinessServiceImpl.updateBusinessById).
+     * <p>
+     * Removing a role blocks on live commercial commitment, not mere existence — see
+     * {@link MediaOwnerRoleRemovalBlockedException} and
+     * {@link AdvertiserRoleRemovalBlockedException} for exactly what's checked and why.
+     * Adding a role has no blockers. Dropping to zero roles is rejected the same way
+     * account creation already rejects it (Validator.validateRoles's rule) — deactivation
+     * (PATCH .../active) is the intended operation for "this account shouldn't function
+     * at all," not an empty roles set.
+     */
+    @Override
+    @Transactional
+    public UpdateRolesResponseModel updateRoles(String businessId, Roles requestedRoles) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null)
+            throw new BusinessNotFoundException(businessId);
+
+        if (!requestedRoles.isMediaOwner() && !requestedRoles.isAdvertiser())
+            throw new BadBusinessRequestException(
+                    "A business must hold at least one role. To disable this account entirely, "
+                            + "use PATCH /api/v1/admin/accounts/" + businessId + "/active instead.");
+
+        Roles currentRoles = business.getRoles();
+
+        if (currentRoles.isMediaOwner() && !requestedRoles.isMediaOwner() && hasLiveMediaOwnerSubscription(businessId))
+            throw new MediaOwnerRoleRemovalBlockedException(businessId);
+
+        if (currentRoles.isAdvertiser() && !requestedRoles.isAdvertiser()) {
+            long liveSubscriptionCount = countLiveAdvertiserSubscriptions(businessId);
+            if (liveSubscriptionCount > 0)
+                throw new AdvertiserRoleRemovalBlockedException(businessId, liveSubscriptionCount);
+        }
+
+        currentRoles.setMediaOwner(requestedRoles.isMediaOwner());
+        currentRoles.setAdvertiser(requestedRoles.isAdvertiser());
+        businessRepository.save(business);
+
+        List<String> warnings = new ArrayList<>();
+        resyncEmployeeAuth0Roles(businessId, currentRoles, warnings);
+
+        UpdateRolesResponseModel response = new UpdateRolesResponseModel();
+        response.setBusiness(businessMapper.toResponse(business));
+        response.setWarnings(warnings);
+        return response;
+    }
+
+    /**
+     * GET /api/v1/admin/accounts/{businessId}/roles/removal-eligibility — read-only
+     * precheck for the roles-edit UI. Lets the admin modal know *before* the admin hits
+     * save whether removing a currently-held role would be blocked, so the UI can gray
+     * out the save action and explain why, instead of the admin discovering the block
+     * only after submitting and getting a 409. Uses the exact same guard predicates as
+     * {@link #updateRoles}, so this can never say "removable" when updateRoles would
+     * then reject it.
+     */
+    @Override
+    public RoleRemovalEligibilityResponseModel getRoleRemovalEligibility(String businessId) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null)
+            throw new BusinessNotFoundException(businessId);
+
+        Roles roles = business.getRoles();
+        boolean mediaOwnerRemovable = !roles.isMediaOwner() || !hasLiveMediaOwnerSubscription(businessId);
+        boolean advertiserRemovable = !roles.isAdvertiser() || countLiveAdvertiserSubscriptions(businessId) == 0;
+
+        RoleRemovalEligibilityResponseModel response = new RoleRemovalEligibilityResponseModel();
+        response.setMediaOwnerRemovable(mediaOwnerRemovable);
+        response.setAdvertiserRemovable(advertiserRemovable);
+        return response;
+    }
+
+    private boolean hasLiveMediaOwnerSubscription(String businessId) {
+        return bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(
+                businessId, LIVE_SUBSCRIPTION_STATUSES);
+    }
+
+    private long countLiveAdvertiserSubscriptions(String businessId) {
+        return bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(businessId, LIVE_SUBSCRIPTION_STATUSES);
+    }
+
+    /**
+     * Fans the business's new role set out to every employee's Auth0 roles — not just
+     * the owner's. Auth0 role grants are per-user, assigned at invite-accept time from
+     * whatever the business's roles were *then* (BusinessServiceImpl.addBusinessEmployee);
+     * nothing re-syncs them later, so a business-level role change has to walk every
+     * Employee row itself.
+     * <p>
+     * Always re-applies the full target state (assign what should be held, remove what
+     * shouldn't) rather than computing a diff from the old roles — both Auth0 calls are
+     * idempotent, so this makes the whole operation safe to retry after a partial
+     * failure without tracking which employees already got resynced.
+     */
+    private void resyncEmployeeAuth0Roles(String businessId, Roles newRoles, List<String> warnings) {
+        List<String> toAssign = new ArrayList<>();
+        List<String> toRemove = new ArrayList<>();
+        (newRoles.isAdvertiser() ? toAssign : toRemove).add(Auth0Roles.ADVERTISER);
+        (newRoles.isMediaOwner() ? toAssign : toRemove).add(Auth0Roles.MEDIA_OWNER);
+
+        boolean anyFailed = false;
+        for (Employee employee : employeeRepository.findAllByBusinessId_BusinessId(businessId)) {
+            try {
+                if (!toAssign.isEmpty())
+                    auth0Service.assignRoles(employee.getUserId(), toAssign);
+                if (!toRemove.isEmpty())
+                    auth0Service.removeRoles(employee.getUserId(), toRemove);
+            } catch (RuntimeException e) {
+                log.warn("Auth0 role resync failed for employee {} of business {}",
+                        employee.getUserId(), businessId, e);
+                anyFailed = true;
+            }
+        }
+        if (anyFailed)
+            warnings.add("Role sync may not have completed for one or more employees. "
+                    + "Retrying this same role update is safe and will re-sync everyone.");
     }
 
     @Override

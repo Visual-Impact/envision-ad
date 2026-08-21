@@ -284,6 +284,26 @@ public class Auth0Service {
     }
 
     /**
+     * Revokes specific Auth0 roles from a user, leaving any other roles they hold
+     * untouched. Counterpart to {@link #assignRoles}, needed by the admin
+     * role-change endpoint (PATCH /api/v1/admin/accounts/{businessId}/roles): flipping
+     * a business's MEDIA_OWNER/ADVERTISER flag off must revoke that role from every
+     * employee, not just stop granting it to new ones.
+     */
+    public void removeRoles(String userId, List<String> roleIds) {
+        URI uri = UriComponentsBuilder.fromUriString(managementBaseUrl)
+                .pathSegment("api", "v2", "users", userId, "roles")
+                .build()
+                .toUri();
+        Map<String, Object> body = Map.of("roles", roleIds);
+        try {
+            exchangeWithTokenRetry(HttpMethod.DELETE, uri, body, new ParameterizedTypeReference<Void>() {});
+        } catch (RestClientException e) {
+            throw new Auth0ServiceUnavailableException("Failed to remove roles from Auth0 user '" + userId + "'", e);
+        }
+    }
+
+    /**
      * Issues a one-time password-change link (brief §2.4) — this is what makes "must
      * change password on first login" true by construction, since the user has no
      * usable password until they follow this link.

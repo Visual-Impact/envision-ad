@@ -4,6 +4,8 @@ import com.envisionad.webservice.admin.exceptions.DuplicateAccountException;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountListItemModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.UpdateRolesResponseModel;
 import com.envisionad.webservice.business.dataaccesslayer.Address;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
@@ -11,14 +13,19 @@ import com.envisionad.webservice.business.dataaccesslayer.Employee;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
 import com.envisionad.webservice.business.dataaccesslayer.OrganizationSize;
 import com.envisionad.webservice.business.dataaccesslayer.Roles;
+import com.envisionad.webservice.business.exceptions.AdvertiserRoleRemovalBlockedException;
+import com.envisionad.webservice.business.exceptions.BadBusinessRequestException;
 import com.envisionad.webservice.business.exceptions.BusinessNotFoundException;
 import com.envisionad.webservice.business.exceptions.DuplicateBusinessNameException;
+import com.envisionad.webservice.business.exceptions.MediaOwnerRoleRemovalBlockedException;
 import com.envisionad.webservice.business.mappinglayer.BusinessMapper;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessRequestModel;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel;
 import com.envisionad.webservice.config.Auth0Roles;
 import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.config.exceptions.Auth0ServiceUnavailableException;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
+import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.utils.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +61,12 @@ class AdminAccountServiceImplUnitTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+
+    @Mock
+    private BundleSubscriptionRepository bundleSubscriptionRepository;
+
+    @Mock
+    private BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
 
     @Mock
     private BusinessMapper businessMapper;
@@ -331,5 +344,216 @@ class AdminAccountServiceImplUnitTest {
 
         assertEquals(1, result.getContent().size());
         assertNull(result.getContent().get(0).getOwnerEmail());
+    }
+
+    // =========================================================================
+    // updateRoles — admin-only role change
+    // =========================================================================
+
+    private Business businessWithRoles(boolean advertiser, boolean mediaOwner) {
+        Business business = new Business();
+        business.setBusinessId(new com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier(BUSINESS_ID));
+        business.setOwnerId(USER_ID);
+        Roles roles = new Roles();
+        roles.setAdvertiser(advertiser);
+        roles.setMediaOwner(mediaOwner);
+        business.setRoles(roles);
+        return business;
+    }
+
+    private Roles rolesOf(boolean advertiser, boolean mediaOwner) {
+        Roles roles = new Roles();
+        roles.setAdvertiser(advertiser);
+        roles.setMediaOwner(mediaOwner);
+        return roles;
+    }
+
+    private Employee employee(String userId) {
+        Employee employee = new Employee();
+        employee.setUserId(userId);
+        return employee;
+    }
+
+    @Test
+    void whenUpdateRoles_addingMediaOwner_thenNoBlockersAreCheckedAndEmployeesAreResynced() {
+        Business business = businessWithRoles(true, false);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(employeeRepository.findAllByBusinessId_BusinessId(BUSINESS_ID))
+                .thenReturn(List.of(employee(USER_ID), employee("auth0|colleague")));
+        when(businessMapper.toResponse(business)).thenReturn(new BusinessResponseModel());
+
+        UpdateRolesResponseModel result = adminAccountService.updateRoles(BUSINESS_ID, rolesOf(true, true));
+
+        assertTrue(result.getWarnings().isEmpty());
+        assertTrue(business.getRoles().isMediaOwner());
+        verify(businessRepository).save(business);
+        verify(bundleSubscriptionItemRepository, never())
+                .existsLiveSubscriptionForMediaOwnerBusinessId(anyString(), any());
+        verify(auth0Service).assignRoles(USER_ID, List.of(Auth0Roles.ADVERTISER, Auth0Roles.MEDIA_OWNER));
+        verify(auth0Service).assignRoles("auth0|colleague", List.of(Auth0Roles.ADVERTISER, Auth0Roles.MEDIA_OWNER));
+        verify(auth0Service, never()).removeRoles(anyString(), any());
+    }
+
+    @Test
+    void whenUpdateRoles_removingMediaOwner_andNoLiveSubscription_thenSucceeds() {
+        Business business = businessWithRoles(true, true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(eq(BUSINESS_ID), any()))
+                .thenReturn(false);
+        when(employeeRepository.findAllByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(List.of(employee(USER_ID)));
+        when(businessMapper.toResponse(business)).thenReturn(new BusinessResponseModel());
+
+        adminAccountService.updateRoles(BUSINESS_ID, rolesOf(true, false));
+
+        assertFalse(business.getRoles().isMediaOwner());
+        verify(auth0Service).removeRoles(USER_ID, List.of(Auth0Roles.MEDIA_OWNER));
+    }
+
+    @Test
+    void whenUpdateRoles_removingMediaOwner_andLiveSubscriptionExists_thenBlocksAndDoesNotSave() {
+        Business business = businessWithRoles(true, true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(eq(BUSINESS_ID), any()))
+                .thenReturn(true);
+
+        assertThrows(MediaOwnerRoleRemovalBlockedException.class,
+                () -> adminAccountService.updateRoles(BUSINESS_ID, rolesOf(true, false)));
+
+        verify(businessRepository, never()).save(any());
+        verify(auth0Service, never()).removeRoles(anyString(), any());
+    }
+
+    @Test
+    void whenUpdateRoles_removingAdvertiser_andNoLiveSubscription_thenSucceeds() {
+        Business business = businessWithRoles(true, true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(BUSINESS_ID), any()))
+                .thenReturn(0L);
+        when(employeeRepository.findAllByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(List.of(employee(USER_ID)));
+        when(businessMapper.toResponse(business)).thenReturn(new BusinessResponseModel());
+
+        adminAccountService.updateRoles(BUSINESS_ID, rolesOf(false, true));
+
+        assertFalse(business.getRoles().isAdvertiser());
+        verify(auth0Service).removeRoles(USER_ID, List.of(Auth0Roles.ADVERTISER));
+    }
+
+    @Test
+    void whenUpdateRoles_removingAdvertiser_andLiveSubscriptionExists_thenBlocksAndDoesNotSave() {
+        Business business = businessWithRoles(true, true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(BUSINESS_ID), any()))
+                .thenReturn(3L);
+
+        assertThrows(AdvertiserRoleRemovalBlockedException.class,
+                () -> adminAccountService.updateRoles(BUSINESS_ID, rolesOf(false, true)));
+
+        verify(businessRepository, never()).save(any());
+    }
+
+    @Test
+    void whenUpdateRoles_droppingBothRoles_thenThrowsBadBusinessRequestAndPointsAtActiveEndpoint() {
+        Business business = businessWithRoles(true, true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+
+        BadBusinessRequestException ex = assertThrows(BadBusinessRequestException.class,
+                () -> adminAccountService.updateRoles(BUSINESS_ID, rolesOf(false, false)));
+
+        assertTrue(ex.getMessage().contains("/active"));
+        verify(businessRepository, never()).save(any());
+        verify(bundleSubscriptionItemRepository, never())
+                .existsLiveSubscriptionForMediaOwnerBusinessId(anyString(), any());
+        verify(bundleSubscriptionRepository, never()).countByAdvertiserBusinessIdAndStatusIn(anyString(), any());
+    }
+
+    @Test
+    void whenUpdateRoles_andBusinessNotFound_thenThrowsBusinessNotFoundException() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(null);
+
+        assertThrows(BusinessNotFoundException.class,
+                () -> adminAccountService.updateRoles(BUSINESS_ID, rolesOf(true, false)));
+    }
+
+    @Test
+    void whenUpdateRoles_andOneEmployeesAuth0ResyncFails_thenSavesAnywayAndReturnsWarning() {
+        Business business = businessWithRoles(true, false);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(employeeRepository.findAllByBusinessId_BusinessId(BUSINESS_ID))
+                .thenReturn(List.of(employee(USER_ID), employee("auth0|colleague")));
+        when(businessMapper.toResponse(business)).thenReturn(new BusinessResponseModel());
+        doThrow(new Auth0ServiceUnavailableException("boom", null))
+                .when(auth0Service).assignRoles(eq("auth0|colleague"), any());
+
+        UpdateRolesResponseModel result = adminAccountService.updateRoles(BUSINESS_ID, rolesOf(true, true));
+
+        assertFalse(result.getWarnings().isEmpty());
+        verify(businessRepository).save(business);
+    }
+
+    // =========================================================================
+    // getRoleRemovalEligibility — precheck for the roles-edit UI
+    // =========================================================================
+
+    @Test
+    void whenGetRoleRemovalEligibility_andBusinessNotFound_thenThrowsBusinessNotFoundException() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(null);
+
+        assertThrows(BusinessNotFoundException.class,
+                () -> adminAccountService.getRoleRemovalEligibility(BUSINESS_ID));
+    }
+
+    @Test
+    void whenGetRoleRemovalEligibility_andNoLiveSubscriptions_thenBothRolesAreRemovable() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(businessWithRoles(true, true));
+        when(bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(eq(BUSINESS_ID), any()))
+                .thenReturn(false);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(BUSINESS_ID), any()))
+                .thenReturn(0L);
+
+        RoleRemovalEligibilityResponseModel result = adminAccountService.getRoleRemovalEligibility(BUSINESS_ID);
+
+        assertTrue(result.isMediaOwnerRemovable());
+        assertTrue(result.isAdvertiserRemovable());
+    }
+
+    @Test
+    void whenGetRoleRemovalEligibility_andLiveMediaOwnerSubscriptionExists_thenOnlyMediaOwnerIsNotRemovable() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(businessWithRoles(true, true));
+        when(bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(eq(BUSINESS_ID), any()))
+                .thenReturn(true);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(BUSINESS_ID), any()))
+                .thenReturn(0L);
+
+        RoleRemovalEligibilityResponseModel result = adminAccountService.getRoleRemovalEligibility(BUSINESS_ID);
+
+        assertFalse(result.isMediaOwnerRemovable());
+        assertTrue(result.isAdvertiserRemovable());
+    }
+
+    @Test
+    void whenGetRoleRemovalEligibility_andLiveAdvertiserSubscriptionExists_thenOnlyAdvertiserIsNotRemovable() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(businessWithRoles(true, true));
+        when(bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(eq(BUSINESS_ID), any()))
+                .thenReturn(false);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(BUSINESS_ID), any()))
+                .thenReturn(2L);
+
+        RoleRemovalEligibilityResponseModel result = adminAccountService.getRoleRemovalEligibility(BUSINESS_ID);
+
+        assertTrue(result.isMediaOwnerRemovable());
+        assertFalse(result.isAdvertiserRemovable());
+    }
+
+    @Test
+    void whenGetRoleRemovalEligibility_andRoleNotHeld_thenItIsTriviallyRemovableWithoutQueryingSubscriptions() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(businessWithRoles(false, false));
+
+        RoleRemovalEligibilityResponseModel result = adminAccountService.getRoleRemovalEligibility(BUSINESS_ID);
+
+        assertTrue(result.isMediaOwnerRemovable());
+        assertTrue(result.isAdvertiserRemovable());
+        verify(bundleSubscriptionItemRepository, never())
+                .existsLiveSubscriptionForMediaOwnerBusinessId(anyString(), any());
+        verify(bundleSubscriptionRepository, never()).countByAdvertiserBusinessIdAndStatusIn(anyString(), any());
     }
 }

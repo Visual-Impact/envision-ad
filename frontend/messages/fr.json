@@ -536,36 +536,17 @@
         "deleteInvitationFailed": "Échec de l’annulation de l’invitation."
       }
     },
-    "verificationHistory": "Historique des vérifications",
-    "requestVerification": "Demander une vérification",
-    "showOriginal": "Afficher l'original",
-    "showTranslation": "Afficher la traduction",
-    "verificationTable": {
-      "noHistory": "Aucun historique de demande de vérification trouvé.",
-      "requestDate": "Date de la demande",
-      "status": "Statut",
-      "reason": "Raison"
-    },
-    "verificationStatus": {
-      "pending": "En attente",
-      "approved": "Approuvée",
-      "denied": "Refusée"
-    },
     "modal": {
-      "verification": "Demande de vérification",
-      "verificationMessage": "Avant de demander une vérification, assurez-vous que toutes les informations de l’organisation sont exactes.",
       "confirm": "Confirmer",
       "cancel": "Annuler"
     },
     "success": {
       "title": "Succès",
-      "verificationRequest": "La demande de vérification a été envoyée.",
       "update": "Les informations de l’organisation ont été mises à jour."
     },
     "errors": {
       "title": "Erreur",
       "loadFailed": "Échec du chargement de l’organisation pour modification.",
-      "verificationRequestFailed": "Échec de la demande de vérification.",
       "updateFailed": "Échec de la mise à jour des informations de l’organisation."
     }
   },
@@ -1625,7 +1606,17 @@
     "actions": {
       "resend": "Renvoyer les identifiants",
       "deactivate": "Désactiver",
-      "reactivate": "Réactiver"
+      "reactivate": "Réactiver",
+      "editRoles": "Modifier les rôles"
+    },
+    "rolesModal": {
+      "title": "Modifier les rôles — {business}",
+      "blockedDescription": "Impossible de retirer {roles} — cette entreprise a encore un abonnement actif qui y est lié. Annulez-le d'abord.",
+      "cancel": "Annuler",
+      "save": "Enregistrer les rôles",
+      "errors": {
+        "roleRequired": "Une entreprise doit détenir au moins un rôle."
+      }
     },
     "form": {
       "createTitle": "Créer un compte client",
@@ -1653,7 +1644,11 @@
       "resendFailed": "Échec du renvoi des identifiants.",
       "statusUpdated": "Statut du compte mis à jour.",
       "statusUpdateFailed": "Échec de la mise à jour du statut du compte.",
-      "loadFailed": "Échec du chargement des comptes."
+      "loadFailed": "Échec du chargement des comptes.",
+      "rolesUpdated": "Rôles mis à jour.",
+      "rolesUpdatedWithWarnings": "Rôles mis à jour, mais la synchronisation des permissions d'un ou plusieurs employés a peut-être échoué. Rouvrez et enregistrez de nouveau pour réessayer.",
+      "rolesUpdateBlocked": "Impossible de retirer ce rôle — l'entreprise a encore un abonnement actif qui y est lié. Annulez-le d'abord.",
+      "rolesUpdateFailed": "Échec de la mise à jour des rôles."
     }
   },
   "bundleManagement": {

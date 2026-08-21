@@ -4,7 +4,10 @@ import com.envisionad.webservice.admin.businesslogiclayer.AdminAccountService;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountListItemModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.SetActiveRequestModel;
+import com.envisionad.webservice.admin.presentationlayer.models.UpdateRolesResponseModel;
+import com.envisionad.webservice.business.dataaccesslayer.Roles;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -48,5 +51,19 @@ public class AdminAccountController {
     public ResponseEntity<BusinessResponseModel> setActive(@PathVariable String businessId,
             @RequestBody SetActiveRequestModel request) {
         return ResponseEntity.ok(adminAccountService.setActive(businessId, request.isActive()));
+    }
+
+    @PatchMapping("/{businessId}/roles")
+    @PreAuthorize("hasAuthority('manage:accounts')")
+    public ResponseEntity<UpdateRolesResponseModel> updateRoles(@PathVariable String businessId,
+            @RequestBody Roles requestedRoles) {
+        return ResponseEntity.ok(adminAccountService.updateRoles(businessId, requestedRoles));
+    }
+
+    @GetMapping("/{businessId}/roles/removal-eligibility")
+    @PreAuthorize("hasAuthority('manage:accounts')")
+    public ResponseEntity<RoleRemovalEligibilityResponseModel> getRoleRemovalEligibility(
+            @PathVariable String businessId) {
+        return ResponseEntity.ok(adminAccountService.getRoleRemovalEligibility(businessId));
     }
 }

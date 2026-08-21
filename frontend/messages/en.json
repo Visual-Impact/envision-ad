@@ -535,36 +535,17 @@
         "deleteInvitationFailed": "Failed to cancel invitation."
       }
     },
-    "verificationHistory": "Verification History",
-    "requestVerification": "Request Verification",
-    "showOriginal": "Show Original",
-    "showTranslation": "Show Translation",
-    "verificationTable": {
-      "noHistory": "No verification request history found.",
-      "requestDate": "Request Date",
-      "status": "Status",
-      "reason": "Reason"
-    },
-    "verificationStatus": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "denied": "Denied"
-    },
     "modal": {
-      "verification": "Request Verification",
-      "verificationMessage": "Before requesting a verification, please ensure that all provided organization details are accurate.",
       "confirm": "Confirm",
       "cancel": "Cancel"
     },
     "success": {
       "title": "Success",
-      "verificationRequest": "Verification request has been sent.",
       "update": "Organization details has been updated."
     },
     "errors": {
       "title": "Error",
       "loadFailed": "Failed to load organization for editing.",
-      "verificationRequestFailed": "Failed to request verification.",
       "updateFailed": "Failed to update organization details."
     }
   },
@@ -1625,7 +1606,17 @@
     "actions": {
       "resend": "Resend Credentials",
       "deactivate": "Deactivate",
-      "reactivate": "Reactivate"
+      "reactivate": "Reactivate",
+      "editRoles": "Edit Roles"
+    },
+    "rolesModal": {
+      "title": "Edit Roles — {business}",
+      "blockedDescription": "Can't remove {roles} — this business has a live subscription tied to it. Cancel it first.",
+      "cancel": "Cancel",
+      "save": "Save Roles",
+      "errors": {
+        "roleRequired": "A business must hold at least one role."
+      }
     },
     "form": {
       "createTitle": "Create Client Account",
@@ -1653,7 +1644,11 @@
       "resendFailed": "Failed to resend credentials.",
       "statusUpdated": "Account status updated.",
       "statusUpdateFailed": "Failed to update account status.",
-      "loadFailed": "Failed to load accounts."
+      "loadFailed": "Failed to load accounts.",
+      "rolesUpdated": "Roles updated.",
+      "rolesUpdatedWithWarnings": "Roles updated, but syncing one or more employees' permissions may have failed. Reopen and save again to retry.",
+      "rolesUpdateBlocked": "Can't remove that role — the business still has a live subscription tied to it. Cancel it first.",
+      "rolesUpdateFailed": "Failed to update roles."
     }
   },
   "bundleManagement": {
