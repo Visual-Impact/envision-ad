@@ -77,6 +77,7 @@
       "venues": "Venue Tags",
       "bundles": "Bundles",
       "coupons": "Coupons",
+      "accounts": "Accounts",
       "settings": "Settings"
     }
   },
@@ -113,7 +114,7 @@
     },
     "header": {
       "title": "Get started",
-      "description": "Create your organization or ask your organization owner to send you an invitation."
+      "description": "Complete the steps below to finish setting up your account."
     },
     "roles": {
       "mediaOwner": "Media Owner",
@@ -189,6 +190,10 @@
     "errors": {
       "title": "Error",
       "createFailed": "Failed to create organization."
+    },
+    "noOrganization": {
+      "title": "No business linked yet",
+      "description": "Your account isn't linked to a business yet. If you just booked a meeting with us, this can take a few minutes to set up — otherwise, please contact your Envision Ad representative."
     }
   },
   "mediaOwnerMetrics": {
@@ -495,6 +500,9 @@
         "cancel": "Cancel",
         "email": "Email",
         "placeholder": "email@email.com",
+        "name": "Full Name (optional)",
+        "namePlaceholder": "Jane Doe",
+        "nameHint": "Only used if this person doesn't have an Envision Ad account yet.",
         "errors": {
           "error": "Error",
           "validationError": "Missing or Invalid information.",
@@ -527,36 +535,17 @@
         "deleteInvitationFailed": "Failed to cancel invitation."
       }
     },
-    "verificationHistory": "Verification History",
-    "requestVerification": "Request Verification",
-    "showOriginal": "Show Original",
-    "showTranslation": "Show Translation",
-    "verificationTable": {
-      "noHistory": "No verification request history found.",
-      "requestDate": "Request Date",
-      "status": "Status",
-      "reason": "Reason"
-    },
-    "verificationStatus": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "denied": "Denied"
-    },
     "modal": {
-      "verification": "Request Verification",
-      "verificationMessage": "Before requesting a verification, please ensure that all provided organization details are accurate.",
       "confirm": "Confirm",
       "cancel": "Cancel"
     },
     "success": {
       "title": "Success",
-      "verificationRequest": "Verification request has been sent.",
       "update": "Organization details has been updated."
     },
     "errors": {
       "title": "Error",
       "loadFailed": "Failed to load organization for editing.",
-      "verificationRequestFailed": "Failed to request verification.",
       "updateFailed": "Failed to update organization details."
     }
   },
@@ -571,6 +560,10 @@
       "title": "You're in!",
       "message": "You've successfully joined the organization!",
       "redirecting": "Redirecting to dashboard..."
+    },
+    "checkEmail": {
+      "title": "Almost there!",
+      "message": "We've sent you an email with a link to set your password. Once that's done, you'll be all set to log in."
     },
     "error": {
       "title": "Something went wrong",
@@ -1591,6 +1584,71 @@
       "createFailed": "Failed to create venue tag.",
       "updateFailed": "Failed to update venue tag.",
       "deleteFailed": "Failed to delete venue tag."
+    }
+  },
+  "accountManagement": {
+    "title": "Client Accounts",
+    "newAccount": "New Account",
+    "table": {
+      "business": "Business",
+      "owner": "Owner",
+      "roles": "Roles",
+      "businessType": "Business Type",
+      "status": "Status",
+      "dateCreated": "Created",
+      "actions": "Actions",
+      "noAccounts": "No client accounts yet. Create the first one to get started."
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "resend": "Resend Credentials",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate",
+      "editRoles": "Edit Roles"
+    },
+    "rolesModal": {
+      "title": "Edit Roles — {business}",
+      "blockedDescription": "Can't remove {roles} — this business has a live subscription tied to it. Cancel it first.",
+      "cancel": "Cancel",
+      "save": "Save Roles",
+      "errors": {
+        "roleRequired": "A business must hold at least one role."
+      }
+    },
+    "form": {
+      "createTitle": "Create Client Account",
+      "emailLabel": "Email",
+      "emailPlaceholder": "client@example.com",
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Jane Doe",
+      "businessTypeLabel": "Business Type (optional)",
+      "businessTypePlaceholder": "Select a business type",
+      "cancel": "Cancel",
+      "submit": "Create Account",
+      "errors": {
+        "validationError": "Missing or invalid information.",
+        "emailRequired": "Email is required.",
+        "emailInvalid": "Invalid email address.",
+        "nameRequired": "Full name is required."
+      }
+    },
+    "notifications": {
+      "created": "Account created — credentials sent.",
+      "createdWithWarnings": "Account created, but the welcome email may not have sent. Use Resend Credentials to retry.",
+      "createFailed": "Failed to create account.",
+      "duplicateEmail": "An account with this email already exists.",
+      "resent": "Credentials resent.",
+      "resendFailed": "Failed to resend credentials.",
+      "statusUpdated": "Account status updated.",
+      "statusUpdateFailed": "Failed to update account status.",
+      "loadFailed": "Failed to load accounts.",
+      "rolesUpdated": "Roles updated.",
+      "rolesUpdatedWithWarnings": "Roles updated, but syncing one or more employees' permissions may have failed. Reopen and save again to retry.",
+      "rolesUpdateBlocked": "Can't remove that role — the business still has a live subscription tied to it. Cancel it first.",
+      "rolesUpdateFailed": "Failed to update roles."
     }
   },
   "bundleManagement": {

@@ -16,6 +16,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | undefined> = {
     '/dashboard/admin/venues': 'manage:venues',
     '/dashboard/admin/bundles': 'manage:bundles',
     '/dashboard/admin/coupons': 'manage:coupons',
+    '/dashboard/admin/accounts': 'manage:accounts',
     '/dashboard/admin/settings': 'manage:settings',
 
     '/dashboard/organization/overview': undefined,

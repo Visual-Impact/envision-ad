@@ -26,6 +26,10 @@ public class Invitation {
     @NotNull
     private String email;
 
+    // Optional — only used to provision a new Auth0 user if the invitee still has no
+    // account when the invitation is accepted (P5 FR 3.2).
+    private String name;
+
     private String token;
 
     @CreationTimestamp

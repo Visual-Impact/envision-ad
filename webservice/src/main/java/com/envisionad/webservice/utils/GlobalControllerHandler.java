@@ -1,5 +1,6 @@
 package com.envisionad.webservice.utils;
 
+import com.envisionad.webservice.admin.exceptions.DuplicateAccountException;
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.bundle.exceptions.BundleHasActiveSubscriptionsException;
 import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaException;
@@ -48,10 +49,28 @@ public class GlobalControllerHandler {
         return createHttpErrorInfo(BAD_REQUEST, ex);
     }
 
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(DuplicateAccountException.class)
+    public HttpErrorInfo handleDuplicateAccountException(DuplicateAccountException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
     @ResponseStatus(BAD_REQUEST)
     @ExceptionHandler(BadBusinessRequestException.class)
     public HttpErrorInfo handleBadBusinessException(BadBusinessRequestException ex) {
         return createHttpErrorInfo(BAD_REQUEST, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(MediaOwnerRoleRemovalBlockedException.class)
+    public HttpErrorInfo handleMediaOwnerRoleRemovalBlockedException(MediaOwnerRoleRemovalBlockedException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(AdvertiserRoleRemovalBlockedException.class)
+    public HttpErrorInfo handleAdvertiserRoleRemovalBlockedException(AdvertiserRoleRemovalBlockedException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
     }
 
     @ResponseStatus(NOT_FOUND)
@@ -218,6 +237,12 @@ public class GlobalControllerHandler {
     @ExceptionHandler(NotAdvertiserException.class)
     public HttpErrorInfo handleNotAdvertiserException(NotAdvertiserException ex) {
         return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "NOT_ADVERTISER");
+    }
+
+    @ResponseStatus(FORBIDDEN)
+    @ExceptionHandler(BusinessNotVerifiedException.class)
+    public HttpErrorInfo handleBusinessNotVerifiedException(BusinessNotVerifiedException ex) {
+        return new HttpErrorInfo(FORBIDDEN, ex.getMessage(), "BUSINESS_NOT_VERIFIED");
     }
 
     @ResponseStatus(NOT_FOUND)

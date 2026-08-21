@@ -15,6 +15,7 @@ import {
     IconStack2,
     IconSettings,
     IconTicket,
+    IconUserPlus,
 } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { usePermissions } from "@/app/providers/PermissionProvider";
@@ -171,6 +172,15 @@ export default function SideBar() {
                 label={t("admin.coupons")}
                 icon={IconTicket}
                 active={!!pathname?.includes("/dashboard/admin/coupons")}
+            />
+        ),
+        permissions.includes("manage:accounts") && (
+            <SideBarLink
+                key="accounts"
+                href="/dashboard/admin/accounts"
+                label={t("admin.accounts")}
+                icon={IconUserPlus}
+                active={!!pathname?.includes("/dashboard/admin/accounts")}
             />
         ),
         permissions.includes("manage:settings") && (

@@ -47,6 +47,7 @@ auth0:
     audience: https://${AUTH0_DOMAIN:test.auth0.com}/api/v2/
     token-url: https://${AUTH0_MGMT_DOMAIN:test.auth0.com}/oauth/token
     base-url: https://${AUTH0_MGMT_DOMAIN:test.auth0.com}/
+    connection: ${AUTH0_DB_CONNECTION:Username-Password-Authentication}
 app:
   base:
     url: ${APP_BASE_URL:http://localhost:8080}

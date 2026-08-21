@@ -161,7 +161,8 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
                 .claim("scope", "read write")
                 .claim("permissions", List.of(
                         "readAll:verification",
-                        "update:verification"
+                        "update:verification",
+                        "manage:accounts"
                 ))
                 .build();
 
@@ -223,7 +224,7 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    void createBusiness_ShouldPersistAndReturnBusiness() {
+    void createBusiness_withManageAccountsPermission_shouldPersistAndReturnBusiness() {
         // Arrange
         BusinessRequestModel requestModel = new BusinessRequestModel();
         requestModel.setName("Integration Business");
@@ -242,12 +243,13 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
         roles.setMediaOwner(true);
         requestModel.setRoles(roles);
 
-        // Act & Assert
+        // Act & Assert — P5 FR 1.4: createBusiness is admin-only (manage:accounts) now,
+        // not "any authenticated user" — see createBusiness_withoutManageAccountsPermission_isForbidden.
         webTestClient.post()
                 .uri(BASE_URI_BUSINESSES)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .headers(headers -> headers.setBearerAuth("newUser-token"))
+                .headers(headers -> headers.setBearerAuth("admin-token"))
                 .body(BodyInserters.fromValue(requestModel))
                 .exchange()
                 .expectStatus().isCreated()
@@ -260,6 +262,39 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
                 .jsonPath("$.address.city").isEqualTo("Integration City");
 
         assertEquals(6, businessRepository.count());
+    }
+
+    @Test
+    void createBusiness_withoutManageAccountsPermission_isForbidden() {
+        BusinessRequestModel requestModel = new BusinessRequestModel();
+        requestModel.setName("Should Not Be Created");
+        requestModel.setOrganizationSize(OrganizationSize.MEDIUM);
+
+        Address address = new Address();
+        address.setStreet("Integration St");
+        address.setCity("Integration City");
+        address.setState("State");
+        address.setZipCode("00000");
+        address.setCountry("Country");
+        requestModel.setAddress(address);
+
+        Roles roles = new Roles();
+        roles.setAdvertiser(true);
+        requestModel.setRoles(roles);
+
+        // newUser-token is authenticated but holds no permissions at all — this is the
+        // exact case P5 closes off: an authenticated user with no manage:accounts can
+        // no longer self-register a business.
+        webTestClient.post()
+                .uri(BASE_URI_BUSINESSES)
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("newUser-token"))
+                .body(BodyInserters.fromValue(requestModel))
+                .exchange()
+                .expectStatus().isForbidden();
+
+        assertEquals(5, businessRepository.count());
     }
 
     @Test
@@ -554,7 +589,10 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
         String token = invitation.getToken();
         long employeeCountBefore = employeeRepository.count();
 
-        // Add employee using token
+        // Add employee using token — P5 FR 3.2: response is now the wrapped
+        // InvitationAcceptResponseModel ({status, employee}), not a bare EmployeeResponseModel.
+        // Auth0-touching branches (LOGIN_REQUIRED/PROVISIONED, no JWT) are covered by
+        // BusinessServiceUnitTest instead, same constraint as every other Auth0Service caller.
         webTestClient.post()
                 .uri(uriBuilder -> uriBuilder
                         .path(BASE_URI_BUSINESSES + "/{businessId}/employees")
@@ -566,9 +604,28 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody()
-                .jsonPath("$.employeeId").isNotEmpty();
+                .jsonPath("$.status").isEqualTo("ACCEPTED")
+                .jsonPath("$.employee.employeeId").isNotEmpty();
 
         assertEquals(employeeCountBefore + 1, employeeRepository.count());
+    }
+
+    @Test
+    void addEmployeeToBusiness_WithoutJwt_isAllowedThrough() {
+        // P5 FR 3.2: the endpoint is no longer @PreAuthorize("isAuthenticated()") — an
+        // anonymous caller with an invalid token still gets a normal 404, not a 401/403,
+        // confirming the security gate itself was actually lifted (not just that this
+        // particular request happens to succeed).
+        String businessId = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22";
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_BUSINESSES + "/{businessId}/employees")
+                        .queryParam("token", "not-a-real-token")
+                        .build(businessId))
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 
     @Test

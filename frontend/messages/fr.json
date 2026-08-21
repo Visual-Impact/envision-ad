@@ -77,6 +77,7 @@
       "venues": "Tags de lieu",
       "bundles": "Forfaits",
       "coupons": "Codes promo",
+      "accounts": "Comptes",
       "settings": "Paramètres"
     }
   },
@@ -113,7 +114,7 @@
     },
     "header": {
       "title": "Commencer",
-      "description": "Créez votre organisation ou demandez à son responsable de vous envoyer une invitation."
+      "description": "Complétez les étapes ci-dessous pour finaliser la configuration de votre compte."
     },
     "roles": {
       "mediaOwner": "Propriétaire de médias",
@@ -190,6 +191,10 @@
       "title": "Erreur",
       "loadFailed": "Échec du chargement de l'organisation pour modification.",
       "createFailed": "Échec de la création de l'organisation."
+    },
+    "noOrganization": {
+      "title": "Aucune entreprise associée",
+      "description": "Votre compte n'est associé à aucune entreprise pour le moment. Si vous venez de prendre rendez-vous avec nous, la configuration peut prendre quelques minutes — sinon, veuillez contacter votre représentant Envision Ad."
     }
   },
   "mediaOwnerMetrics": {
@@ -496,6 +501,9 @@
         "cancel": "Annuler",
         "email": "Courriel",
         "placeholder": "email@email.com",
+        "name": "Nom complet (facultatif)",
+        "namePlaceholder": "Jane Doe",
+        "nameHint": "Utilisé uniquement si cette personne n'a pas encore de compte Envision Ad.",
         "errors": {
           "error": "Erreur",
           "validationError": "Informations manquantes ou invalides.",
@@ -528,36 +536,17 @@
         "deleteInvitationFailed": "Échec de l’annulation de l’invitation."
       }
     },
-    "verificationHistory": "Historique des vérifications",
-    "requestVerification": "Demander une vérification",
-    "showOriginal": "Afficher l'original",
-    "showTranslation": "Afficher la traduction",
-    "verificationTable": {
-      "noHistory": "Aucun historique de demande de vérification trouvé.",
-      "requestDate": "Date de la demande",
-      "status": "Statut",
-      "reason": "Raison"
-    },
-    "verificationStatus": {
-      "pending": "En attente",
-      "approved": "Approuvée",
-      "denied": "Refusée"
-    },
     "modal": {
-      "verification": "Demande de vérification",
-      "verificationMessage": "Avant de demander une vérification, assurez-vous que toutes les informations de l’organisation sont exactes.",
       "confirm": "Confirmer",
       "cancel": "Annuler"
     },
     "success": {
       "title": "Succès",
-      "verificationRequest": "La demande de vérification a été envoyée.",
       "update": "Les informations de l’organisation ont été mises à jour."
     },
     "errors": {
       "title": "Erreur",
       "loadFailed": "Échec du chargement de l’organisation pour modification.",
-      "verificationRequestFailed": "Échec de la demande de vérification.",
       "updateFailed": "Échec de la mise à jour des informations de l’organisation."
     }
   },
@@ -572,6 +561,10 @@
       "title": "Vous êtes connecté !",
       "message": "Vous avez rejoint l'organisation avec succès !",
       "redirecting": "Redirection vers le tableau de bord..."
+    },
+    "checkEmail": {
+      "title": "Presque terminé !",
+      "message": "Nous vous avons envoyé un courriel avec un lien pour définir votre mot de passe. Une fois cela fait, vous serez prêt à vous connecter."
     },
     "error": {
       "title": "Une erreur est survenue",
@@ -1591,6 +1584,71 @@
       "createFailed": "Échec de la création du tag de lieu.",
       "updateFailed": "Échec de la mise à jour du tag de lieu.",
       "deleteFailed": "Échec de la suppression du tag de lieu."
+    }
+  },
+  "accountManagement": {
+    "title": "Comptes clients",
+    "newAccount": "Nouveau compte",
+    "table": {
+      "business": "Entreprise",
+      "owner": "Propriétaire",
+      "roles": "Rôles",
+      "businessType": "Type d'entreprise",
+      "status": "Statut",
+      "dateCreated": "Créé le",
+      "actions": "Actions",
+      "noAccounts": "Aucun compte client. Créez le premier pour commencer."
+    },
+    "status": {
+      "active": "Actif",
+      "inactive": "Inactif"
+    },
+    "actions": {
+      "resend": "Renvoyer les identifiants",
+      "deactivate": "Désactiver",
+      "reactivate": "Réactiver",
+      "editRoles": "Modifier les rôles"
+    },
+    "rolesModal": {
+      "title": "Modifier les rôles — {business}",
+      "blockedDescription": "Impossible de retirer {roles} — cette entreprise a encore un abonnement actif qui y est lié. Annulez-le d'abord.",
+      "cancel": "Annuler",
+      "save": "Enregistrer les rôles",
+      "errors": {
+        "roleRequired": "Une entreprise doit détenir au moins un rôle."
+      }
+    },
+    "form": {
+      "createTitle": "Créer un compte client",
+      "emailLabel": "Courriel",
+      "emailPlaceholder": "client@exemple.com",
+      "nameLabel": "Nom complet",
+      "namePlaceholder": "Jane Doe",
+      "businessTypeLabel": "Type d'entreprise (facultatif)",
+      "businessTypePlaceholder": "Sélectionner un type d'entreprise",
+      "cancel": "Annuler",
+      "submit": "Créer le compte",
+      "errors": {
+        "validationError": "Informations manquantes ou invalides.",
+        "emailRequired": "Le courriel est requis.",
+        "emailInvalid": "Adresse courriel invalide.",
+        "nameRequired": "Le nom complet est requis."
+      }
+    },
+    "notifications": {
+      "created": "Compte créé — identifiants envoyés.",
+      "createdWithWarnings": "Compte créé, mais le courriel de bienvenue n'a peut-être pas été envoyé. Utilisez « Renvoyer les identifiants » pour réessayer.",
+      "createFailed": "Échec de la création du compte.",
+      "duplicateEmail": "Un compte avec ce courriel existe déjà.",
+      "resent": "Identifiants renvoyés.",
+      "resendFailed": "Échec du renvoi des identifiants.",
+      "statusUpdated": "Statut du compte mis à jour.",
+      "statusUpdateFailed": "Échec de la mise à jour du statut du compte.",
+      "loadFailed": "Échec du chargement des comptes.",
+      "rolesUpdated": "Rôles mis à jour.",
+      "rolesUpdatedWithWarnings": "Rôles mis à jour, mais la synchronisation des permissions d'un ou plusieurs employés a peut-être échoué. Rouvrez et enregistrez de nouveau pour réessayer.",
+      "rolesUpdateBlocked": "Impossible de retirer ce rôle — l'entreprise a encore un abonnement actif qui y est lié. Annulez-le d'abord.",
+      "rolesUpdateFailed": "Échec de la mise à jour des rôles."
     }
   },
   "bundleManagement": {

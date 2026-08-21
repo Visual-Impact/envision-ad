@@ -18,5 +18,7 @@ public class BusinessResponseModel {
     private Address address;
     private Roles roles;
     private boolean verified;
+    private String businessTypeVenueId;
+    private boolean active;
     private LocalDateTime dateCreated;
 }

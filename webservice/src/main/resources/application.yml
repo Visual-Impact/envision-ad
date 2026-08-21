@@ -52,6 +52,9 @@ auth0:
     audience: https://${AUTH0_MGMT_DOMAIN}/api/v2/
     token-url: https://${AUTH0_MGMT_DOMAIN}/oauth/token
     base-url: https://${AUTH0_MGMT_DOMAIN}/
+    # P5: the tenant's database connection name, required by POST /api/v2/users
+    # (Auth0Service.createUser). New Doppler secret — see P5-PROGRESS.md M2 notes.
+    connection: ${AUTH0_DB_CONNECTION}
 
 app:
   base:

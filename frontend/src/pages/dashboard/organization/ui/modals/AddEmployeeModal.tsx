@@ -29,6 +29,7 @@ export function AddEmployeeModal({
     const [saving, setSaving] = useState(false);
     const [invalidInputWarning, setInvalidInputWarning] = useState<string | null>(null);
     const [email, setEmail] = useState("");
+    const [name, setName] = useState("");
 
     // Reset once the modal transitions to open. Adjusting state during
     // render (rather than in an effect) for a prop change is the pattern
@@ -39,6 +40,7 @@ export function AddEmployeeModal({
         setPrevOpened(opened);
         if (opened) {
             setInvalidInputWarning(null);
+            setName("");
         }
     }
 
@@ -70,8 +72,9 @@ export function AddEmployeeModal({
 
         setSaving(true);
         try {
-            await createInviteEmployeeToOrganization(organizationId, { email });
+            await createInviteEmployeeToOrganization(organizationId, { email, name: name.trim() || undefined });
             setEmail('');
+            setName('');
             onSuccess();
             onClose();
             notifications.show({
@@ -119,6 +122,13 @@ export function AddEmployeeModal({
                     value={email}
                     onChange={(e) => setEmail(e.currentTarget.value)}
                     required
+                />
+                <TextInput
+                    label={t("name")}
+                    placeholder={t("namePlaceholder")}
+                    description={t("nameHint")}
+                    value={name}
+                    onChange={(e) => setName(e.currentTarget.value)}
                 />
 
                 <Group justify="flex-end" mt="md">

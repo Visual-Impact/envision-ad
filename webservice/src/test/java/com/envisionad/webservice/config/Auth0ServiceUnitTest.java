@@ -21,7 +21,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -54,6 +56,8 @@ class Auth0ServiceUnitTest {
                 .toUri();
     }
 
+    private static final String CONNECTION = "Username-Password-Authentication";
+
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(auth0Service, "managementTokenUrl",    TOKEN_URL);
@@ -61,9 +65,18 @@ class Auth0ServiceUnitTest {
         ReflectionTestUtils.setField(auth0Service, "managementClientId",    CLIENT_ID);
         ReflectionTestUtils.setField(auth0Service, "managementClientSecret", CLIENT_SECRET);
         ReflectionTestUtils.setField(auth0Service, "managementAudience",    AUDIENCE);
+        ReflectionTestUtils.setField(auth0Service, "managementConnection",  CONNECTION);
         // Clear the cached token between tests so each test starts fresh
         ReflectionTestUtils.setField(auth0Service, "cachedToken",
                 new java.util.concurrent.atomic.AtomicReference<>());
+    }
+
+    private static URI usersUri() {
+        return UriComponentsBuilder.fromUriString(BASE_URL).pathSegment("api", "v2", "users").build().toUri();
+    }
+
+    private static URI userUriFor(String userId) {
+        return UriComponentsBuilder.fromUriString(BASE_URL).pathSegment("api", "v2", "users", userId).build().toUri();
     }
 
     // -------------------------------------------------------------------------
@@ -297,6 +310,316 @@ class Auth0ServiceUnitTest {
                 any(),
                 ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
         );
+    }
+
+    // =========================================================================
+    // findEmailsByUserIds (P5 M6 fix — batch owner-email lookup)
+    // =========================================================================
+
+    private static URI usersSearchUri(List<String> userIds) {
+        String query = "user_id:(" + userIds.stream()
+                .map(id -> "\"" + id + "\"")
+                .collect(java.util.stream.Collectors.joining(" OR ")) + ")";
+        return UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users")
+                .queryParam("q", query)
+                .queryParam("search_engine", "v3")
+                .queryParam("fields", "user_id,email")
+                .queryParam("include_fields", "true")
+                .queryParam("per_page", 50)
+                .build()
+                .toUri();
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_withEmptyInput_thenReturnsEmptyMapWithoutAnyCall() {
+        Map<String, String> result = auth0Service.findEmailsByUserIds(List.of());
+
+        assertTrue(result.isEmpty());
+        verify(restTemplate, never()).exchange(
+                any(URI.class), any(HttpMethod.class), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_withSingleChunk_thenReturnsMatchedEmailsAndOmitsMissingIds() {
+        List<String> requested = List.of(USER_ID, "auth0|missing123");
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(requested)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(
+                List.of(Map.of("user_id", USER_ID, "email", USER_EMAIL)), HttpStatus.OK));
+
+        Map<String, String> result = auth0Service.findEmailsByUserIds(requested);
+
+        assertEquals(1, result.size());
+        assertEquals(USER_EMAIL, result.get(USER_ID));
+        assertFalse(result.containsKey("auth0|missing123"));
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_withMoreThanBatchSize_thenIssuesMultipleChunkedCalls() {
+        List<String> requested = new java.util.ArrayList<>();
+        for (int i = 0; i < 75; i++) requested.add("auth0|user" + i);
+        List<String> firstChunk = requested.subList(0, 50);
+        List<String> secondChunk = requested.subList(50, 75);
+
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(firstChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
+        when(restTemplate.exchange(
+                eq(usersSearchUri(secondChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
+
+        auth0Service.findEmailsByUserIds(requested);
+
+        verify(restTemplate, times(1)).exchange(
+                eq(usersSearchUri(firstChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+        verify(restTemplate, times(1)).exchange(
+                eq(usersSearchUri(secondChunk)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+    }
+
+    @Test
+    void whenFindEmailsByUserIds_andAuth0Fails_thenThrowsAuth0ServiceUnavailableException() {
+        List<String> requested = List.of(USER_ID);
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(requested)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenThrow(new ResourceAccessException("Connection refused"));
+
+        assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.findEmailsByUserIds(requested));
+    }
+
+    // =========================================================================
+    // createUser (P5)
+    // =========================================================================
+
+    @Test
+    void whenCreateUser_withValidInput_thenReturnsUserId() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersUri()), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenReturn(new ResponseEntity<>(Map.of("user_id", USER_ID), HttpStatus.CREATED));
+
+        String result = auth0Service.createUser(USER_EMAIL, "Jane Doe");
+
+        assertEquals(USER_ID, result);
+    }
+
+    @Test
+    void whenCreateUser_andNoUserIdReturned_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersUri()), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenReturn(new ResponseEntity<>(Map.of(), HttpStatus.CREATED));
+
+        assertThrows(Auth0ServiceUnavailableException.class,
+                () -> auth0Service.createUser(USER_EMAIL, "Jane Doe"));
+    }
+
+    @Test
+    void whenCreateUser_andAuth0Rejects_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersUri()), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenThrow(HttpClientErrorException.create(HttpStatus.BAD_REQUEST, "Bad Request", null, null, null));
+
+        assertThrows(Auth0ServiceUnavailableException.class,
+                () -> auth0Service.createUser(USER_EMAIL, "Jane Doe"));
+    }
+
+    // =========================================================================
+    // findUserIdByEmail (P5)
+    // =========================================================================
+
+    @Test
+    void whenFindUserIdByEmail_andUserExists_thenReturnsUserId() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users-by-email").queryParam("email", USER_EMAIL).build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(Map.of("user_id", USER_ID)), HttpStatus.OK));
+
+        Optional<String> result = auth0Service.findUserIdByEmail(USER_EMAIL);
+
+        assertTrue(result.isPresent());
+        assertEquals(USER_ID, result.get());
+    }
+
+    @Test
+    void whenFindUserIdByEmail_andNoMatch_thenReturnsEmpty() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users-by-email").queryParam("email", USER_EMAIL).build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
+
+        assertTrue(auth0Service.findUserIdByEmail(USER_EMAIL).isEmpty());
+    }
+
+    @Test
+    void whenFindUserIdByEmail_andNetworkFailure_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users-by-email").queryParam("email", USER_EMAIL).build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenThrow(new ResourceAccessException("Connection refused"));
+
+        assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.findUserIdByEmail(USER_EMAIL));
+    }
+
+    // =========================================================================
+    // deleteUser (P5)
+    // =========================================================================
+
+    @Test
+    void whenDeleteUser_thenSucceeds() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(userUriFor(USER_ID)), eq(HttpMethod.DELETE), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Void>>any()
+        )).thenReturn(new ResponseEntity<>(HttpStatus.NO_CONTENT));
+
+        assertDoesNotThrow(() -> auth0Service.deleteUser(USER_ID));
+    }
+
+    @Test
+    void whenDeleteUser_andAuth0Fails_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(userUriFor(USER_ID)), eq(HttpMethod.DELETE), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Void>>any()
+        )).thenThrow(new ResourceAccessException("Connection refused"));
+
+        assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.deleteUser(USER_ID));
+    }
+
+    // =========================================================================
+    // assignRoles (P5)
+    // =========================================================================
+
+    @Test
+    void whenAssignRoles_thenSucceeds() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users", USER_ID, "roles").build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Void>>any()
+        )).thenReturn(new ResponseEntity<>(HttpStatus.NO_CONTENT));
+
+        assertDoesNotThrow(() -> auth0Service.assignRoles(USER_ID, List.of(Auth0Roles.BUSINESS_OWNER)));
+    }
+
+    @Test
+    void whenAssignRoles_andAuth0Fails_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users", USER_ID, "roles").build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Void>>any()
+        )).thenThrow(new ResourceAccessException("Connection refused"));
+
+        assertThrows(Auth0ServiceUnavailableException.class,
+                () -> auth0Service.assignRoles(USER_ID, List.of(Auth0Roles.BUSINESS_OWNER)));
+    }
+
+    // =========================================================================
+    // createPasswordChangeTicket (P5)
+    // =========================================================================
+
+    @Test
+    void whenCreatePasswordChangeTicket_thenReturnsTicketUrl() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "tickets", "password-change").build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenReturn(new ResponseEntity<>(Map.of("ticket", "https://auth0.example.com/ticket/abc"), HttpStatus.CREATED));
+
+        String result = auth0Service.createPasswordChangeTicket(USER_ID, "https://app.example.com/auth/login");
+
+        assertEquals("https://auth0.example.com/ticket/abc", result);
+    }
+
+    @Test
+    void whenCreatePasswordChangeTicket_andNoTicketReturned_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "tickets", "password-change").build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenReturn(new ResponseEntity<>(Map.of(), HttpStatus.CREATED));
+
+        assertThrows(Auth0ServiceUnavailableException.class,
+                () -> auth0Service.createPasswordChangeTicket(USER_ID, "https://app.example.com/auth/login"));
+    }
+
+    // =========================================================================
+    // setUserBlocked (P5)
+    // =========================================================================
+
+    @Test
+    void whenSetUserBlocked_thenSucceeds() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(userUriFor(USER_ID)), eq(HttpMethod.PATCH), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenReturn(new ResponseEntity<>(Map.of(), HttpStatus.OK));
+
+        assertDoesNotThrow(() -> auth0Service.setUserBlocked(USER_ID, true));
+    }
+
+    @Test
+    void whenSetUserBlocked_andAuth0Fails_thenThrowsAuth0ServiceUnavailableException() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(userUriFor(USER_ID)), eq(HttpMethod.PATCH), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenThrow(new ResourceAccessException("Connection refused"));
+
+        assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.setUserBlocked(USER_ID, false));
+    }
+
+    // =========================================================================
+    // exchangeWithTokenRetry — 401 triggers exactly one retry (shared by all P5 writes)
+    // =========================================================================
+
+    @Test
+    void whenAssignRoles_andFirstAttemptUnauthorized_thenRetriesOnceAndSucceeds() {
+        stubTokenEndpoint();
+        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
+                .pathSegment("api", "v2", "users", USER_ID, "roles").build().toUri();
+        when(restTemplate.exchange(
+                eq(uri), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Void>>any()
+        )).thenThrow(HttpClientErrorException.create(HttpStatus.UNAUTHORIZED, "Unauthorized", null, null, null))
+                .thenReturn(new ResponseEntity<>(HttpStatus.NO_CONTENT));
+
+        assertDoesNotThrow(() -> auth0Service.assignRoles(USER_ID, List.of(Auth0Roles.BUSINESS_OWNER)));
+
+        verify(restTemplate, times(2)).exchange(
+                eq(uri), eq(HttpMethod.POST), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Void>>any());
     }
 }
 

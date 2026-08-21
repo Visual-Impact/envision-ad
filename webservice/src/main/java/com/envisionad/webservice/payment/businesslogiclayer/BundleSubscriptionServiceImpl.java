@@ -16,6 +16,7 @@ import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.dataaccesslayer.Employee;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
+import com.envisionad.webservice.business.exceptions.BusinessNotVerifiedException;
 import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
@@ -135,6 +136,11 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             throws StripeException {
 
         jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null || !business.isVerified()) {
+            throw new BusinessNotVerifiedException(businessId);
+        }
 
         Bundle bundle = bundleService.getBundleByBundleId(bundleId);
         if (!bundle.isActive()) {

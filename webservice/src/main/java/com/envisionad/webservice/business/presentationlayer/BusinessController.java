@@ -22,8 +22,13 @@ public class BusinessController {
         this.businessService = businessService;
     }
 
+    // P5 FR 1.4: this was the self-registration endpoint (any authenticated caller,
+    // ownerId derived from their own JWT). Admin-only now — the admin account-creation
+    // flow (POST /api/v1/admin/accounts, AdminAccountController) is the real entry
+    // point for provisioning a new client's business and does not call this endpoint;
+    // it composes the same validation/save logic directly with an explicit ownerId.
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAuthority('manage:accounts')")
     public ResponseEntity<BusinessResponseModel> createBusiness(@AuthenticationPrincipal Jwt jwt,
             @RequestBody BusinessRequestModel requestModel) {
         return ResponseEntity.status(HttpStatus.CREATED).body(businessService.createBusiness(jwt, requestModel));
@@ -110,9 +115,13 @@ public class BusinessController {
         return ResponseEntity.ok(businessService.getAllEmployeesByBusinessId(jwt, businessId));
     }
 
+    // P5 FR 3.2: no longer @PreAuthorize("isAuthenticated()") — a brand-new invitee has
+    // no Auth0 account yet, so no JWT to authenticate with. jwt is null for an anonymous
+    // caller (SecurityConfig permits all requests at the filter-chain level; this is the
+    // only method-level gate that ever applied here). BusinessServiceImpl branches on
+    // jwt's presence to decide which of the three outcomes in InvitationAcceptStatus applies.
     @PostMapping("/{businessId}/employees")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<EmployeeResponseModel> addEmployeeToBusiness(@AuthenticationPrincipal Jwt jwt,
+    public ResponseEntity<InvitationAcceptResponseModel> addEmployeeToBusiness(@AuthenticationPrincipal Jwt jwt,
             @PathVariable String businessId, @RequestParam String token) {
         return ResponseEntity.ok(businessService.addBusinessEmployee(jwt, businessId, token));
     }

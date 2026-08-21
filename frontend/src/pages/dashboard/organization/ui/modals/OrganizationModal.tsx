@@ -79,10 +79,9 @@ export function OrganizationModal({
             return false;
         }
 
-        if (!formState.roles.advertiser && !formState.roles.mediaOwner) {
-            setValidationError(t("errors.roleRequired"));
-            return false;
-        }
+        // Roles are not editable here (admin-only post-creation, see
+        // OrganizationDetailsForm's showRoles prop) — formState.roles always carries
+        // whatever the organization already had, which was already validated at creation.
 
         return true;
     };
@@ -127,6 +126,7 @@ export function OrganizationModal({
                 <OrganizationDetailsForm
                     formState={formState}
                     onFieldChange={onFieldChange}
+                    showRoles={false}
                 />
 
                 <Group justify="flex-end" mt="md">

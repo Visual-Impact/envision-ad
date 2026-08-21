@@ -38,13 +38,26 @@ export async function POST(
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    if (roles.includes(AUTH0_ROLES.BUSINESS_OWNER) && (decodedId !== session.user.sub || organization.ownerId !== decodedId || permissions.length !== 0)){
+    // P5 FR 1.5: BUSINESS_OWNER can never be assigned through this end-user-callable
+    // route anymore. It's now assigned exactly once, server-to-server, by
+    // AdminAccountService via the Management API as part of admin account creation
+    // (webservice/.../admin/businesslogiclayer/AdminAccountServiceImpl) — never by a
+    // route reachable from an already-authenticated end-user session. This used to be a
+    // narrower guard that still allowed a caller to self-assign BUSINESS_OWNER right
+    // after self-creating their own organization; that self-creation path no longer
+    // exists (see src/pages/dashboard/page.tsx), so the guard is now unconditional.
+    if (roles.includes(AUTH0_ROLES.BUSINESS_OWNER)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const hasAdvertiserRole = roles.includes(AUTH0_ROLES.ADVERTISER);
     const hasMediaOwnerRole = roles.includes(AUTH0_ROLES.MEDIA_OWNER);
 
+    // Zero-permission self-bootstrap — still needed by the invitation-accept flow so a
+    // newly-joined employee can assign themselves ADVERTISER/MEDIA_OWNER for the org
+    // they just joined (organization-invitation/ui/page.tsx). BUSINESS_OWNER is already
+    // excluded by the guard above, so this can no longer be reached by the old
+    // self-registration path.
     if (decodedId === session.user.sub && permissions.length === 0 && (!hasAdvertiserRole || organization.roles.advertiser) && (!hasMediaOwnerRole || organization.roles.mediaOwner)){
         await Auth0ManagementService.updateUserRole(decodedId, roles, 'POST');
         return Response.json({ success: true });

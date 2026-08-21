@@ -13,6 +13,7 @@ import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.dataaccesslayer.Employee;
 import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
+import com.envisionad.webservice.business.exceptions.BusinessNotVerifiedException;
 import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
@@ -111,7 +112,6 @@ class BundleSubscriptionServiceUnitTest {
         givenValidPreconditions();
         givenQuote(List.of(montrealScreen, lavalScreen), "10.50");
         when(stripeCustomerRepository.findByBusinessId(BUSINESS_ID)).thenReturn(Optional.empty());
-        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Coffee"));
 
         try (MockedStatic<Customer> customers = mockStatic(Customer.class);
              MockedStatic<Session> sessions = mockStatic(Session.class)) {
@@ -208,6 +208,39 @@ class BundleSubscriptionServiceUnitTest {
                         .collect(java.util.stream.Collectors.toSet()));
     }
 
+    // ---------- organization verification ----------
+
+    /**
+     * The verification guard runs before the bundle/campaign are even looked up, so
+     * this deliberately skips {@code givenValidPreconditions()} — stubbing those would
+     * leave them unused and trip strict-stub verification.
+     */
+    @Test
+    void createSubscriptionCheckout_forAnUnverifiedBusiness_throwsBeforeAnyStripeCall() {
+        Business unverified = givenBusiness("Acme Coffee");
+        unverified.setVerified(false);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(unverified);
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            assertThrows(BusinessNotVerifiedException.class, () -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID));
+            sessions.verifyNoInteractions();
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
+    @Test
+    void createSubscriptionCheckout_forAnUnknownBusiness_throwsBeforeAnyStripeCall() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(null);
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            assertThrows(BusinessNotVerifiedException.class, () -> service.createSubscriptionCheckout(
+                    jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID));
+            sessions.verifyNoInteractions();
+        }
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
     // ---------- Stripe Customer ----------
 
     @Test
@@ -238,7 +271,6 @@ class BundleSubscriptionServiceUnitTest {
         givenValidPreconditions();
         givenQuote(List.of(montrealScreen), "4.00");
         when(stripeCustomerRepository.findByBusinessId(BUSINESS_ID)).thenReturn(Optional.empty());
-        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Coffee"));
 
         try (MockedStatic<Customer> customers = mockStatic(Customer.class);
              MockedStatic<Session> sessions = mockStatic(Session.class)) {
@@ -523,6 +555,8 @@ class BundleSubscriptionServiceUnitTest {
     }
 
     private void givenValidPreconditions() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Coffee"));
+
         Bundle bundle = new Bundle();
         bundle.setBundleId(BUNDLE_ID);
         bundle.setNameEn("Full Network");
@@ -557,6 +591,7 @@ class BundleSubscriptionServiceUnitTest {
         Business business = new Business();
         business.setBusinessId(new BusinessIdentifier(BUSINESS_ID));
         business.setName(name);
+        business.setVerified(true);
         return business;
     }
 

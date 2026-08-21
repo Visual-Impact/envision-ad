@@ -8,6 +8,8 @@ import com.envisionad.webservice.business.mappinglayer.InvitationMapper;
 import com.envisionad.webservice.business.mappinglayer.VerificationMapper;
 import com.envisionad.webservice.business.presentationlayer.models.*;
 import com.envisionad.webservice.business.utils.Validator;
+import com.envisionad.webservice.config.Auth0Roles;
+import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,7 +51,9 @@ public class BusinessServiceImpl implements BusinessService {
 
     private final JwtUtils jwtUtils;
 
-    public BusinessServiceImpl(EmailService emailService, BusinessRepository businessRepository, InvitationRepository invitationRepository, EmployeeRepository employeeRepository, VerificationRepository verificationRepository, BusinessMapper businessMapper, EmployeeMapper employeeMapper, InvitationMapper invitationMapper, VerificationMapper verificationMapper, JwtUtils jwtUtils) {
+    private final Auth0Service auth0Service;
+
+    public BusinessServiceImpl(EmailService emailService, BusinessRepository businessRepository, InvitationRepository invitationRepository, EmployeeRepository employeeRepository, VerificationRepository verificationRepository, BusinessMapper businessMapper, EmployeeMapper employeeMapper, InvitationMapper invitationMapper, VerificationMapper verificationMapper, JwtUtils jwtUtils, Auth0Service auth0Service) {
         this.emailService = emailService;
         this.businessRepository = businessRepository;
         this.invitationRepository = invitationRepository;
@@ -59,6 +64,7 @@ public class BusinessServiceImpl implements BusinessService {
         this.invitationMapper = invitationMapper;
         this.verificationMapper = verificationMapper;
         this.jwtUtils = jwtUtils;
+        this.auth0Service = auth0Service;
     }
 
     @Override
@@ -118,6 +124,11 @@ public class BusinessServiceImpl implements BusinessService {
         newBusiness.setId(existingBusiness.getId());
         newBusiness.setBusinessId(existingBusiness.getBusinessId());
         newBusiness.setOwnerId(existingBusiness.getOwnerId());
+        // Roles are admin-only post-creation (PATCH /api/v1/admin/accounts/{businessId}/roles) —
+        // whatever this payload says about roles is ignored so an owner/employee with
+        // update:business can't flip their own MEDIA_OWNER/ADVERTISER flags, which used to
+        // be possible here with no dependent-data checks and no Auth0 role resync.
+        newBusiness.setRoles(existingBusiness.getRoles());
 
         return businessMapper.toResponse(businessRepository.save(newBusiness));
     }
@@ -198,6 +209,8 @@ public class BusinessServiceImpl implements BusinessService {
         invitation.setBusinessId(new BusinessIdentifier(businessId));
         invitation.setTimeExpires(LocalDateTime.now().plusHours(1));
 
+        Invitation savedInvitation = invitationRepository.save(invitation);
+
         String link = appBaseUrl + "/invite?businessId=" + businessId + "&token=" + token;
         String subject = "Invitation to join " + business.getName() + " on Envision Ad";
         String body = "Hi there,\n\n"
@@ -209,7 +222,7 @@ public class BusinessServiceImpl implements BusinessService {
                 + "— The Envision Ad Team";
         emailService.sendSimpleEmail(invitation.getEmail(), subject, body);
 
-        return invitationMapper.toResponse(invitationRepository.save(invitation));
+        return invitationMapper.toResponse(savedInvitation);
     }
 
     @Override
@@ -256,29 +269,101 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
-    public EmployeeResponseModel addBusinessEmployee(Jwt jwt, String businessId, String token) {
-        if (!businessRepository.existsByBusinessId_BusinessId(businessId))
+    public InvitationAcceptResponseModel addBusinessEmployee(Jwt jwt, String businessId, String token) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null)
             throw new BusinessNotFoundException(businessId);
 
         Invitation invitation = invitationRepository.findByToken(token);
         if (invitation == null)
             throw new InvitationNotFoundException();
 
-        invitationRepository.delete(invitation);
-
-        if (invitation.getTimeExpires().isBefore(LocalDateTime.now()))
+        // Checked before deleting (unlike the old unconditional delete-then-check) so an
+        // still-pending invitation survives a LOGIN_REQUIRED round-trip below — see D-note
+        // in P5-PROGRESS.md. An actually-expired one is still consumed here, same net
+        // effect as before.
+        if (invitation.getTimeExpires().isBefore(LocalDateTime.now())) {
+            invitationRepository.delete(invitation);
             throw new InvitationNotFoundException();
+        }
 
-        String userId = jwtUtils.extractUserId(jwt);
-        if (employeeRepository.existsByUserIdAndBusinessId_BusinessId(userId, businessId))
-            throw new AccessDeniedException("User is already an employee");
+        InvitationAcceptResponseModel result = new InvitationAcceptResponseModel();
+
+        if (jwt != null) {
+            // Existing authenticated path (brief FR 3.2: "unchanged") — an invitee who
+            // already had an Auth0 account, or who just came back from /auth/login after
+            // a LOGIN_REQUIRED response below, lands here.
+            invitationRepository.delete(invitation);
+
+            String userId = jwtUtils.extractUserId(jwt);
+            if (employeeRepository.existsByUserIdAndBusinessId_BusinessId(userId, businessId))
+                throw new AccessDeniedException("User is already an employee");
+
+            Employee employee = new Employee();
+            employee.setBusinessId(new BusinessIdentifier(businessId));
+            employee.setEmployeeId(new EmployeeIdentifier());
+            employee.setUserId(userId);
+
+            result.setStatus(InvitationAcceptStatus.ACCEPTED);
+            result.setEmployee(employeeMapper.toResponse(employeeRepository.save(employee)));
+            return result;
+        }
+
+        // No JWT. Never create the employee row from an email match alone — that would
+        // let anyone accept on behalf of an existing Auth0 account without proving they
+        // own it. Force a real login instead; the invitation is left intact so the
+        // authenticated re-call above can still find it.
+        if (auth0Service.findUserIdByEmail(invitation.getEmail()).isPresent()) {
+            result.setStatus(InvitationAcceptStatus.LOGIN_REQUIRED);
+            return result;
+        }
+
+        // Genuinely new invitee — provision the Auth0 user and complete the accept in
+        // one step, same as the admin-created-account flow (AdminAccountServiceImpl).
+        invitationRepository.delete(invitation);
+        String invitedName = (invitation.getName() != null && !invitation.getName().isBlank())
+                ? invitation.getName() : invitation.getEmail();
+        String userId = auth0Service.createUser(invitation.getEmail(), invitedName);
 
         Employee employee = new Employee();
         employee.setBusinessId(new BusinessIdentifier(businessId));
         employee.setEmployeeId(new EmployeeIdentifier());
         employee.setUserId(userId);
+        EmployeeResponseModel employeeResponse = employeeMapper.toResponse(employeeRepository.save(employee));
 
-        return employeeMapper.toResponse(employeeRepository.save(employee));
+        // Best-effort, same posture as AdminAccountService (brief FR 4.2.d) — the
+        // employee row already exists; a role/ticket/email hiccup here means the invitee
+        // needs a fresh link (or a manual role fix), not that the whole accept should fail.
+        try {
+            List<String> roleIds = new ArrayList<>();
+            if (business.getRoles().isAdvertiser())
+                roleIds.add(Auth0Roles.ADVERTISER);
+            if (business.getRoles().isMediaOwner())
+                roleIds.add(Auth0Roles.MEDIA_OWNER);
+            if (!roleIds.isEmpty())
+                auth0Service.assignRoles(userId, roleIds);
+        } catch (RuntimeException e) {
+            log.warn("Role assignment failed for newly-provisioned invitee {} joining business {}",
+                    invitation.getEmail(), businessId, e);
+        }
+
+        try {
+            String ticketUrl = auth0Service.createPasswordChangeTicket(userId, appBaseUrl + "/auth/login");
+            String subject = "Your Envision Ad account is ready";
+            String body = "Hi " + invitedName + ",\n\n"
+                    + "You've joined " + business.getName() + " on Envision Ad.\n\n"
+                    + "Set your password to get started:\n" + ticketUrl + "\n\n"
+                    + "Once set, log in here:\n" + appBaseUrl + "/auth/login\n\n"
+                    + "— The Envision Ad Team";
+            emailService.sendSimpleEmail(invitation.getEmail(), subject, body);
+        } catch (RuntimeException e) {
+            log.warn("Post-provisioning ticket/email failed for new invitee {} joining business {}",
+                    invitation.getEmail(), businessId, e);
+        }
+
+        result.setStatus(InvitationAcceptStatus.PROVISIONED);
+        result.setEmployee(employeeResponse);
+        return result;
     }
 
     @Override

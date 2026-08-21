@@ -22,7 +22,12 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,6 +64,9 @@ class BusinessServiceUnitTest {
 
     @Mock
     private JwtUtils jwtUtils;
+
+    @Mock
+    private com.envisionad.webservice.config.Auth0Service auth0Service;
 
     private static final String BUSINESS_ID = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22";
     private static final String NOT_FOUND_BUSINESS_ID = "5d4bd18a-e062-4dc8-9715-f02dea0b3f99";
@@ -179,8 +187,41 @@ class BusinessServiceUnitTest {
     }
 
     @Test
+    public void whenUpdateBusinessById_thenRolesArePreservedFromExistingBusinessRegardlessOfPayload() {
+        // The gap this closes: PUT used to let any employee/owner with update:business
+        // flip their own MEDIA_OWNER/ADVERTISER flags with no dependent-data checks and
+        // no Auth0 resync. Roles are now admin-only post-creation (PATCH
+        // /api/v1/admin/accounts/{businessId}/roles) — this payload's roles must be
+        // silently ignored no matter what it asks for.
+        Business existingBusiness = createBusiness(true); // mediaOwnerRoles: mediaOwner=true, advertiser=false
+
+        BusinessRequestModel requestModel = createBusinessRequestModel();
+        Roles attemptedRoles = new Roles();
+        attemptedRoles.setAdvertiser(true);
+        attemptedRoles.setMediaOwner(false);
+        requestModel.setRoles(attemptedRoles);
+
+        Business mappedFromRequest = new Business();
+        mappedFromRequest.setName(requestModel.getName());
+        mappedFromRequest.setRoles(attemptedRoles);
+
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(existingBusiness);
+        when(businessRepository.existsByNameAndBusinessId_BusinessIdNot(requestModel.getName(), BUSINESS_ID))
+                .thenReturn(false);
+        when(businessMapper.toEntity(requestModel)).thenReturn(mappedFromRequest);
+        when(businessRepository.save(mappedFromRequest)).thenReturn(mappedFromRequest);
+        when(businessMapper.toResponse(mappedFromRequest))
+                .thenReturn(new com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel());
+
+        businessService.updateBusinessById(mediaToken, BUSINESS_ID, requestModel);
+
+        assertTrue(mappedFromRequest.getRoles().isMediaOwner());
+        assertFalse(mappedFromRequest.getRoles().isAdvertiser());
+    }
+
+    @Test
     public void whenAddBusinessEmployee_withNotFoundId_ThenReturnBusinessNotFoundException() {
-        when(businessRepository.existsByBusinessId_BusinessId(NOT_FOUND_BUSINESS_ID)).thenReturn(false);
+        when(businessRepository.findByBusinessId_BusinessId(NOT_FOUND_BUSINESS_ID)).thenReturn(null);
 
         assertThrows(BusinessNotFoundException.class,
                 () -> businessService.addBusinessEmployee(mediaToken, NOT_FOUND_BUSINESS_ID, INVITATION_TOKEN));
@@ -188,7 +229,7 @@ class BusinessServiceUnitTest {
 
     @Test
     public void whenAddBusinessEmployee_withNotFoundInvitationId_ThenReturnInvitationNotFoundException() {
-        when(businessRepository.existsByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
         when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(null);
 
         assertThrows(InvitationNotFoundException.class,
@@ -201,11 +242,13 @@ class BusinessServiceUnitTest {
         LocalDateTime expiredTime = LocalDateTime.of(2025, 1, 17, 17, 0);
         Invitation invitation = createInvitation(BUSINESS_ID, INVITATION_TOKEN, pastTime, expiredTime);
 
-        when(businessRepository.existsByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
         when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(invitation);
 
         assertThrows(InvitationNotFoundException.class,
                 () -> businessService.addBusinessEmployee(mediaToken, BUSINESS_ID, INVITATION_TOKEN));
+
+        verify(invitationRepository).delete(invitation);
     }
 
     @Test
@@ -213,7 +256,7 @@ class BusinessServiceUnitTest {
         LocalDateTime now = LocalDateTime.now();
         Invitation invitation = createInvitation(BUSINESS_ID, INVITATION_TOKEN, now, now.plusHours(1));
 
-        when(businessRepository.existsByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(true);
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
         when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(invitation);
         when(jwtUtils.extractUserId(mediaToken)).thenReturn("auth0|696a89137cfdb558ea4a4a4a");
         when(employeeRepository.existsByUserIdAndBusinessId_BusinessId("auth0|696a89137cfdb558ea4a4a4a", BUSINESS_ID))
@@ -221,6 +264,115 @@ class BusinessServiceUnitTest {
 
         assertThrows(AccessDeniedException.class,
                 () -> businessService.addBusinessEmployee(mediaToken, BUSINESS_ID, INVITATION_TOKEN));
+    }
+
+    @Test
+    public void whenAddBusinessEmployee_withValidJwt_ThenReturnsAccepted() {
+        LocalDateTime now = LocalDateTime.now();
+        Invitation invitation = createInvitation(BUSINESS_ID, INVITATION_TOKEN, now, now.plusHours(1));
+        Employee savedEmployee = new Employee();
+        savedEmployee.setEmployeeId(new EmployeeIdentifier(INVITATION_ID));
+        savedEmployee.setUserId("auth0|696a89137cfdb558ea4a4a4a");
+
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
+        when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(invitation);
+        when(jwtUtils.extractUserId(mediaToken)).thenReturn("auth0|696a89137cfdb558ea4a4a4a");
+        when(employeeRepository.existsByUserIdAndBusinessId_BusinessId("auth0|696a89137cfdb558ea4a4a4a", BUSINESS_ID))
+                .thenReturn(false);
+        when(employeeRepository.save(org.mockito.ArgumentMatchers.any(Employee.class))).thenReturn(savedEmployee);
+
+        com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptResponseModel result =
+                businessService.addBusinessEmployee(mediaToken, BUSINESS_ID, INVITATION_TOKEN);
+
+        assertEquals(com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptStatus.ACCEPTED,
+                result.getStatus());
+        verify(invitationRepository).delete(invitation);
+        verify(auth0Service, org.mockito.Mockito.never()).findUserIdByEmail(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    public void whenAddBusinessEmployee_withNoJwtAndExistingAuth0Account_ThenReturnsLoginRequiredWithoutDeletingInvitation() {
+        LocalDateTime now = LocalDateTime.now();
+        Invitation invitation = createInvitation(BUSINESS_ID, INVITATION_TOKEN, now, now.plusHours(1));
+
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
+        when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(invitation);
+        when(auth0Service.findUserIdByEmail(TEST_EMAIL)).thenReturn(java.util.Optional.of("auth0|existing"));
+
+        com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptResponseModel result =
+                businessService.addBusinessEmployee(null, BUSINESS_ID, INVITATION_TOKEN);
+
+        assertEquals(com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptStatus.LOGIN_REQUIRED,
+                result.getStatus());
+        assertNull(result.getEmployee());
+        // Left intact — the follow-up authenticated call (after the client logs in) must
+        // still be able to find this same invitation by token.
+        verify(invitationRepository, org.mockito.Mockito.never()).delete(org.mockito.ArgumentMatchers.any());
+        verify(auth0Service, org.mockito.Mockito.never()).createUser(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    public void whenAddBusinessEmployee_withNoJwtAndNoExistingAccount_ThenProvisionsUserAndReturnsProvisioned() {
+        LocalDateTime now = LocalDateTime.now();
+        Invitation invitation = createInvitation(BUSINESS_ID, INVITATION_TOKEN, now, now.plusHours(1));
+        invitation.setName("Jane Doe");
+        Employee savedEmployee = new Employee();
+        savedEmployee.setEmployeeId(new EmployeeIdentifier(INVITATION_ID));
+        savedEmployee.setUserId("auth0|brandnew");
+
+        com.envisionad.webservice.business.presentationlayer.models.EmployeeResponseModel employeeResponse =
+                new com.envisionad.webservice.business.presentationlayer.models.EmployeeResponseModel();
+        employeeResponse.setEmployeeId(INVITATION_ID);
+        employeeResponse.setUserId("auth0|brandnew");
+
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
+        when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(invitation);
+        when(auth0Service.findUserIdByEmail(TEST_EMAIL)).thenReturn(java.util.Optional.empty());
+        when(auth0Service.createUser(TEST_EMAIL, "Jane Doe")).thenReturn("auth0|brandnew");
+        when(employeeRepository.save(org.mockito.ArgumentMatchers.any(Employee.class))).thenReturn(savedEmployee);
+        when(employeeMapper.toResponse(savedEmployee)).thenReturn(employeeResponse);
+        when(auth0Service.createPasswordChangeTicket(org.mockito.ArgumentMatchers.eq("auth0|brandnew"), org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn("https://auth0.example.com/ticket/xyz");
+
+        com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptResponseModel result =
+                businessService.addBusinessEmployee(null, BUSINESS_ID, INVITATION_TOKEN);
+
+        assertEquals(com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptStatus.PROVISIONED,
+                result.getStatus());
+        assertEquals("auth0|brandnew", result.getEmployee().getUserId());
+        verify(invitationRepository).delete(invitation);
+        verify(emailService).sendSimpleEmail(org.mockito.ArgumentMatchers.eq(TEST_EMAIL), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+        // createBusiness(true) is media-owner-only — the new employee should get exactly
+        // MEDIA_OWNER, matching the business's own roles (colleagues share the business's
+        // role flags; there's no per-employee role selection in this data model).
+        verify(auth0Service).assignRoles("auth0|brandnew", java.util.List.of(com.envisionad.webservice.config.Auth0Roles.MEDIA_OWNER));
+    }
+
+    @Test
+    public void whenAddBusinessEmployee_withNoJwtAndTicketCreationFails_ThenStillReturnsProvisioned() {
+        LocalDateTime now = LocalDateTime.now();
+        Invitation invitation = createInvitation(BUSINESS_ID, INVITATION_TOKEN, now, now.plusHours(1));
+        Employee savedEmployee = new Employee();
+        savedEmployee.setEmployeeId(new EmployeeIdentifier(INVITATION_ID));
+        savedEmployee.setUserId("auth0|brandnew");
+
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(createBusiness(true));
+        when(invitationRepository.findByToken(INVITATION_TOKEN)).thenReturn(invitation);
+        when(auth0Service.findUserIdByEmail(TEST_EMAIL)).thenReturn(java.util.Optional.empty());
+        // No name set on this invitation — falls back to the invitation's email.
+        when(auth0Service.createUser(TEST_EMAIL, TEST_EMAIL)).thenReturn("auth0|brandnew");
+        when(employeeRepository.save(org.mockito.ArgumentMatchers.any(Employee.class))).thenReturn(savedEmployee);
+        when(auth0Service.createPasswordChangeTicket(org.mockito.ArgumentMatchers.eq("auth0|brandnew"), org.mockito.ArgumentMatchers.anyString()))
+                .thenThrow(new com.envisionad.webservice.config.exceptions.Auth0ServiceUnavailableException("boom", null));
+
+        com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptResponseModel result =
+                businessService.addBusinessEmployee(null, BUSINESS_ID, INVITATION_TOKEN);
+
+        // The employee row is already saved — a ticket failure is a "resend" problem,
+        // not a reason to fail the whole accept.
+        assertEquals(com.envisionad.webservice.business.presentationlayer.models.InvitationAcceptStatus.PROVISIONED,
+                result.getStatus());
+        verify(emailService, org.mockito.Mockito.never()).sendSimpleEmail(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
