@@ -1,68 +1,134 @@
 @startuml
-!include <archimate/Archimate>
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
-!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
-!include DEVICONS/java.puml
-!include DEVICONS/mysql.puml
-!include DEVICONS/react.puml
-!include DEVICONS/html5.puml
+title Envision Ad – Deployment Diagram
+skinparam TitleFontSize 24
+skinparam TitleFontStyle bold
 
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include ../sprites/doppler.puml
 !define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/main/icons/devicons
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/main/icons/devicons2
+
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include DEVICONS/docker.puml
+!include DEVICONS/git.puml
+!include DEVICONS2/spring_original.puml
+!include DEVICONS2/amazonwebservices_wordmark.puml
+!include DEVICONS2/nextjs.puml
+
+!include SPRITESURL/nginx.puml
 !include SPRITESURL/auth0-icon.puml
-!include SPRITESURL/twilio-icon.puml
 !include SPRITESURL/cloudinary-icon.puml
 !include SPRITESURL/stripe.puml
 !include SPRITESURL/google-gmail.puml
 
-AddElementTag("service", $shape=EightSidedShape(), $bgColor="Green", $fontColor="white", $legendText="API \neight sided")
-AddElementTag("ext_service", $shape=EightSidedShape(), $bgColor="Gray", $fontColor="white" ,$legendText="External Services\neight sided")
-AddElementTag("My SQL Database", $shape=RoundedBoxShape(), $bgColor="DarkCyan",$borderColor="Black", $fontColor="white", $legendText="Database")
-AddElementTag("webSite", $shape=RoundedBoxShape(), $bgColor="DodgerBlue", $fontColor="white", $legendText="Single-Page Application")
-AddElementTag("webApp", $shape=RoundedBoxShape(), $bgColor="OrangeRed", $fontColor="white", $legendText="Web Application")
+!includeurl DEVICONS/java.puml
+
+AddElementTag("service",      $shape=EightSidedShape(), $bgColor="#1F6B2E",  $fontColor="white", $legendText="Internal Service")
+AddElementTag("ext_service",  $shape=EightSidedShape(), $bgColor="#6B6B6B",  $fontColor="white", $legendText="External Service")
+AddElementTag("database",     $shape=RoundedBoxShape(), $bgColor="#0D5673",  $borderColor="black", $fontColor="white", $legendText="Database")
+AddElementTag("webApp",       $shape=RoundedBoxShape(), $bgColor="#C44A00",  $fontColor="white", $legendText="Web Application")
+AddElementTag("proxy",        $shape=RoundedBoxShape(), $bgColor="#2E5E1E",  $fontColor="white", $legendText="Reverse Proxy")
+AddElementTag("cicd",         $shape=RoundedBoxShape(), $bgColor="#24292F",  $fontColor="white", $legendText="CI/CD Pipeline")
+AddElementTag("secrets",      $shape=RoundedBoxShape(), $bgColor="#7B2D8B",  $fontColor="white", $legendText="Secrets Manager")
 
 SetDefaultLegendEntries("")
-
-
 allowmixing
 
-rectangle "Developer's Laptop \n[Deployment Node: Windows 11 and Linux Fedora 39]" as laptop {
+' ── CLIENT DEVICES ──────────────────────────────────────────────────────────
 
-    node "Webpack Development Server \n[Deployment Node : webpack-dev-server/^4.6.0]" as react {
-        Container(web, "Web Application", "Container: Html and React JS","Delivers the static content for the Single Page Application.",  $tags="webApp")
+rectangle "User's Computer\n[Deployment Node: Windows, macOS, Linux]" as computer {
+    node "Web Browser\n[Deployment Node: Chrome, Firefox, Edge, Safari]" as desktopBrowser {
+        Container(reactDesktop, "Web Application", "Container: HTML, CSS, JS", "Delivers the Envision Ad application to desktop user.", $tags="webApp")
     }
-
-    node "Docker Container - API \n[Deployment Node : Docker]" as backend {
-        node "Apache Tomcat\n[Deployment Node : Apache Tomcat/10.1.13]" as tom {
-            Container(java, "Java Spring Boot", "Container: Java and Spring Boot","Provides a platform where media owners list ad spaces and advertisers book and manage campaigns.", $sprite="java", $tags="service")
-        }
-    }
-
-    node "Docker Container - Database \n[Deployment Node : Docker]" as db {
-        node "MySQL Server \n[Deployment Node : MySQL Server/5.7.44]" as sql{
-            Container(mysql, "MySQL Database", "Container: MySQL Schema.","Stores all the data of the organization related to media, advertising, moderation, reporting, and transaction", $sprite="mysql", $tags="My SQL Database")
-        }
-    }
-
-    node "Web Browser \n[Deployment Node : Chrome and Firefox]" as browser {
-        Container(browser_cont, "Single-Page Application", "Container : JavaScript and React JS","Provides a GUI interface that contains all the functionalities of the Spring boot application. Uses REACT Router to handle the multiple pages." ,$sprite="react",$tags="webSite")
-    }
-
 }
 
-Container_Ext(cloudinary, "Cloudinary Service", "REST API", "Cloudinary's image hosting service and API.", $sprite="cloudinary-icon", $tags="ext_service")
-Container_Ext(auth, "Auth0", "SaaS", "Auth0 is an easy to implement, adaptable authentication and authorization platform.", $sprite="auth0-icon", $tags="ext_service")
-Container_Ext(email, "Gmail SMTP System", "Email Service", "The google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
-Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisings and medias owners.", $sprite="stripe-icon", $tags="ext_service")
-Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provide proof of displaying ads on their media.", $sprite="twilio-icon", $tags="ext_service")
+rectangle "User's Phone\n[Deployment Node: Android, iOS]" as phone {
+    node "Web Browser\n[Deployment Node: Chrome, Safari]" as mobileBrowser {
+        Container(reactMobile, "Web Application", "Container: HTML, CSS, JS", "Delivers the Envision Ad application to mobile users.", $tags="webApp")
+    }
+}
 
-web -[dashed]right-> browser_cont : Delivers to the web browser
-browser_cont -[dashed]-> java : Makes API calls to \n[JSON/HTTP]
-java -[dashed]> mysql : SQL/TCP\n[JBDC]
+' ── CI/CD & SECRETS ─────────────────────────────────────────────────────────
 
-java -[dashed]-> cloudinary : Makes API calls to \n[JSON/HTTPS]
-java -[dashed]-> stripe : Makes API calls to \n[JSON/HTTPS]
-java -[dashed]-> twilio : Makes API calls to \n[JSON/HTTPS]
-java -[dashed]-> auth : Makes API calls to \n[OAuth2/OpenID]
-java -[dashed]-> email : Sends email to \n[SMTP/TCP/IP]
+rectangle "CI/CD Pipeline\n[Deployment Node: github.com]" as githubNode {
+    Container(githubActions, "GitHub Actions", "Container: YAML Workflow", "Triggers automated build and deployment to EC2 on push to main branch.", $sprite="git", $tags="cicd")
+}
+
+rectangle "Secrets Manager\n[Deployment Node: doppler.com]" as dopplerNode {
+    Container(doppler, "Doppler", "SaaS: Secret Management", "Centrally stores and injects environment variables for frontend and backend services at runtime.", $sprite="doppler{scale=0.1}", $tags="secrets")
+}
+
+' ── AWS CLOUD ────────────────────────────────────────────────────────────────
+
+cloud aws as "Amazon Web Services\n[Deployment Node: ca-central-1]" {
+
+    ' EC2 Instance
+    node "EC2 Instance\n[Deployment Node: Amazon Linux 2023]" as ec2 {
+
+        node "Docker Compose\n[Deployment Node: Docker Engine]" as dockerCompose {
+
+            ' Nginx reverse proxy
+            node "Nginx Container\n[Deployment Node: Docker]" as nginxContainer {
+                Container(nginx, "Reverse Proxy", "Container: Nginx", "Routes HTTP/HTTPS traffic to the frontend or backend container based on URL path.", $sprite="nginx", $tags="proxy")
+            }
+
+            ' Frontend container
+            node "Frontend Container\n[Deployment Node: Docker]" as frontendContainer {
+                Container(frontend, "NextJS Application", "Container: Next.js", "Serves the Envision Ad user interface. Communicates with the backend API over HTTPS.", $sprite="nextjs", $tags="webApp")
+            }
+
+            ' Backend container
+            node "Backend Container\n[Deployment Node: Docker / Apache Tomcat]" as backendContainer {
+                Container(backend, "REST API", "Container: Spring Boot / Java", "Handles all business logic, and data access. Exposes a REST API consumed by the frontend.", $sprite="java", $tags="service")
+            }
+        }
+    }
+
+    ' RDS Instance
+    node "RDS Instance\n[Deployment Node: Amazon RDS, ca-central-1]" as rdsNode {
+        ContainerDb(rds, "PostgreSQL Database", "Container: PostgreSQL 15", "Stores all application data.", $sprite="postgresql", $tags="database")
+    }
+}
+
+' ── EXTERNAL SERVICES ────────────────────────────────────────────────────────
+
+Container_Ext(auth, "Auth0", "Auth SaaS", "Auth0 is an easy to implement, adaptable authentication and authorization platform.", $sprite="auth0-icon", $tags="ext_service")
+Container_Ext(email, "Gmail SMTP", "SMTP Service", "The google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
+Container_Ext(cloud, "Cloudinary", "Cloud Service", "Cloud storage service that stores media and pdf reports.", $sprite="cloudinary-icon", $tags="ext_service")
+Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisers and medias owners.", $sprite="stripe", $tags="ext_service")
+
+' ── RELATIONSHIPS ────────────────────────────────────────────────────────────
+
+' Client to Nginx
+reactDesktop  --> nginx       : HTTPS / 443\n[TLS 1.2+]
+reactMobile   --> nginx       : HTTPS / 443\n[TLS 1.2+]
+
+' Nginx routing
+nginx --> frontend  : HTTP\n[Proxy Pass]
+nginx --> backend   : HTTP\n[Proxy Pass /api]
+
+' Frontend to Backend (internal Docker network)
+frontend --> backend  : REST API Calls\n[JSON / HTTP]
+
+' Backend to RDS
+backend --> rds  : SQL Queries\n[JDBC / TCP 5432]
+
+' Backend to external services
+frontend --> auth  : OAuth2 / OpenID Connect\n[HTTPS]
+backend --> email   : Send Emails\n[SMTP / TCP 587]
+backend --> cloud   : Store/Retrieve Media\n[HTTPS / API]
+backend --> stripe  : Process Payments\n[HTTPS / API]
+
+' CI/CD pipeline
+githubActions --> ec2        : SSH Deploy\n[GitHub Actions Runner]
+githubActions --> doppler    : Fetch Secrets\n[HTTPS / Service Token]
+
+' Doppler injects secrets at runtime
+doppler --> frontendContainer : Inject Env Vars\n[Doppler CLI at startup]
+doppler --> backendContainer  : Inject Env Vars\n[Doppler CLI at startup]
+
 SHOW_LEGEND()
-@endpuml
+@enduml
