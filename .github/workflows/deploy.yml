@@ -18,6 +18,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
       - name: Build and push images
         env:
           IMAGE_OWNER: ${{ github.repository_owner }}
