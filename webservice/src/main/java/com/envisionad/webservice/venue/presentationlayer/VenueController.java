@@ -4,6 +4,7 @@ import com.envisionad.webservice.venue.businesslogiclayer.VenueService;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.mappinglayer.VenueRequestMapper;
 import com.envisionad.webservice.venue.mappinglayer.VenueResponseMapper;
+import com.envisionad.webservice.venue.presentationlayer.models.VenueAdCountResponseModel;
 import com.envisionad.webservice.venue.presentationlayer.models.VenueRequestModel;
 import com.envisionad.webservice.venue.presentationlayer.models.VenueResponseModel;
 import org.springframework.http.HttpStatus;
@@ -74,5 +75,11 @@ public class VenueController {
     @PreAuthorize("hasAuthority('manage:venues')")
     public ResponseEntity<Long> getMediaCount(@PathVariable String venueId) {
         return ResponseEntity.ok(venueService.getMediaCountForVenue(venueId));
+    }
+
+    @GetMapping("/{venueId}/ad-count")
+    @PreAuthorize("hasAuthority('manage:venues')")
+    public ResponseEntity<VenueAdCountResponseModel> getAdCount(@PathVariable String venueId) {
+        return ResponseEntity.ok(new VenueAdCountResponseModel(venueService.getAdCountForVenue(venueId)));
     }
 }

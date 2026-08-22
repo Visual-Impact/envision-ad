@@ -1,24 +1,54 @@
 import React from "react";
 import { Accordion, ActionIcon, Button, Group, ScrollArea, Table, Text, Badge, Image, Box, Flex } from "@mantine/core";
-import { IconTrash, IconPlus, IconPhoto, IconMovie } from "@tabler/icons-react";
+import { IconTrash, IconPlus, IconPhoto, IconMovie, IconTags } from "@tabler/icons-react";
+import { Ad } from "@/entities/ad";
 import { AdCampaign } from "@/entities/ad-campaign";
-import {useTranslations} from "next-intl";
+import { Venue } from "@/entities/venue";
+import {useLocale, useTranslations} from "next-intl";
 
 interface AdCampaignsTableProps {
     campaigns: AdCampaign[];
+    /** Full venue list, used to resolve an ad's venueIds to names and colors. */
+    venues: Venue[];
     onDeleteAd: (campaignId: string, adId: string) => void;
     onDeleteAdCampaign: (campaignId: string) => void;
     onOpenAddAd: (campaignId: string) => void;
+    onEditAdTags: (campaignId: string, ad: Ad) => void;
 }
 
 export function AdCampaignsTable({
     campaigns,
+    venues,
     onDeleteAd,
     onDeleteAdCampaign,
-    onOpenAddAd
+    onOpenAddAd,
+    onEditAdTags
 }: AdCampaignsTableProps) {
     const t = useTranslations("adCampaigns.table");
+    const locale = useLocale();
     const getIcon = (type: string) => type === "VIDEO" ? <IconMovie size={16} /> : <IconPhoto size={16} />;
+
+    const renderVenueTags = (venueIds: string[]) => {
+        // An untagged ad means "suitable for every venue", which is real information —
+        // so it gets an explicit badge rather than a blank cell.
+        if (venueIds.length === 0) {
+            return <Badge color="gray" variant="light">{t("allVenues")}</Badge>;
+        }
+
+        return (
+            <Group gap={4} wrap="wrap">
+                {venueIds.map((venueId) => {
+                    const venue = venues.find((v) => v.venueId === venueId);
+                    if (!venue) return null;
+                    return (
+                        <Badge key={venueId} color={venue.colorCode} variant="light">
+                            {locale === "fr" ? venue.nameFr : venue.nameEn}
+                        </Badge>
+                    );
+                })}
+            </Group>
+        );
+    };
 
     // Show empty state when there are no campaigns
     if (campaigns.length === 0) {
@@ -76,6 +106,7 @@ export function AdCampaignsTable({
                                         <Table.Th>{t('preview')}</Table.Th>
                                         <Table.Th>{t('name')}</Table.Th>
                                         <Table.Th>{t('type')}</Table.Th>
+                                        <Table.Th>{t('venueTags')}</Table.Th>
                                         <Table.Th style={{ textAlign: "right" }}>{t('actions')}</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
@@ -122,7 +153,18 @@ export function AdCampaignsTable({
                                                     </Badge>
                                                 </Table.Td>
                                                 <Table.Td style={{ verticalAlign: 'middle' }}>
-                                                    <Group justify="flex-end">
+                                                    {renderVenueTags(ad.venueIds)}
+                                                </Table.Td>
+                                                <Table.Td style={{ verticalAlign: 'middle' }}>
+                                                    <Group justify="flex-end" gap="xs">
+                                                        <ActionIcon
+                                                            variant="subtle"
+                                                            aria-label={t("editTags", { name: ad.name })}
+                                                            title={t("editTags", { name: ad.name })}
+                                                            onClick={() => onEditAdTags(campaign.campaignId, ad)}
+                                                        >
+                                                            <IconTags size={16} />
+                                                        </ActionIcon>
                                                         <ActionIcon
                                                             color="red"
                                                             variant="subtle"
@@ -138,7 +180,7 @@ export function AdCampaignsTable({
                                         ))
                                     ) : (
                                         <Table.Tr>
-                                            <Table.Td colSpan={4} align="center">
+                                            <Table.Td colSpan={5} align="center">
                                                 <Text ta="center" c="dimmed" py="xl">
                                                     {t('noAds')}
                                                 </Text>

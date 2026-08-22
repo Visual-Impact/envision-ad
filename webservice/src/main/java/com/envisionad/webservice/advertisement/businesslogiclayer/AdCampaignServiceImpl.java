@@ -17,12 +17,17 @@ import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.exceptions.BusinessNotFoundException;
 import com.envisionad.webservice.utils.CloudinaryConfig;
 import com.envisionad.webservice.utils.JwtUtils;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
+import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
+import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -41,12 +46,13 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     private final JwtUtils jwtUtils;
     private final BundleSubscriptionRepository bundleSubscriptionRepository;
     private final Cloudinary cloudinary;
+    private final VenueRepository venueRepository;
 
     /** The subscription states that make a campaign undeletable — mirrors the DB trigger. */
     private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
             List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
 
-    public AdCampaignServiceImpl(AdCampaignRepository adCampaignRepository, AdCampaignRequestMapper adCampaignRequestMapper, AdCampaignResponseMapper adCampaignResponseMapper, AdRequestMapper adRequestMapper, AdResponseMapper adResponseMapper, BusinessRepository businessRepository, JwtUtils jwtUtils, BundleSubscriptionRepository bundleSubscriptionRepository, Cloudinary cloudinary) {
+    public AdCampaignServiceImpl(AdCampaignRepository adCampaignRepository, AdCampaignRequestMapper adCampaignRequestMapper, AdCampaignResponseMapper adCampaignResponseMapper, AdRequestMapper adRequestMapper, AdResponseMapper adResponseMapper, BusinessRepository businessRepository, JwtUtils jwtUtils, BundleSubscriptionRepository bundleSubscriptionRepository, Cloudinary cloudinary, VenueRepository venueRepository) {
         this.businessRepository = businessRepository;
         this.adCampaignRepository = adCampaignRepository;
         this.adCampaignRequestMapper = adCampaignRequestMapper;
@@ -56,6 +62,7 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         this.jwtUtils = jwtUtils;
         this.cloudinary = cloudinary;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
+        this.venueRepository = venueRepository;
     }
 
     @Override
@@ -132,6 +139,9 @@ public class AdCampaignServiceImpl implements AdCampaignService {
             validateVideoDuration(newAd.getAdUrl());
         }
 
+        // Resolved before any mutation so an unknown venue ID leaves nothing persisted.
+        newAd.setVenues(new ArrayList<>(resolveVenues(adRequestModel.getVenueIds())));
+
         newAd.setCampaign(adCampaign);
         adCampaign.getAds().add(newAd);
 
@@ -152,12 +162,67 @@ public class AdCampaignServiceImpl implements AdCampaignService {
                 .findFirst()
                 .orElseThrow(() -> new AdNotFoundException(adId));
 
+        // Map BEFORE removing: the response mapper reads the lazy venues collection, and
+        // once the ad is removed and the campaign saved that would be a read on a deleted
+        // entity. Harmless before P7 added the collection; a bug the moment it exists.
+        AdResponseModel response = adResponseMapper.entityToResponseModel(adToDelete);
+
         deleteCloudinaryAssetIfPresent(adToDelete.getAdUrl());
 
         adCampaign.getAds().remove(adToDelete);
         adCampaignRepository.save(adCampaign);
 
-        return adResponseMapper.entityToResponseModel(adToDelete);
+        return response;
+    }
+
+    @Override
+    public AdResponseModel updateAdVenueTags(Jwt jwt, String businessId, String campaignId, String adId,
+                                             List<String> venueIds) {
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+
+        AdCampaign adCampaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
+        if (adCampaign == null) {
+            throw new AdCampaignNotFoundException(campaignId);
+        }
+
+        jwtUtils.validateBusinessOwnsCampaign(businessId, adCampaign);
+
+        Ad ad = adCampaign.getAds().stream()
+                .filter(a -> a.getAdIdentifier().getAdIdentifier().equals(adId))
+                .findFirst()
+                .orElseThrow(() -> new AdNotFoundException(adId));
+
+        // Tag edits are metadata-only, so they are NOT blocked by the subscription-tie
+        // check that gates campaign deletion.
+        List<Venue> resolved = resolveVenues(venueIds);
+
+        // Mutate the managed collection rather than replacing it — Hibernate tracks this
+        // instance, and setVenues() on a managed entity detaches the tracked bag.
+        ad.getVenues().clear();
+        ad.getVenues().addAll(resolved);
+
+        adCampaignRepository.save(adCampaign);
+
+        return adResponseMapper.entityToResponseModel(ad);
+    }
+
+    /**
+     * Resolves submitted venue IDs to entities, de-duplicating first. The de-dup is
+     * required, not defensive: venues is mapped as a List (a bag), so a repeated ID would
+     * be inserted twice and violate ad_venue_tags' composite primary key.
+     *
+     * <p>The whole set is resolved before the caller mutates anything, so an unresolvable
+     * ID throws without leaving a partial tag set behind.
+     */
+    private List<Venue> resolveVenues(List<String> venueIds) {
+        if (venueIds == null || venueIds.isEmpty()) {
+            return List.of();
+        }
+
+        return new LinkedHashSet<>(venueIds).stream()
+                .map(venueId -> venueRepository.findByVenueId(venueId)
+                        .orElseThrow(() -> new VenueNotFoundException(venueId)))
+                .toList();
     }
 
     @Override

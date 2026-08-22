@@ -1,5 +1,7 @@
 package com.envisionad.webservice.venue.businesslogiclayer;
 
+import com.envisionad.webservice.advertisement.dataaccesslayer.Ad;
+import com.envisionad.webservice.advertisement.dataaccesslayer.AdRepository;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
@@ -8,10 +10,12 @@ import com.envisionad.webservice.venue.presentationlayer.models.VenueRequestMode
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,6 +34,9 @@ class VenueServiceUnitTest {
 
     @Mock
     private MediaRepository mediaRepository;
+
+    @Mock
+    private AdRepository adRepository;
 
     private Venue testVenue;
 
@@ -174,5 +181,60 @@ class VenueServiceUnitTest {
         long count = venueService.getMediaCountForVenue("test-venue-id");
 
         assertEquals(5L, count);
+    }
+
+    // ---------------- P7: ad venue tags ----------------
+
+    @Test
+    void getAdCountForVenue_returnsCount() {
+        when(adRepository.countByVenues_VenueId("test-venue-id")).thenReturn(7L);
+
+        assertEquals(7L, venueService.getAdCountForVenue("test-venue-id"));
+    }
+
+    @Test
+    void deleteVenue_withTaggedAds_removesOnlyThatVenuesTagThenDeletes() {
+        Ad tagged = new Ad();
+        tagged.setVenues(new ArrayList<>(List.of(testVenue)));
+
+        when(venueRepository.findByVenueId("test-venue-id")).thenReturn(Optional.of(testVenue));
+        when(adRepository.findByVenues_VenueId("test-venue-id")).thenReturn(List.of(tagged));
+
+        venueService.deleteVenue("test-venue-id");
+
+        assertTrue(tagged.getVenues().isEmpty());
+
+        // Untagging must happen before the venue row goes away, otherwise the join-table
+        // FK (which Hibernate generates without a cascade under ddl-auto: create) blows up.
+        InOrder inOrder = inOrder(adRepository, venueRepository);
+        inOrder.verify(adRepository).saveAll(List.of(tagged));
+        inOrder.verify(venueRepository).delete(testVenue);
+    }
+
+    @Test
+    void deleteVenue_withNoTaggedAds_doesNotCallSaveAll() {
+        when(venueRepository.findByVenueId("test-venue-id")).thenReturn(Optional.of(testVenue));
+        when(adRepository.findByVenues_VenueId("test-venue-id")).thenReturn(List.of());
+
+        venueService.deleteVenue("test-venue-id");
+
+        verify(adRepository, never()).saveAll(any());
+        verify(venueRepository).delete(testVenue);
+    }
+
+    @Test
+    void deleteVenue_taggedAdWithOtherVenues_keepsTheOtherTags() {
+        Venue keeper = new Venue();
+        keeper.setVenueId("other-venue-id");
+
+        Ad tagged = new Ad();
+        tagged.setVenues(new ArrayList<>(List.of(testVenue, keeper)));
+
+        when(venueRepository.findByVenueId("test-venue-id")).thenReturn(Optional.of(testVenue));
+        when(adRepository.findByVenues_VenueId("test-venue-id")).thenReturn(List.of(tagged));
+
+        venueService.deleteVenue("test-venue-id");
+
+        assertEquals(List.of(keeper), tagged.getVenues());
     }
 }

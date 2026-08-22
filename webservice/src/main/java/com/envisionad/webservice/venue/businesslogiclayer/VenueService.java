@@ -26,4 +26,6 @@ public interface VenueService {
     void deleteVenue(String venueId);
 
     long getMediaCountForVenue(String venueId);
+
+    long getAdCountForVenue(String venueId);
 }

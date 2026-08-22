@@ -3,7 +3,10 @@ package com.envisionad.webservice.advertisement.presentationlayer;
 import com.envisionad.webservice.advertisement.dataaccesslayer.*;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampaignRequestModel;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
+import com.envisionad.webservice.advertisement.presentationlayer.models.AdVenueTagsRequestModel;
 import com.envisionad.webservice.business.dataaccesslayer.*;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
+import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
 import com.envisionad.webservice.config.BaseIntegrationTest;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscription;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
@@ -39,11 +42,17 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private BundleSubscriptionRepository bundleSubscriptionRepository;
 
+    @Autowired
+    private VenueRepository venueRepository;
+
     @BeforeEach
     void setUp() {
         // Clear all data from previous tests to avoid constraint violations
         bundleSubscriptionRepository.deleteAll();
         adCampaignRepository.deleteAll();
+        // Venues must go after campaigns: ad_venue_tags FKs both sides, and under
+        // ddl-auto: create those FKs have no cascade.
+        venueRepository.deleteAll();
         employeeRepository.deleteAll();
         businessRepository.deleteAll();
 
@@ -471,5 +480,252 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
                 .headers(headers -> headers.setBearerAuth("advertiser-token"))
                 .exchange()
                 .expectStatus().isEqualTo(expectedStatus);
+    }
+
+    // ---------------- P7: venue tags ----------------
+
+    @Test
+    void addAdToCampaign_withVenueIds_returns201WithVenueIds() {
+        String campaignId = persistCampaign("Tagged Campaign", businessId);
+        Venue gym = persistVenue("Gym", "Gymnase");
+
+        postAd(campaignId, adRequest("Gym Banner", List.of(gym.getVenueId())))
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.venueIds").isArray()
+                .jsonPath("$.venueIds.length()").isEqualTo(1)
+                .jsonPath("$.venueIds[0]").isEqualTo(gym.getVenueId());
+    }
+
+    @Test
+    void addAdToCampaign_withoutVenueIds_returnsEmptyVenueIdsArray() {
+        String campaignId = persistCampaign("Untagged Campaign", businessId);
+
+        // Must serialize as [], never null — the frontend types venueIds as required.
+        postAd(campaignId, adRequest("Universal Banner", null))
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.venueIds").isArray()
+                .jsonPath("$.venueIds.length()").isEqualTo(0);
+    }
+
+    @Test
+    void addAdToCampaign_withUnknownVenueId_returns404AndPersistsNoAd() {
+        String campaignId = persistCampaign("Ghost Venue Campaign", businessId);
+
+        postAd(campaignId, adRequest("Doomed Banner", List.of("venue-does-not-exist")))
+                .expectStatus().isNotFound();
+
+        assertEquals(0, adCampaignRepository.findByCampaignIdWithAds(campaignId).getAds().size());
+    }
+
+    @Test
+    void addAdToCampaign_withDuplicateVenueIds_persistsOneTagPerVenue() {
+        String campaignId = persistCampaign("Dupe Campaign", businessId);
+        Venue gym = persistVenue("Gym", "Gymnase");
+
+        postAd(campaignId, adRequest("Gym Banner", List.of(gym.getVenueId(), gym.getVenueId())))
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.venueIds.length()").isEqualTo(1);
+    }
+
+    @Test
+    void updateAdVenueTags_replacesTags_returns200() {
+        Venue gym = persistVenue("Gym", "Gymnase");
+        Venue barber = persistVenue("Barbershop", "Salon de coiffure");
+        String campaignId = persistCampaign("Swap Tags", businessId);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", List.of(gym.getVenueId())));
+
+        putVenueTags(businessId.getBusinessId(), campaignId, adId, List.of(barber.getVenueId()))
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.venueIds.length()").isEqualTo(1)
+                .jsonPath("$.venueIds[0]").isEqualTo(barber.getVenueId());
+    }
+
+    @Test
+    void updateAdVenueTags_withEmptyList_clearsTags() {
+        Venue gym = persistVenue("Gym", "Gymnase");
+        String campaignId = persistCampaign("Clear Tags", businessId);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", List.of(gym.getVenueId())));
+
+        putVenueTags(businessId.getBusinessId(), campaignId, adId, List.of())
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.venueIds.length()").isEqualTo(0);
+    }
+
+    @Test
+    void updateAdVenueTags_unknownCampaign_returns404() {
+        putVenueTags(businessId.getBusinessId(), UUID.randomUUID().toString(), "some-ad", List.of())
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void updateAdVenueTags_unknownAd_returns404() {
+        String campaignId = persistCampaign("No Such Ad", businessId);
+
+        putVenueTags(businessId.getBusinessId(), campaignId, "ad-does-not-exist", List.of())
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void updateAdVenueTags_unknownVenue_returns404() {
+        String campaignId = persistCampaign("Ghost Tag", businessId);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", null));
+
+        putVenueTags(businessId.getBusinessId(), campaignId, adId, List.of("venue-does-not-exist"))
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    void updateAdVenueTags_campaignOfAnotherBusiness_returns403() {
+        // Caller IS an employee of the path business, but the campaign belongs elsewhere.
+        BusinessIdentifier otherBusiness = new BusinessIdentifier(UUID.randomUUID().toString());
+        String campaignId = persistCampaign("Someone Else's Campaign", otherBusiness);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", null));
+
+        putVenueTags(businessId.getBusinessId(), campaignId, adId, List.of())
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void updateAdVenueTags_callerNotEmployeeOfBusiness_returns403() {
+        String campaignId = persistCampaign("Guarded", businessId);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", null));
+
+        putVenueTags(UUID.randomUUID().toString(), campaignId, adId, List.of())
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void updateAdVenueTags_withoutUpdateCampaignPermission_returns403() {
+        String campaignId = persistCampaign("Perm Guarded", businessId);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", null));
+
+        webTestClient.put()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/ads/{adId}/venue-tags")
+                        .build(businessId.getBusinessId(), campaignId, adId))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("media-token"))
+                .bodyValue(venueTagsRequest(List.of()))
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void getAllBusinessCampaigns_includesVenueIdsOnEachAd() {
+        Venue gym = persistVenue("Gym", "Gymnase");
+        String campaignId = persistCampaign("Listed", businessId);
+        createAdAndGetId(campaignId, adRequest("Banner", List.of(gym.getVenueId())));
+
+        webTestClient.get()
+                .uri(BASE_URI_AD_CAMPAIGNS, businessId.getBusinessId())
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[0].ads[0].venueIds[0]").isEqualTo(gym.getVenueId());
+    }
+
+    @Test
+    void deleteAdFromCampaign_taggedAd_returns200WithVenueIds() {
+        // Regression guard: the response is mapped before the ad is detached, so reading
+        // the lazy venues collection still works.
+        Venue gym = persistVenue("Gym", "Gymnase");
+        String campaignId = persistCampaign("Delete Tagged", businessId);
+        String adId = createAdAndGetId(campaignId, adRequest("Banner", List.of(gym.getVenueId())));
+
+        webTestClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/ads/{adId}")
+                        .build(businessId.getBusinessId(), campaignId, adId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.venueIds[0]").isEqualTo(gym.getVenueId());
+    }
+
+    // ---------------- P7 helpers ----------------
+
+    private Venue persistVenue(String nameEn, String nameFr) {
+        Venue venue = new Venue();
+        venue.setVenueId(UUID.randomUUID().toString());
+        venue.setNameEn(nameEn);
+        venue.setNameFr(nameFr);
+        venue.setColorCode("#FF5733");
+        return venueRepository.save(venue);
+    }
+
+    private String persistCampaign(String name, BusinessIdentifier owner) {
+        AdCampaign campaign = new AdCampaign();
+        campaign.setName(name);
+        campaign.setCampaignId(new AdCampaignIdentifier());
+        campaign.setBusinessId(owner);
+        return adCampaignRepository.save(campaign).getCampaignId().getCampaignId();
+    }
+
+    private static AdRequestModel adRequest(String name, List<String> venueIds) {
+        AdRequestModel request = new AdRequestModel();
+        request.setName(name);
+        request.setAdUrl("https://cdn.envisionad.com/" + name.replace(' ', '-') + ".jpg");
+        request.setAdType("IMAGE");
+        request.setVenueIds(venueIds);
+        return request;
+    }
+
+    private static AdVenueTagsRequestModel venueTagsRequest(List<String> venueIds) {
+        AdVenueTagsRequestModel request = new AdVenueTagsRequestModel();
+        request.setVenueIds(venueIds);
+        return request;
+    }
+
+    private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec postAd(
+            String campaignId, AdRequestModel request) {
+        return webTestClient.post()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/ads")
+                        .build(businessId.getBusinessId(), campaignId))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .bodyValue(request)
+                .exchange();
+    }
+
+    private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec putVenueTags(
+            String pathBusinessId, String campaignId, String adId, List<String> venueIds) {
+        return webTestClient.put()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/ads/{adId}/venue-tags")
+                        .build(pathBusinessId, campaignId, adId))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .bodyValue(venueTagsRequest(venueIds))
+                .exchange();
+    }
+
+    /** Persists an ad directly so a test can act on it without going through the API. */
+    private String createAdAndGetId(String campaignId, AdRequestModel request) {
+        AdCampaign campaign = adCampaignRepository.findByCampaignIdWithAds(campaignId);
+
+        Ad ad = new Ad();
+        ad.setAdIdentifier(new AdIdentifier());
+        ad.setName(request.getName());
+        ad.setAdUrl(request.getAdUrl());
+        ad.setAdType(AdType.valueOf(request.getAdType()));
+        ad.setCampaign(campaign);
+        if (request.getVenueIds() != null) {
+            ad.setVenues(request.getVenueIds().stream()
+                    .map(id -> venueRepository.findByVenueId(id).orElseThrow())
+                    .toList());
+        }
+
+        campaign.getAds().add(ad);
+        adCampaignRepository.save(campaign);
+
+        return ad.getAdIdentifier().getAdIdentifier();
     }
 }

@@ -7,7 +7,7 @@ import { useLocale } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { Venue, VenueRequestDTO } from "@/entities/venue";
-import { getAllVenues, createVenue, updateVenue, deleteVenue } from "@/features/venue-management/api";
+import { getAllVenues, createVenue, updateVenue, deleteVenue, getVenueAdCount } from "@/features/venue-management/api";
 import { VenueTable } from "@/pages/dashboard/admin/ui/tables/VenueTable";
 import { VenueFormModal } from "@/pages/dashboard/admin/ui/modals/VenueFormModal";
 import { VenueDeleteModal } from "@/pages/dashboard/admin/ui/modals/VenueDeleteModal";
@@ -24,6 +24,9 @@ export default function VenueManagementPage() {
 
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [deletingVenue, setDeletingVenue] = useState<Venue | null>(null);
+    // Unlike mediaCount, which rides along on the venue payload, the ad count is its
+    // own endpoint — fetched here so the modal stays presentational.
+    const [deletingVenueAdCount, setDeletingVenueAdCount] = useState(0);
 
     const refreshVenues = useCallback(async () => {
         try {
@@ -71,9 +74,17 @@ export default function VenueManagementPage() {
         setFormModalOpen(true);
     };
 
-    const handleDeleteClick = (venue: Venue) => {
+    const handleDeleteClick = async (venue: Venue) => {
         setDeletingVenue(venue);
         setDeleteModalOpen(true);
+
+        try {
+            setDeletingVenueAdCount(await getVenueAdCount(venue.venueId));
+        } catch {
+            // Missing the count must not block the delete flow — the media warning and
+            // the confirmation itself still work, we just omit the ad warning.
+            setDeletingVenueAdCount(0);
+        }
     };
 
     const handleSave = async (data: VenueRequestDTO) => {
@@ -137,9 +148,10 @@ export default function VenueManagementPage() {
 
             <VenueDeleteModal
                 opened={deleteModalOpen}
-                onClose={() => { setDeleteModalOpen(false); setDeletingVenue(null); }}
+                onClose={() => { setDeleteModalOpen(false); setDeletingVenue(null); setDeletingVenueAdCount(0); }}
                 onConfirm={handleDeleteConfirm}
                 venue={deletingVenue}
+                adCount={deletingVenueAdCount}
             />
         </Stack>
     );

@@ -10,13 +10,18 @@ import com.envisionad.webservice.advertisement.datamapperlayer.AdResponseMapper;
 import com.envisionad.webservice.advertisement.datamapperlayer.AdCampaignResponseMapper;
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.JwtUtils;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
+import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
+import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.io.IOException;
@@ -40,6 +45,7 @@ class AdCampaignServiceUnitTest {
     @Mock private Uploader uploader;
     @Mock private com.cloudinary.Api api;
     @Mock private JwtUtils jwtUtils;
+    @Mock private VenueRepository venueRepository;
 
     @InjectMocks private AdCampaignServiceImpl service;
 
@@ -328,7 +334,247 @@ class AdCampaignServiceUnitTest {
         verify(adCampaignRepository, never()).save(any());
     }
 
+    // ---------------- P7: venue tags ----------------
+
+    @Test
+    void addAdToCampaign_withVenueIds_resolvesAndSetsVenues() {
+        String campaignId = "camp-tags-1";
+        AdCampaign campaign = campaignWithNoAds(campaignId, "biz-1");
+        Venue gym = venue("venue-gym");
+        Venue barber = venue("venue-barber");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
+        when(venueRepository.findByVenueId("venue-gym")).thenReturn(Optional.of(gym));
+        when(venueRepository.findByVenueId("venue-barber")).thenReturn(Optional.of(barber));
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of("venue-gym", "venue-barber")));
+
+        assertEquals(List.of(gym, barber), campaign.getAds().get(0).getVenues());
+    }
+
+    @Test
+    void addAdToCampaign_withNullVenueIds_leavesVenuesEmpty() {
+        String campaignId = "camp-tags-2";
+        AdCampaign campaign = campaignWithNoAds(campaignId, "biz-1");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.addAdToCampaign(campaignId, adRequest("IMAGE", null));
+
+        assertTrue(campaign.getAds().get(0).getVenues().isEmpty());
+        verifyNoInteractions(venueRepository);
+    }
+
+    @Test
+    void addAdToCampaign_withEmptyVenueIds_leavesVenuesEmpty() {
+        String campaignId = "camp-tags-3";
+        AdCampaign campaign = campaignWithNoAds(campaignId, "biz-1");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of()));
+
+        assertTrue(campaign.getAds().get(0).getVenues().isEmpty());
+        verifyNoInteractions(venueRepository);
+    }
+
+    @Test
+    void addAdToCampaign_withDuplicateVenueIds_deduplicates() {
+        String campaignId = "camp-tags-4";
+        AdCampaign campaign = campaignWithNoAds(campaignId, "biz-1");
+        Venue gym = venue("venue-gym");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
+        when(venueRepository.findByVenueId("venue-gym")).thenReturn(Optional.of(gym));
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of("venue-gym", "venue-gym", "venue-gym")));
+
+        // A List-mapped @ManyToMany is a bag: without de-dup this would violate the
+        // ad_venue_tags composite PK on flush.
+        assertEquals(List.of(gym), campaign.getAds().get(0).getVenues());
+        verify(venueRepository, times(1)).findByVenueId("venue-gym");
+    }
+
+    @Test
+    void addAdToCampaign_withUnknownVenueId_throwsVenueNotFound_andSavesNothing() {
+        String campaignId = "camp-tags-5";
+        AdCampaign campaign = campaignWithNoAds(campaignId, "biz-1");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
+        when(venueRepository.findByVenueId("venue-ghost")).thenReturn(Optional.empty());
+
+        assertThrows(VenueNotFoundException.class,
+                () -> service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of("venue-ghost"))));
+
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAdVenueTags_replacesEntireTagSet() {
+        String campaignId = "camp-upd-1";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+        Venue old = venue("venue-old");
+        Venue gym = venue("venue-gym");
+        data.campaign.getAds().get(0).setVenues(new ArrayList<>(List.of(old)));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(venueRepository.findByVenueId("venue-gym")).thenReturn(Optional.of(gym));
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateAdVenueTags(advertiserToken, "biz-1", campaignId, data.adId, List.of("venue-gym"));
+
+        assertEquals(List.of(gym), data.campaign.getAds().get(0).getVenues());
+    }
+
+    @Test
+    void updateAdVenueTags_withEmptyList_clearsAllTags() {
+        String campaignId = "camp-upd-2";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+        data.campaign.getAds().get(0).setVenues(new ArrayList<>(List.of(venue("venue-old"))));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateAdVenueTags(advertiserToken, "biz-1", campaignId, data.adId, List.of());
+
+        assertTrue(data.campaign.getAds().get(0).getVenues().isEmpty());
+    }
+
+    @Test
+    void updateAdVenueTags_campaignNotFound_throwsAdCampaignNotFound() {
+        when(adCampaignRepository.findByCampaignId_CampaignId("nope")).thenReturn(null);
+
+        assertThrows(AdCampaignNotFoundException.class, () -> service.updateAdVenueTags(
+                advertiserToken, "biz-1", "nope", "ad-1", List.of()));
+    }
+
+    @Test
+    void updateAdVenueTags_adNotFound_throwsAdNotFound() {
+        String campaignId = "camp-upd-3";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+
+        assertThrows(AdNotFoundException.class, () -> service.updateAdVenueTags(
+                advertiserToken, "biz-1", campaignId, "ad-does-not-exist", List.of()));
+    }
+
+    @Test
+    void updateAdVenueTags_unknownVenueId_throwsVenueNotFound_andSavesNothing() {
+        String campaignId = "camp-upd-4";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(venueRepository.findByVenueId("venue-ghost")).thenReturn(Optional.empty());
+
+        assertThrows(VenueNotFoundException.class, () -> service.updateAdVenueTags(
+                advertiserToken, "biz-1", campaignId, data.adId, List.of("venue-ghost")));
+
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAdVenueTags_callerNotEmployee_propagatesAccessDenied() {
+        doThrow(new AccessDeniedException("not an employee"))
+                .when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq("biz-1"));
+
+        assertThrows(AccessDeniedException.class, () -> service.updateAdVenueTags(
+                advertiserToken, "biz-1", "camp-1", "ad-1", List.of()));
+
+        verifyNoInteractions(adCampaignRepository);
+    }
+
+    @Test
+    void updateAdVenueTags_campaignOwnedByAnotherBusiness_propagatesAccessDenied() {
+        String campaignId = "camp-upd-5";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-other"));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        doThrow(new AccessDeniedException("Campaign does not belong to the specified business"))
+                .when(jwtUtils).validateBusinessOwnsCampaign(eq("biz-1"), any(AdCampaign.class));
+
+        assertThrows(AccessDeniedException.class, () -> service.updateAdVenueTags(
+                advertiserToken, "biz-1", campaignId, data.adId, List.of()));
+
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void updateAdVenueTags_doesNotConsultSubscriptions() {
+        // FR-3.5: tag edits are metadata-only and are NOT gated by the subscription-tie
+        // check that blocks campaign deletion.
+        String campaignId = "camp-upd-6";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateAdVenueTags(advertiserToken, "biz-1", campaignId, data.adId, List.of());
+
+        verifyNoInteractions(bundleSubscriptionRepository);
+    }
+
+    @Test
+    void deleteAdFromCampaign_mapsResponseBeforeRemovingTheAd() {
+        // The mapper reads the lazy venues collection; mapping after removal would be a
+        // read on a deleted entity. Guards the ordering, not just the return value.
+        String campaignId = "camp-order-1";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, null);
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(adResponseMapper.entityToResponseModel(any())).thenAnswer(inv -> {
+            assertEquals(1, data.campaign.getAds().size(),
+                    "response must be mapped while the ad is still attached to the campaign");
+            return null;
+        });
+
+        service.deleteAdFromCampaign(campaignId, data.adId);
+
+        InOrder inOrder = inOrder(adResponseMapper, adCampaignRepository);
+        inOrder.verify(adResponseMapper).entityToResponseModel(any());
+        inOrder.verify(adCampaignRepository).save(any());
+    }
+
     // ---------------- Helpers ----------------
+
+    private static Venue venue(String venueId) {
+        Venue venue = new Venue();
+        venue.setVenueId(venueId);
+        return venue;
+    }
+
+    private static AdRequestModel adRequest(String adType, List<String> venueIds) {
+        AdRequestModel request = new AdRequestModel();
+        request.setName("An ad");
+        request.setAdUrl("https://cdn/a.png");
+        request.setAdType(adType);
+        request.setVenueIds(venueIds);
+        return request;
+    }
+
+    private static AdCampaign campaignWithNoAds(String campaignId, String businessId) {
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
+        campaign.setBusinessId(new BusinessIdentifier(businessId));
+        campaign.setAds(new ArrayList<>());
+        return campaign;
+    }
 
     /** Minimal ApiResponse (Map + the 2 rate-limit accessors) so tests can stub cloudinary.api()
      * without pulling in the real HTTP client. */

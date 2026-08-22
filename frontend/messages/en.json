@@ -837,7 +837,8 @@
     "labels": {
       "name": "Name",
       "type": "Type",
-      "media": "Media"
+      "media": "Media",
+      "venueTags": "Venue Tags (optional)"
     },
     "placeholders": {
       "name": "Ad Name"
@@ -868,6 +869,10 @@
       "nameTooShort": "Name too short",
       "fileRequired": "File is required",
       "videoTooLong": "Video must be {max} seconds or shorter"
+    },
+    "venueTags": {
+      "helper": "Leave unselected if this creative is suitable for every venue type. Select one or more to limit it to specific venue types.",
+      "noVenues": "No venue types have been set up yet."
     }
   },
   "adRequests": {
@@ -1010,7 +1015,10 @@
       "noCampaigns": "No campaigns found. Add your first campaign to get started!",
       "noAds": "No ads found in this campaign. Add your first ad to get started!",
       "deleteCampaign": "Delete Campaign",
-      "deleteAd": "Delete ad {name}"
+      "deleteAd": "Delete ad {name}",
+      "venueTags": "Venue Tags",
+      "allVenues": "All venues",
+      "editTags": "Edit venue tags for {name}"
     },
     "notifications": {
       "loadFailed": {
@@ -1574,7 +1582,8 @@
       "message": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
       "mediaWarning": "This venue tag is currently assigned to {count} media listing(s). Deleting it will remove the tag from all associated media.",
       "confirm": "Delete",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "adWarning": "This will also remove the tag from {count} ad(s)."
     },
     "notifications": {
       "created": "Venue tag created successfully.",
@@ -1965,6 +1974,23 @@
     "statusHint": {
       "PAST_DUE": "We could not take the last payment. Update your card in Stripe to keep this bundle running.",
       "INCOMPLETE": "You started this checkout but never completed payment. It blocks a new subscription to the same bundle until you cancel it."
+    }
+  },
+  "editAdVenueTags": {
+    "title": "Edit venue tags",
+    "buttons": {
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "notifications": {
+      "success": {
+        "title": "Venue tags updated",
+        "message": "Venue tags for \"{adName}\" have been updated."
+      },
+      "error": {
+        "title": "Error",
+        "genericMessage": "Failed to update venue tags."
+      }
     }
   }
 }
