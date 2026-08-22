@@ -1,6 +1,8 @@
 services:
   frontend:
     container_name: frontend
+    image: ghcr.io/${IMAGE_OWNER}/envision-ad-frontend:${IMAGE_TAG:-latest}
+    pull_policy: always
     build:
       context: ./frontend
 #      Since Next.js has a client and a server side, it needs some secrets at
@@ -57,6 +59,8 @@ services:
 
   webservice:
     container_name: backend
+    image: ghcr.io/${IMAGE_OWNER}/envision-ad-webservice:${IMAGE_TAG:-latest}
+    pull_policy: always
     build:
       context: ./webservice
       dockerfile: Dockerfile
