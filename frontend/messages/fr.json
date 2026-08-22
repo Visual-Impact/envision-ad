@@ -582,7 +582,8 @@
       "status": "Statut",
       "update": "Prochaine mise à jour",
       "price": "Prix",
-      "venue": "Lieu"
+      "venue": "Lieu",
+      "actions": "Actions"
     },
     "status": {
       "active": "Actif",
