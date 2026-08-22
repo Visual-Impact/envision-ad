@@ -7,6 +7,9 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -31,9 +34,7 @@ jobs:
 
           doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
           doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
-          docker compose -f docker-compose.prod.yml build
-
-          docker compose -f docker-compose.prod.yml push
+          bash -c 'docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml push'
 
   deploy:
     needs: build-and-push
