@@ -7,11 +7,6 @@ import java.util.List;
 
 @Data
 @NoArgsConstructor
-public class AdRequestModel {
-    private String name;
-    private String adUrl;
-    private String adType;
-
-    // Optional. Omitted or empty means untagged/universal — see Ad.venues.
+public class AdVenueTagsRequestModel {
     private List<String> venueIds;
 }

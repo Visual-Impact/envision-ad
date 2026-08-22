@@ -3,6 +3,7 @@ import { Modal, TextInput, Button, Group, Box, Text, Stack, ThemeIcon, Alert, Ba
 import { useForm } from '@mantine/form';
 import { IconUpload, IconCheck, IconAlertCircle } from '@tabler/icons-react';
 import { AdRequestDTO } from "@/entities/ad";
+import { VenueMultiSelectPicker } from "@/features/venue-management/ui";
 import { CldUploadWidget, CloudinaryUploadWidgetResults } from 'next-cloudinary';
 import { useTranslations } from 'next-intl'
 
@@ -22,6 +23,9 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
     const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
     const [videoTooLong, setVideoTooLong] = useState(false);
 
+    // Venue tags — empty is valid and is the common case (universal creative).
+    const [venueIds, setVenueIds] = useState<string[]>([]);
+
     const form = useForm({
         initialValues: {
             name: "",
@@ -37,6 +41,7 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
         form.reset();
         setUploadedFileUrl(null);
         setVideoTooLong(false);
+        setVenueIds([]);
     };
 
     const handleClose = () => {
@@ -74,6 +79,7 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
                 name: values.name,
                 adType: values.adType as "IMAGE" | "VIDEO",
                 adUrl: uploadedFileUrl,
+                venueIds,
             });
 
             // Only runs if no error was thrown
@@ -106,6 +112,18 @@ export function AddAdModal({ opened, onClose, onSuccess }: AddAdModalProps) {
                             required
                             {...form.getInputProps('name')}
                         />
+
+                        <Box>
+                            <Text size="sm" fw={500} mb={6}>
+                                {t('labels.venueTags')}
+                            </Text>
+                            <VenueMultiSelectPicker
+                                selectedVenueIds={venueIds}
+                                onChange={setVenueIds}
+                                helperText={t('venueTags.helper')}
+                                emptyText={t('venueTags.noVenues')}
+                            />
+                        </Box>
 
                         <Box>
                             <Text size="sm" fw={500} mb={4}>

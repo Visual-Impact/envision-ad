@@ -5,6 +5,7 @@ import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampai
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampaignResponseModel;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdResponseModel;
+import com.envisionad.webservice.advertisement.presentationlayer.models.AdVenueTagsRequestModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -67,6 +68,20 @@ public class AdCampaignController {
         AdResponseModel deletedAd = adCampaignService.deleteAdFromCampaign(campaignId, adId);
 
         return ResponseEntity.ok(deletedAd);
+    }
+
+    @PutMapping("businesses/{businessId}/campaigns/{campaignId}/ads/{adId}/venue-tags")
+    @PreAuthorize("hasAuthority('update:campaign')")
+    public ResponseEntity<AdResponseModel> updateAdVenueTags(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String businessId,
+            @PathVariable String campaignId,
+            @PathVariable String adId,
+            @RequestBody AdVenueTagsRequestModel adVenueTagsRequestModel) {
+        AdResponseModel updatedAd = adCampaignService.updateAdVenueTags(
+                jwt, businessId, campaignId, adId, adVenueTagsRequestModel.getVenueIds());
+
+        return ResponseEntity.ok(updatedAd);
     }
 
     @GetMapping("businesses/{businessId}/campaigns/active-count")

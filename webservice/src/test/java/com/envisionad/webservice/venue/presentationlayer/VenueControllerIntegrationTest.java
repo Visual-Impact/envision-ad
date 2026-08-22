@@ -1,5 +1,7 @@
 package com.envisionad.webservice.venue.presentationlayer;
 
+import com.envisionad.webservice.advertisement.dataaccesslayer.*;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
 import com.envisionad.webservice.config.BaseIntegrationTest;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
@@ -11,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -24,10 +28,19 @@ class VenueControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private VenueRepository venueRepository;
 
+    @Autowired
+    private AdCampaignRepository adCampaignRepository;
+
+    @Autowired
+    private AdRepository adRepository;
+
     private Venue savedVenue;
 
     @BeforeEach
     void setUp() {
+        // Campaigns first: ad_venue_tags FKs venue, and under ddl-auto: create that FK
+        // has no cascade, so a leftover tagged ad would block venueRepository.deleteAll().
+        adCampaignRepository.deleteAll();
         venueRepository.deleteAll();
 
         Jwt adminJwt = Jwt.withTokenValue("mock-token")
@@ -199,5 +212,93 @@ class VenueControllerIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().isOk()
                 .expectBody(Long.class)
                 .value(count -> assertEquals(0L, count));
+    }
+
+    // ---------------- P7: ad venue tags ----------------
+
+    @Test
+    void getAdCount_withAdminAuth_noTags_returnsZero() {
+        expectAdCount(savedVenue.getVenueId(), 0);
+    }
+
+    @Test
+    void getAdCount_withAdminAuth_returnsCount() {
+        persistCampaignWithTaggedAd(savedVenue);
+        persistCampaignWithTaggedAd(savedVenue);
+
+        expectAdCount(savedVenue.getVenueId(), 2);
+    }
+
+    @Test
+    void getAdCount_nonExistingVenue_returnsZero() {
+        // Mirrors media-count, which also 200s with 0 rather than 404ing on an unknown
+        // venue. Asserted so the asymmetry with the rest of the controller is deliberate.
+        expectAdCount("no-such-venue", 0);
+    }
+
+    @Test
+    void getAdCount_withoutManageVenuesPermission_returns403() {
+        Jwt noPermsJwt = Jwt.withTokenValue("no-perms-token")
+                .header("alg", "none")
+                .claim("sub", "auth0|nobody")
+                .claim("permissions", List.of())
+                .build();
+        when(jwtDecoder.decode("no-perms-token")).thenReturn(noPermsJwt);
+
+        webTestClient.get()
+                .uri(BASE_URI + "/{venueId}/ad-count", savedVenue.getVenueId())
+                .header("Authorization", "Bearer no-perms-token")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void deleteVenue_taggedOnAnAd_untagsTheAdAndReturns204() {
+        // FR-6.2. Only reachable because deleteVenue() untags in application code — the
+        // migration's ON DELETE CASCADE does not exist in the entity-generated test schema.
+        persistCampaignWithTaggedAd(savedVenue);
+
+        webTestClient.delete()
+                .uri(BASE_URI + "/{venueId}", savedVenue.getVenueId())
+                .header("Authorization", "Bearer mock-token")
+                .exchange()
+                .expectStatus().isNoContent();
+
+        assertTrue(venueRepository.findByVenueId(savedVenue.getVenueId()).isEmpty());
+
+        // Asserted via queries rather than ad.getVenues(): open-in-view keeps a session
+        // open for web requests, but not for a test method body.
+        assertEquals(1, adRepository.count(), "the ad itself must survive");
+        assertTrue(adRepository.findByVenues_VenueId(savedVenue.getVenueId()).isEmpty(),
+                "the tag must be gone");
+    }
+
+    private void expectAdCount(String venueId, long expected) {
+        webTestClient.get()
+                .uri(BASE_URI + "/{venueId}/ad-count", venueId)
+                .header("Authorization", "Bearer mock-token")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.adCount").isEqualTo(expected);
+    }
+
+    private String persistCampaignWithTaggedAd(Venue venue) {
+        AdCampaign campaign = new AdCampaign();
+        campaign.setName("Tagged Campaign");
+        campaign.setCampaignId(new AdCampaignIdentifier());
+        campaign.setBusinessId(new BusinessIdentifier(UUID.randomUUID().toString()));
+
+        Ad ad = new Ad();
+        ad.setAdIdentifier(new AdIdentifier());
+        ad.setName("Tagged Ad");
+        ad.setAdUrl("https://cdn.envisionad.com/tagged.jpg");
+        ad.setAdType(AdType.IMAGE);
+        ad.setCampaign(campaign);
+        ad.setVenues(List.of(venue));
+
+        campaign.setAds(new ArrayList<>(List.of(ad)));
+
+        return adCampaignRepository.save(campaign).getCampaignId().getCampaignId();
     }
 }

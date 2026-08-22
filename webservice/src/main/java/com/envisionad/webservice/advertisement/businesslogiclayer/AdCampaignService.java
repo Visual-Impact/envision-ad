@@ -14,6 +14,9 @@ public interface AdCampaignService {
 
     AdResponseModel deleteAdFromCampaign(String campaignId, String adId);
 
+    AdResponseModel updateAdVenueTags(Jwt jwt, String businessId, String campaignId, String adId,
+                                      List<String> venueIds);
+
     List<AdCampaignResponseModel> getAllAdCampaignsByBusinessId(String businessId);
 
     AdCampaignResponseModel getAdCampaignByCampaignId(String campaignId);

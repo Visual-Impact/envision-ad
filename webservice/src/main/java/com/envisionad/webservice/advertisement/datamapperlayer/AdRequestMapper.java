@@ -13,6 +13,10 @@ public interface AdRequestMapper {
 
     @Mapping(target = "adType", ignore = true)
 
+    // Resolved from venueIds in the service layer so an unknown ID can throw
+    // VenueNotFoundException before anything is persisted.
+    @Mapping(target = "venues", ignore = true)
+
     Ad requestModelToEntity(AdRequestModel adRequestModel);
 
 }

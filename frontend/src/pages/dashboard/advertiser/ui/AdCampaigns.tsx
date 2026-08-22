@@ -4,18 +4,22 @@ import React, {useCallback, useEffect, useState} from "react";
 import {Button, Group, SimpleGrid, Stack, Title} from "@mantine/core";
 import {IconAd, IconMovie, IconPhoto, IconSpeakerphone} from "@tabler/icons-react";
 import {notifications} from "@mantine/notifications";
-import {useTranslations} from 'next-intl';
+import {useLocale, useTranslations} from 'next-intl';
 
-import {AdRequestDTO} from "@/entities/ad";
+import {Ad, AdRequestDTO} from "@/entities/ad";
 import {AdCampaign, AdCampaignRequestDTO} from "@/entities/ad-campaign";
+import {Venue} from "@/entities/venue";
 import {
     addAdToCampaign,
     createAdCampaign, deleteAdCampaign,
     deleteAdFromCampaign,
-    getAllAdCampaigns
+    getAllAdCampaigns,
+    updateAdVenueTags
 } from "@/features/ad-campaign-management/api";
+import {getAllVenues} from "@/features/venue-management/api";
 import {AdCampaignsTable} from "@/pages/dashboard/advertiser/ui/tables/AdCampaignsTable";
 import {AddAdModal} from "@/pages/dashboard/advertiser/ui/modals/AddAdModal";
+import {EditAdVenueTagsModal} from "@/pages/dashboard/advertiser/ui/modals/EditAdVenueTagsModal";
 import {CreateCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/CreateCampaignModal";
 import {ConfirmationModal} from "@/shared/ui/ConfirmationModal";
 import {MetricCard} from "@/widgets/Cards/MetricCard";
@@ -23,10 +27,16 @@ import {useOrganization} from "@/app/providers";
 
 export default function AdCampaigns() {
     const t = useTranslations('adCampaigns');
+    const tEditTags = useTranslations('editAdVenueTags');
+    const locale = useLocale();
 
     const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
+    const [venues, setVenues] = useState<Venue[]>([]);
     const [refreshCount, setRefreshCount] = useState(0);
     const { organization } = useOrganization();
+
+    const [isEditTagsModalOpen, setIsEditTagsModalOpen] = useState(false);
+    const [adToEditTags, setAdToEditTags] = useState<{ campaignId: string; ad: Ad } | null>(null);
 
     const [isAddAdModalOpen, setIsAddAdModalOpen] = useState(false);
     const [targetCampaignId, setTargetCampaignId] = useState<string | null>(null);
@@ -69,6 +79,56 @@ export default function AdCampaigns() {
 
         return () => { ignored = true; };
     }, [businessId, t, refreshCount]);
+
+    useEffect(() => {
+        let ignored = false;
+
+        // IIFE-nested per react-hooks/set-state-in-effect (see VenueMultiSelectPicker).
+        (async () => {
+            try {
+                const data = await getAllVenues(locale);
+                if (!ignored) setVenues(data);
+            } catch (error) {
+                // Non-fatal: the table falls back to rendering nothing for unresolved tags.
+                console.error('Failed to load venues', error);
+            }
+        })();
+
+        return () => { ignored = true; };
+    }, [locale]);
+
+    const handleOpenEditAdTags = (campaignId: string, ad: Ad) => {
+        setAdToEditTags({ campaignId, ad });
+        setIsEditTagsModalOpen(true);
+    };
+
+    const handleSaveAdVenueTags = async (venueIds: string[]) => {
+        if (!adToEditTags || !organization) return;
+
+        try {
+            await updateAdVenueTags(
+                organization.businessId,
+                adToEditTags.campaignId,
+                adToEditTags.ad.adId,
+                venueIds
+            );
+            notifications.show({
+                title: tEditTags('notifications.success.title'),
+                message: tEditTags('notifications.success.message', { adName: adToEditTags.ad.name }),
+                color: 'green'
+            });
+            setIsEditTagsModalOpen(false);
+            setAdToEditTags(null);
+            refreshCampaigns();
+        } catch (error) {
+            console.error('Failed to update venue tags', error);
+            notifications.show({
+                title: tEditTags('notifications.error.title'),
+                message: tEditTags('notifications.error.genericMessage'),
+                color: 'red'
+            });
+        }
+    };
 
     const handleOpenAddAd = (campaignId: string) => {
         setTargetCampaignId(campaignId);
@@ -220,15 +280,24 @@ export default function AdCampaigns() {
 
             <AdCampaignsTable
                 campaigns={campaigns}
+                venues={venues}
                 onDeleteAd={handleDeleteAd}
                 onDeleteAdCampaign={handleDeleteAdCampaign}
                 onOpenAddAd={handleOpenAddAd}
+                onEditAdTags={handleOpenEditAdTags}
             />
 
             <AddAdModal
                 opened={isAddAdModalOpen}
                 onClose={() => setIsAddAdModalOpen(false)}
                 onSuccess={handleSuccessAddAd}
+            />
+
+            <EditAdVenueTagsModal
+                opened={isEditTagsModalOpen}
+                onClose={() => setIsEditTagsModalOpen(false)}
+                onSave={handleSaveAdVenueTags}
+                ad={adToEditTags?.ad ?? null}
             />
 
             <CreateCampaignModal

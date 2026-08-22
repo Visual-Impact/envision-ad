@@ -582,7 +582,8 @@
       "status": "Statut",
       "update": "Prochaine mise à jour",
       "price": "Prix",
-      "venue": "Lieu"
+      "venue": "Lieu",
+      "actions": "Actions"
     },
     "status": {
       "active": "Actif",
@@ -877,7 +878,8 @@
     "labels": {
       "name": "Nom",
       "type": "Type",
-      "media": "Média"
+      "media": "Média",
+      "venueTags": "Types de lieux (facultatif)"
     },
     "placeholders": {
       "name": "Nom de l'annonce"
@@ -908,6 +910,10 @@
       "nameTooShort": "Nom trop court",
       "fileRequired": "Le fichier est requis",
       "videoTooLong": "La vidéo doit faire {max} secondes ou moins"
+    },
+    "venueTags": {
+      "helper": "Ne rien sélectionner si cette publicité convient à tous les types de lieux. Sélectionnez-en un ou plusieurs pour la limiter à des types de lieux précis.",
+      "noVenues": "Aucun type de lieu n'a encore été créé."
     }
   },
   "adRequests": {
@@ -1050,7 +1056,10 @@
       "noCampaigns": "Aucune campagne trouvée. Créez une campagne pour commencer.",
       "noAds": "Aucune annonce trouvée dans cette campagne. Ajoutez une annonce pour commencer.",
       "deleteCampaign": "Supprimer la campagne",
-      "deleteAd": "Supprimer l’annonce {name}"
+      "deleteAd": "Supprimer l’annonce {name}",
+      "venueTags": "Types de lieux",
+      "allVenues": "Tous les types de lieux",
+      "editTags": "Modifier les types de lieux de {name}"
     },
     "notifications": {
       "loadFailed": {
@@ -1574,7 +1583,8 @@
       "message": "Êtes-vous sûr de vouloir supprimer « {name} » ? Cette action est irréversible.",
       "mediaWarning": "Ce tag de lieu est actuellement assigné à {count} média(s). Le supprimer retirera le tag de tous les médias associés.",
       "confirm": "Supprimer",
-      "cancel": "Annuler"
+      "cancel": "Annuler",
+      "adWarning": "Cela retirera également l'étiquette de {count} publicité(s)."
     },
     "notifications": {
       "created": "Tag de lieu créé avec succès.",
@@ -1965,6 +1975,23 @@
     "statusHint": {
       "PAST_DUE": "Nous n'avons pas pu prélever le dernier paiement. Mettez votre carte à jour dans Stripe pour conserver ce forfait.",
       "INCOMPLETE": "Vous avez commencé ce paiement sans le finaliser. Il empêche un nouvel abonnement au même forfait tant qu'il n'est pas annulé."
+    }
+  },
+  "editAdVenueTags": {
+    "title": "Modifier les types de lieux",
+    "buttons": {
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
+    "notifications": {
+      "success": {
+        "title": "Types de lieux mis à jour",
+        "message": "Les types de lieux de « {adName} » ont été mis à jour."
+      },
+      "error": {
+        "title": "Erreur",
+        "genericMessage": "Échec de la mise à jour des types de lieux."
+      }
     }
   }
 }

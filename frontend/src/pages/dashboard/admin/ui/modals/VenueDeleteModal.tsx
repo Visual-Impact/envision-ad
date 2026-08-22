@@ -11,9 +11,12 @@ interface VenueDeleteModalProps {
     onClose: () => void;
     onConfirm: () => Promise<void>;
     venue: Venue | null;
+    /** Fetched by the parent, matching how mediaCount already arrives on the venue prop —
+     *  this modal stays presentational and never fetches. */
+    adCount: number;
 }
 
-export function VenueDeleteModal({ opened, onClose, onConfirm, venue }: VenueDeleteModalProps) {
+export function VenueDeleteModal({ opened, onClose, onConfirm, venue, adCount }: VenueDeleteModalProps) {
     const t = useTranslations("venueManagement.delete");
     const [deleting, setDeleting] = useState(false);
 
@@ -44,6 +47,15 @@ export function VenueDeleteModal({ opened, onClose, onConfirm, venue }: VenueDel
                 {venue.mediaCount > 0 && (
                     <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
                         {t("mediaWarning", { count: venue.mediaCount })}
+                    </Alert>
+                )}
+
+                {/* Worth its own warning: an ad losing its last tag flips from
+                    "this venue only" to "shown everywhere", unlike a media listing
+                    which merely stops displaying a label. */}
+                {adCount > 0 && (
+                    <Alert color="orange" icon={<IconAlertTriangle size={18} />}>
+                        {t("adWarning", { count: adCount })}
                     </Alert>
                 )}
 
