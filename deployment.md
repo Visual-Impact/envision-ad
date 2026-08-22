@@ -1,6 +1,8 @@
 # Deployment Documentation
 
-As of writing this, Envision Ad is deployed on an Amazon Linux 2023 EC2 instance using Docker Compose. The deployment process is automated via GitHub Actions, which builds and deploys the Docker containers whenever changes are pushed to the `main` branch.
+As of writing this, Envision Ad is deployed on an Amazon Linux 2023 EC2 instance using Docker Compose. The deployment process is automated via GitHub Actions, which builds and pushes Docker images whenever changes are pushed to the `main` branch, then deploys them to the EC2 instance.
+
+Images are built in GitHub Actions (not on the EC2 instance) and pushed to GitHub Container Registry (GHCR). The EC2 instance only ever pulls prebuilt images and swaps containers in — it never compiles the frontend or backend itself. This keeps the small EC2 instance's CPU/RAM free during deploys and keeps deploy time to the length of an image pull, not a full build.
 
 ### Setup
 - EC2 Instance: Amazon Linux 2023 -> Running `docker-compose.prod.yml` (frontend, backend, and reverse-proxy/Nginx services)
@@ -24,6 +26,9 @@ Our secrets are organized into two primary projects:
 Access to these projects from our deployed instances is managed via Service Tokens. These tokens are stored as GitHub Secrets within the repository:
 * DOPPLER_FRONTEND_TOKEN
 * DOPPLER_BACKEND_TOKEN
+
+Deployed images are pulled from GitHub Container Registry (GHCR), which is private by default. The EC2 instance authenticates each deploy using a GitHub PAT (`read:packages` scope) stored as:
+* GHCR_PAT
 
 ### To run the project locally with Doppler
 
@@ -71,15 +76,26 @@ The Doppler CLI is required on the EC2 instance to fetch secrets during the depl
 
 ### Deployment Workflow
 
-The GitHub deployment action uses a nested command structure to inject environment variables from both Doppler projects into the Docker containers at runtime.
+`deploy.yml` runs as two jobs:
 
-Deployment Command:
-```bash
-doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
-doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
-docker compose -f docker-compose.prod.yml up -d --build --force-recreate
-```
+1. **`build-and-push`** (GitHub-hosted runner) — logs in to `ghcr.io`, then builds both images using the same nested Doppler command as before (so the frontend's `NEXT_PUBLIC_*` build-time values are still injected from Doppler, just in CI instead of on EC2), and pushes them to GHCR tagged with the commit SHA:
+   ```bash
+   doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
+   doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
+   docker compose -f docker-compose.prod.yml build
 
-There are other ways to achieve this. Here is the documentation:
+   docker compose -f docker-compose.prod.yml push
+   ```
+
+2. **`deploy`** (SSH into EC2, runs after `build-and-push` succeeds) — logs in to GHCR using a PAT (`GHCR_PAT` secret, `read:packages` scope), then pulls the images the previous job just pushed and swaps containers in. No `--build`, no `--force-recreate` — only the service(s) whose image actually changed get recreated:
+   ```bash
+   doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
+   doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
+   bash -c 'docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d'
+   ```
+
+`docker-compose.prod.yml`'s `frontend` and `webservice` services carry both a `build:` block (used only by job 1) and an `image: ghcr.io/${IMAGE_OWNER}/envision-ad-*:${IMAGE_TAG:-latest}` reference (used only by job 2's `pull`/`up`), with `pull_policy: always` so the EC2 instance never silently falls back to building locally.
+
+There are other ways to inject Doppler secrets into Compose. Here is the documentation:
 - https://docs.doppler.com/docs/docker-compose
 

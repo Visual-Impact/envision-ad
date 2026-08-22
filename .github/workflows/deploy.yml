@@ -5,19 +5,50 @@ on:
     branches:
       - main
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push images
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # GHCR requires lowercase image paths
+          echo "IMAGE_OWNER=$(echo $IMAGE_OWNER | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+
+          doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
+          doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
+          docker compose -f docker-compose.prod.yml build
+
+          docker compose -f docker-compose.prod.yml push
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_USER: ${{ github.actor }}
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: '30m'
+          envs: GHCR_PAT,GHCR_USER,IMAGE_OWNER,IMAGE_TAG
           script: |
             # Navigate to home directory
             cd ~
@@ -27,11 +58,18 @@ jobs:
               echo "Directory not found. Cloning for the first time..."
               git clone git@github.com:${{ github.repository }}.git envision-ad
             fi
-            
+
             cd envision-ad
             git pull origin main
-            
-            # --- 3. Inject environment variables and start/update Docker containers ---
+
+            # GHCR requires lowercase image paths
+            export IMAGE_OWNER=$(echo "$IMAGE_OWNER" | tr '[:upper:]' '[:lower:]')
+
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            # --- Pull the images built and pushed by CI, then swap containers in ---
             doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
             doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
-            docker compose -f docker-compose.prod.yml up -d --build --force-recreate
+            bash -c 'docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d'
+
+            docker image prune -f
