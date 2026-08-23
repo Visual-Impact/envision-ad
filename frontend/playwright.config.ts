@@ -82,5 +82,8 @@ export default defineConfig({
     command: "npm run dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    /* A cold `next dev` start plus the first route compile can take well over
+       Playwright's 60s default on a CI runner. */
+    timeout: 120 * 1000,
   },
 });
