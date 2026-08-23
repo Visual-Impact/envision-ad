@@ -35,7 +35,7 @@ The project is built using a modern, containerized architecture:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/anvsult/envision-ad.git
+    git clone https://github.com/Visual-Impact/envision-ad.git
     cd envision-ad
     ```
 
