@@ -30,7 +30,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # GHCR requires lowercase image paths
-          echo "IMAGE_OWNER=$(echo $IMAGE_OWNER | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
+          export IMAGE_OWNER=$(echo "$IMAGE_OWNER" | tr '[:upper:]' '[:lower:]')
 
           doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
           doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
