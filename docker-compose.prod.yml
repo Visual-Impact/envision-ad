@@ -1,7 +1,7 @@
 services:
   frontend:
     container_name: frontend
-    image: ghcr.io/${IMAGE_OWNER}/envision-ad-frontend:${IMAGE_TAG:-latest}
+    image: ghcr.io/${IMAGE_OWNER:-visual-impact}/envision-ad-frontend:${IMAGE_TAG:-latest}
     pull_policy: always
     build:
       context: ./frontend
@@ -59,7 +59,7 @@ services:
 
   webservice:
     container_name: backend
-    image: ghcr.io/${IMAGE_OWNER}/envision-ad-webservice:${IMAGE_TAG:-latest}
+    image: ghcr.io/${IMAGE_OWNER:-visual-impact}/envision-ad-webservice:${IMAGE_TAG:-latest}
     pull_policy: always
     build:
       context: ./webservice
