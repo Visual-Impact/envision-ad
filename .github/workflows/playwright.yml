@@ -1,10 +1,15 @@
 name: Playwright Tests
 
+# Manual only. This suite is not a CI gate and cannot be one as written:
+# no spec is self-contained — every one drives a real Auth0 login, and 13 of
+# the 22 spec files also call the live backend, which a GitHub runner has no
+# database for. It ran on every push from before 2026-08-06 to 2026-08-23
+# without ever passing, so the red check carried no information. Run it by
+# hand against an environment that actually has a backend; put it back on
+# push once the specs stub auth the way tests/use cases/media/ already stubs
+# the API.
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   test:
