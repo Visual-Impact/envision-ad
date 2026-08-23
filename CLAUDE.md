@@ -98,10 +98,10 @@ Each domain module follows the same internal structure:
 
 ### Infrastructure
 
-- **Secrets:** Doppler (projects: `envision-ad-frontend`, `envision-ad-backend`; configs: `dev`, `prd`)
+- **Secrets:** Doppler. Two projects exist — `envision-ad-frontend` and `envision-ad-backend` — but **`envision-ad-backend` is the source of truth for both apps.** It holds the frontend's keys too (`AUTH0_*`, `APP_BASE_URL`, `NEXT_PUBLIC_*`), and because `docker-compose` and `deploy.yml` nest the two calls as `doppler run <frontend> -- doppler run <backend> -- …`, the **inner (backend) call overwrites every conflicting key**. Verified 2026-08-22: the two projects disagree on `AUTH0_AUDIENCE` and all three Cloudinary values, and the backend's win in every case — the frontend project's copies are dead. Put new secrets for either app in `envision-ad-backend`; configs are `dev`, `dev_personal`, `stg`, `prd`.
 - **Production:** Docker Compose on EC2, PostgreSQL on RDS, Nginx reverse proxy with Let's Encrypt SSL
 - **Routing (prod):** Nginx forwards `/api/*` to webservice:8080, everything else to frontend:3000
-- **CI/CD:** GitHub Actions — lint, build, Playwright e2e, JaCoCo coverage, auto-deploy on push to `main`
+- **CI/CD:** GitHub Actions — lint, build, JaCoCo coverage, and auto-deploy on push to `main` (images build in Actions and push to GHCR; EC2 only pulls). **Playwright e2e is not a gate** — it was red from 2026-08-06 to 2026-08-22 because it referenced Auth0 secrets that never existed in the repo, and stays non-blocking until the `DOPPLER_BACKEND_DEV_TOKEN` secret exists and the Auth0 test tenant is repaired.
 
 ## Coding constraints (must follow)
 

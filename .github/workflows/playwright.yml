@@ -15,13 +15,6 @@ jobs:
       run:
         working-directory: frontend
 
-    env:
-      AUTH0_DOMAIN: ${{ secrets.AUTH0_DOMAIN }}
-      AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
-      AUTH0_SECRET: ${{ secrets.AUTH0_SECRET }}
-      AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
-      APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
-
     steps:
       - uses: actions/checkout@v5
 
@@ -37,8 +30,32 @@ jobs:
       - name: Install Playwright Browsers & system deps
         run: npx playwright install --with-deps
 
+      - name: Install Doppler CLI
+        uses: dopplerhq/cli-action@v3
+
+      # The frontend cannot boot without Auth0 config: @auth0/nextjs-auth0's
+      # middleware throws InvalidConfigurationError on every request when
+      # AUTH0_DOMAIN is empty, so Playwright's webServer never comes up. Fail
+      # loudly here rather than letting that surface as a 60s webServer timeout.
+      - name: Verify Doppler token is present
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_BACKEND_DEV_TOKEN }}
+        run: |
+          if [ -z "$DOPPLER_TOKEN" ]; then
+            echo "::error::DOPPLER_BACKEND_DEV_TOKEN is not set. Create a read-only Doppler service token for envision-ad-backend/dev and add it as a repository secret; without it the dev server cannot start and no test can run."
+            exit 1
+          fi
+
+      # Secrets come from envision-ad-backend/dev, which holds the frontend's
+      # keys too — it is the config the nested `doppler run` in docker-compose
+      # and deploy.yml already resolves to, since the inner call wins on every
+      # conflicting key. APP_BASE_URL there is http://localhost:3000, so Auth0
+      # callbacks resolve against the server Playwright starts.
       - name: Run Playwright tests
-        run: npx playwright test --reporter=github,html
+        run: >-
+          doppler run --project envision-ad-backend --config dev
+          --token ${{ secrets.DOPPLER_BACKEND_DEV_TOKEN }} --
+          npx playwright test --reporter=github,html
 
       - name: Upload Playwright report
         if: ${{ always() }}
