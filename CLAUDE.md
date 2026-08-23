@@ -93,6 +93,7 @@ Each domain module follows the same internal structure:
 - PostgreSQL 15 with JSONB support (hibernate-types-60)
 - Spring profiles: `local` (host-native Postgres, reached via `host.docker.internal:5432` — see the OrbStack/Postgres note above), `prod` (AWS RDS)
 - Schema managed via Flyway migrations in `src/main/resources/db/migration/` (`ddl-auto: none`, `baseline-on-migrate: true`). There is no `schema.sql`.
+- Local-only sample data lives in `src/main/resources/db/seed/R__seed_dev_data.sql`, a Flyway *repeatable* migration (re-runs when its checksum changes, idempotent via a sentinel guard). It's only picked up under the `local` profile — `application-local.yml` sets `spring.flyway.locations: classpath:db/migration,classpath:db/seed`, while `application.yml`/`application-prod.yml` leave it unset and resolve to the plain `classpath:db/migration` default. Never add `db/seed` to a non-local profile's locations. Scope is supply-side only (venue/media_location/media/bundles) — no business/employee, since `employee.user_id` is the raw Auth0 JWT `sub` and a fabricated value would just make seeded data invisible to any real logged-in dev.
 - Tests run against a real PostgreSQL 15 database via Testcontainers (`config/TestcontainersConfig.java`, wired in through `@ServiceConnection`); integration tests extend `config/BaseIntegrationTest`. Test profile disables Flyway and uses `ddl-auto: create`, so the test schema is generated from the JPA entities. Requires a running Docker daemon.
 - JaCoCo enforces 90% code coverage at build time
 
