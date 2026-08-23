@@ -36,6 +36,13 @@ jobs:
           doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
           bash -c 'docker compose -f docker-compose.prod.yml build && docker compose -f docker-compose.prod.yml push'
 
+          # Also tag & push :latest so a manual deploy can pull the most recent
+          # image without needing to know this run's exact commit SHA.
+          for image in envision-ad-frontend envision-ad-webservice; do
+            docker tag "ghcr.io/${IMAGE_OWNER}/${image}:${IMAGE_TAG}" "ghcr.io/${IMAGE_OWNER}/${image}:latest"
+            docker push "ghcr.io/${IMAGE_OWNER}/${image}:latest"
+          done
+
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
