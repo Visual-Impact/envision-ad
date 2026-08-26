@@ -3,13 +3,12 @@
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 !define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
 !include DEVICONS/java.puml
-!include DEVICONS/mysql.puml
-!include DEVICONS/react.puml
-!include DEVICONS/html5.puml
+!include DEVICONS/postgresql.puml
+
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/devicons2/nextjs.puml
 
 !define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
-!include SPRITESURL/auth0-icon.puml
-!include SPRITESURL/twilio-icon.puml
 !include SPRITESURL/cloudinary-icon.puml
 !include SPRITESURL/stripe.puml
 !include SPRITESURL/google-gmail.puml
@@ -22,12 +21,11 @@ AddElementTag("typescript", $shape=RoundedBoxShape(), $bgColor="DodgerBlue", $fo
 AddElementTag("html", $shape=RoundedBoxShape(), $bgColor="OrangeRed", $fontColor="white", $legendText="HTML Files")
 AddElementTag("npm_libraries", $shape=EightSidedShape(), $bgColor="Red", $fontColor="white" ,$legendText="NPM Libraries\neight sided")
 AddElementTag("TSX_component", $shape=EightSidedShape(), $bgColor="Blue", $fontColor="white" ,$legendText="TSX Component\neight sided")
+AddElementTag("framework-nextjs", $shape=RoundedBoxShape(), $bgColor="#000000", $fontColor="white", $legendText="Next.js Application")
 
-Container_Ext(auth, "Auth0", "Auth SaaS", "Auth0 is an easy to implement, adaptable authentication and authorization platform.", $sprite="auth0-icon", $tags="ext_service")
 Container_Ext(email, "Gmail SMTP", "SMTP Service", "The google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
 Container_Ext(cloud, "Cloudinary", "Cloud Service", "Cloud storage service that stores media and pdf reports.", $sprite="cloudinary-icon", $tags="ext_service")
-Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisings and medias owners.", $sprite="stripe-icon", $tags="ext_service")
-Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provide proof of displaying ads on their media.", $sprite="twilio-icon", $tags="ext_service")
+Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling reservations between advertisers and media owners.", $sprite="stripe", $tags="ext_service")
 
         rectangle "API" as API #line.dashed{
 
@@ -38,8 +36,8 @@ Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provid
                     Container(MediaService, "Media Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
                     Container(MediaRepo, "Media Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
 
-                    MediaController -[dashed,#LimeGreen]-> MediaService  : **Uses**
-                    MediaService -[dashed,#LimeGreen]-> MediaRepo  : **Uses**
+                    MediaController -[#LimeGreen]-> MediaService  : **Uses**
+                    MediaService -[#LimeGreen]-> MediaRepo  : **Uses**
                 }
 
                 package "Advertising" {
@@ -47,111 +45,69 @@ Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provid
                     Container(advertisingService, "Advertising Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
                     Container(advertisingRepo, "Advertising Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
 
-                    advertisingController -[dashed,#LimeGreen]-> advertisingService  : **Uses**
-                    advertisingService -[dashed,#LimeGreen]-> advertisingRepo  : **Uses**
+                    advertisingController -[#LimeGreen]-> advertisingService  : **Uses**
+                    advertisingService -[#LimeGreen]-> advertisingRepo  : **Uses**
                 }
 
-                package "Transaction" {
-                    Container(transactionController, "Transaction Controller", "Component: Spring Boot Rest Controller", "Allows Media Owners and Advertisers to view Invoices and Transactions, and Admins to manage them.", $sprite="java", $tags="java")
-                    Container(transactionService, "Transaction Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
-                    Container(transactionRepo, "Transaction Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
+                package "Reservation" {
+                    Container(reservationController, "Reservation Controller", "Component: Spring Boot Rest Controller", "Allows Media Owners and Advertisers to view Invoices and Reservations, and Admins to manage them.", $sprite="java", $tags="java")
+                    Container(reservationService, "Reservation Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
+                    Container(reservationRepo, "Reservation Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
 
-                    transactionController -[dashed,#LimeGreen]-> transactionService  : **Uses**
-                    transactionService -[dashed,#LimeGreen]-> transactionRepo  : **Uses**
-                }
-
-                package "Moderation"{
-                    Container(moderationController, "Moderation Controller", "Component: Spring Boot Rest Controller", "Allows Media Owners and Advertisers to create Reports, and Admins to manage them.", $sprite="java", $tags="java")
-                    Container(moderationService, "Moderation Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
-                    Container(moderationRepo, "Moderation Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
-
-                    moderationController -[dashed,#LimeGreen]-> moderationService  : **Uses**
-                    moderationService -[dashed,#LimeGreen]-> moderationRepo  : **Uses**
-                }
-
-                package "Analytics"{
-                    Container(reportController, "Report Controller", "Component: Spring Boot Rest Controller", "Allows all users to view and generate Reports.", $sprite="java", $tags="java")
-                    Container(reportService, "Report Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
-                    Container(reportRepo, "Report Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
-
-                    reportController -[dashed,#LimeGreen]-> reportService  : **Uses**
-                    reportService -[dashed,#LimeGreen]-> reportRepo  : **Uses**
-                }
-
-                package "Customers"{
-                    Container(customerController, "Customer Controller", "Component: Spring Boot Rest Controller", "Allows all users to manage their account", $sprite="java", $tags="java")
-                    Container(customerService, "Customer Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
-                    Container(customerRepo, "Customer Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
-
-                    customerController -[dashed,#LimeGreen]-> customerService  : **Uses**
-                    customerService -[dashed,#LimeGreen]-> customerRepo  : **Uses**
+                    reservationController -[#LimeGreen]-> reservationService  : **Uses**
+                    reservationService -[#LimeGreen]-> reservationRepo  : **Uses**
                 }
 
                 package "Email"{
                     Container(mailerService,"Mailer Service", "Component: Spring Boot Service", "Sends emails to the users.", $sprite="java", $tags="java")
                 }
 
-                package "Auth"{
-                    Container(authService,"Auth Service", "Component: Spring Boot Service", "Authenticate the users", $sprite="java", $tags="java")
+                package "Organization"{
+                    Container(organizationController, "Organization Controller", "Component: Spring Boot Rest Controller", "Allows all users to manage their account", $sprite="java", $tags="java")
+                    Container(organizationService, "Organization Service", "Component: Spring Boot Service", "Provides the functionalities to get, update, create and delete.", $sprite="java", $tags="java")
+                    Container(organizationRepo, "Organization Repository", "Component: JPA Repository", "Makes requests to the database to fetch or update data.", $sprite="java", $tags="java")
+
+                    organizationController -[#LimeGreen]-> organizationService  : **Uses**
+                    organizationService -[#LimeGreen]-> organizationRepo  : **Uses**
                 }
 
                 package "Payment"{
                     Container(paymentService,"Payment Service", "Component: Spring Boot Service", "Handles payment for the users.", $sprite="java", $tags="java")
                 }
 
-                package "SMS"{
-                    Container(smsService,"SMS Service", "Component: Spring Boot Service", "Sends sms to the users.", $sprite="java", $tags="java")
-                }
-
                 package "File"{
                     Container(fileService,"File Service", "Component: Spring Boot Service", "Handles files for the users.", $sprite="java", $tags="java")
                 }
 
-                moderationService -[dashed]-> mailerService  : **Sends Email using**
-                reportService -[dashed]-> mailerService  : **Sends Email using**
+                organizationService -[dashed]-> mailerService  : **Sends Email using**
+                advertisingService -[dashed]-> mailerService  : **Sends Email using**
 
-                fileService -[dashed]-> cloud  : **Send Email Using**\n[SMTP/TCP/IP]
-                smsService -[dashed]-> twilio  : **Send Email Using**\n[SMTP/TCP/IP]
+                fileService --> cloud  : **Upload Files Using**\n[HTTPS/API]
                 mailerService -[dashed]-> email  : **Send Email Using**\n[SMTP/TCP/IP]
-                paymentService -[dashed]-> stripe  : **Send Email Using**\n[SMTP/TCP/IP]
+                paymentService --> stripe  : **Process Payments Using**\n[HTTPS/API]
 
-                advertisingService -[dashed]-> fileService  : **Get Files using**
-                MediaService -[dashed]-> fileService  : **Send Files using**
-                MediaService -[dashed]-> smsService  : **Send SMS using**
-                customerService -[dashed]-> authService  : **Uses**
+                advertisingService --> fileService  : **Get Files using**
+                MediaService --> fileService  : **Send Files using**
 
-                transactionService  -[dashed]-> paymentService  : **Send Payment using**
+                reservationService --> paymentService  : **Process Payment using**
 
-                securityFilter -[dashed,#RoyalBlue]-> advertisingController  : **Direct Request**
-                securityFilter -[dashed,#RoyalBlue]-> moderationController  : **Direct Request**
-                securityFilter -[dashed,#RoyalBlue]-> reportController  : **Direct Request**
-                securityFilter -[dashed,#RoyalBlue]-> MediaController  : **Direct Request**
-                securityFilter -[dashed,#RoyalBlue]-> transactionController  : **Direct Request**
-                securityFilter -[dashed,#RoyalBlue]-> "authService"  : **Direct Request**
-                securityFilter -[dashed,#RoyalBlue]-> customerController  : **Direct Request**
+                securityFilter -[#RoyalBlue]-> advertisingController  : **Direct Request**
+                securityFilter -[#RoyalBlue]-> MediaController  : **Direct Request**
+                securityFilter -[#RoyalBlue]-> reservationController  : **Direct Request**
+                securityFilter -[#RoyalBlue]-> organizationController  : **Direct Request**
 
-                "authService" -[dashed,#Crimson]-> "auth"  : **Uses**\n[OAuth2/OpenID]
             SHOW_LEGEND()
         }
 
-        ContainerDb(db, "Database", "Database: MySQL", "Stores all the data for the system.", $sprite="mysql", $tags="database")
+        ContainerDb(db, "Database", "Database: PostgreSQL", "Stores all the data for the system.", $sprite="postgresql", $tags="database")
 
-        moderationRepo -[dashed,#LimeGreen]-> db  : **SQL/TCP**\n[JBDC]
+        advertisingRepo -[#LimeGreen]-> db  : **SQL/TCP**\n[JDBC]
+        MediaRepo -[#LimeGreen]-> db  : **SQL/TCP**\n[JDBC]
+        reservationRepo -[#LimeGreen]-> db  : **SQL/TCP**\n[JDBC]
+        organizationRepo -[#LimeGreen]-> db  : **SQL/TCP**\n[JDBC]
 
-        advertisingRepo -[dashed,#LimeGreen]-> db  : **SQL/TCP**\n[JBDC]
+Container(nextjs_app, "Next.js Application", "TypeScript, Next.js, React", "Provides all the Envision Ad functionality to clients via their web browser. Handles server-side rendering and static generation.", $sprite="nextjs", $tags = "framework-nextjs")
 
-        reportRepo -[dashed,#LimeGreen]-> db  : **SQL/TCP**\n[JBDC]
-
-        MediaRepo -[dashed,#LimeGreen]-> db  : **SQL/TCP**\n[JBDC]
-
-AddElementTag("webSite", $shape=RoundedBoxShape(), $bgColor="DodgerBlue", $fontColor="white", $legendText="Single-Page Application")
-AddElementTag("webApp", $shape=RoundedBoxShape(), $bgColor="OrangeRed", $fontColor="white", $legendText="Web Application")
-
-Container(application, "Web Application", "HTML", "Delivers the static content for the Single Page Application.", $sprite="html5", $tags="webApp")
-Container(webPage, "Single-Page Application", "REACT JS", "Provides a GUI interface that contains all the functionalities of the Spring boot application. Uses REACT Router to handle the multiple pages.", $sprite="react",$tags="webSite")
-
-application -[dashed]> webPage  : **Renders**
-
-webPage -[dashed]-> securityFilter  : **Makes API calls**\n[HTTPS/JSON]
+nextjs_app --> securityFilter  : **Makes API calls**\n[HTTPS/JSON]
 
 @enduml

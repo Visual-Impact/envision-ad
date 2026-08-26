@@ -3,7 +3,6 @@
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 !define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
 !include SPRITESURL/auth0-icon.puml
-!include SPRITESURL/twilio-icon.puml
 !include SPRITESURL/cloudinary-icon.puml
 !include SPRITESURL/stripe.puml
 !include SPRITESURL/google-gmail.puml
@@ -15,31 +14,32 @@ LAYOUT_WITH_LEGEND()
 title System Context Diagram for Envision Ad
 
 ' Primary Users
-Person(MediaOwner, "Medias Owner", "Owns advertising spaces such as TV screens, posters, digital displays")
-Person(advertiser, "Advertiser", "Local business or marketing agency who browses available medias and posts advertisements with content and duration")
+Person(guest, "Guest User", "Unauthenticated visitor who browses available media spaces and views general platform information")
+Person(organizationOwner, "Organization Owner", "Owns and operates the Envision Ad platform, monitors revenue, manages subscriptions, and oversees business operations")
+Person(MediaOwner, "Media Owner", "Owns advertising spaces such as TV screens, posters, digital displays")
+Person(advertiser, "Advertiser", "Local business or marketing agency who browses available media and posts advertisements with content and duration")
 Person(admin, "System Administrator", "Platform administrator who manages users, moderates content, and monitors system analytics")
 
 ' Main System
-System(envisionAd, "Envision Ad", "Connects medias owners with advertisers. Manages medias listings, advertisement postings, and facilitates communication between parties via email notifications")
+System(envisionAd, "Envision Ad", "Connects media owners with advertisers. Manages media listings, advertisement postings, and facilitates communication between parties via email notifications")
 
 ' External Systems
 Container_Ext(auth, "Auth0", "Auth SaaS", "Auth0 is an easy to implement, adaptable authentication and authorization platform.", $sprite="auth0-icon", $tags="ext_service")
 Container_Ext(email, "Gmail SMTP", "SMTP Service", "The google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
 Container_Ext(cloud, "Cloudinary", "Cloud Service", "Cloud storage service that stores media and pdf reports.", $sprite="cloudinary-icon", $tags="ext_service")
-Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisers and medias owners.", $sprite="stripe-icon", $tags="ext_service")
-Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provide proof of displaying ads on their media.", $sprite="twilio-icon", $tags="ext_service")
+Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisers and media owners.", $sprite="stripe", $tags="ext_service")
 
-
-Rel(MediaOwner, envisionAd, "Lists medias, uploads photos, views ad requests, confirms/rejects placements", "HTTPS")
-Rel(advertiser, envisionAd, "Browses medias, posts advertisements, uploads PNG content, sets display duration", "HTTPS")
+' Relationships
+Rel(guest, envisionAd, "Browses public media listings, views platform features", "HTTPS")
+Rel(organizationOwner, envisionAd, "Monitors business metrics, revenue dashboards, subscription management, strategic decisions", "HTTPS")
+Rel(MediaOwner, envisionAd, "Lists media, uploads photos, views ad requests, confirms/rejects placements", "HTTPS")
+Rel(advertiser, envisionAd, "Browses media, posts advertisements, uploads PNG content, sets display duration", "HTTPS")
 Rel(admin, envisionAd, "Manages users, moderates content, views analytics, generates reports", "HTTPS")
 Rel(envisionAd, email, "Sends email notifications with ad details, space info, and content links", "SMTP/API")
-Rel(envisionAd, cloud, "Stores and retrieves medias photos and advertisement PNG files", "HTTPS/API")
-Rel(envisionAd, stripe, "Processes payments for ad placements (optional)", "HTTPS/API")
+Rel(envisionAd, cloud, "Stores and retrieves media photos and advertisement PNG files", "HTTPS/API")
+Rel(envisionAd, stripe, "Processes payments for ad placements", "HTTPS/API")
 Rel(envisionAd, auth, "Delegates user authentication and token validation", "HTTPS/OAuth2")
-Rel(envisionAd, twilio, "Sends SMS messages through Twilio API", "HTTPS/API")
-' Notes
-SHOW_LEGEND()
 
+SHOW_LEGEND()
 
 @enduml

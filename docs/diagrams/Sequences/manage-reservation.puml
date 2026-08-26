@@ -1,0 +1,59 @@
+@startuml
+
+title <u>System Sequence Diagram</u>\nManage Reservation
+
+actor "Media Owner" as MediaOwner
+participant "System" as System
+    |||
+    |||
+    |||
+    |||
+ref over MediaOwner, System: View Reservation
+
+alt Media Owner approves reservation
+    MediaOwner -> System: approveReservation(mediaId, reservationId)
+    alt Validation succeeds
+        System --> MediaOwner: reservation
+    else Validation fails
+        System --> MediaOwner: validationError
+    end
+else Media Owner denies reservation
+    MediaOwner -> System: denyReservation(mediaId, reservationId, denialReason, description)
+    alt Validation succeeds
+        System --> MediaOwner: reservation
+    else Validation fails
+        System --> MediaOwner: validationError
+    end
+end
+
+note right
+    reservation contains:
+    - reservationId
+    - mediaId
+    - mediaTitle
+    - mediaCity
+    - campaignId
+    - campaignName
+    - advertiserBusinessId
+    - advertiserBusinessName
+    - status (APPROVED/DENIED)
+    - denialDetails (if denied)
+        - reason
+        - description
+    - totalPrice
+    - startDate
+    - endDate
+
+    validationError includes:
+    - Media not found (404)
+    - User not authorized (403)
+    - Reservation not found (404)
+    - Reservation already processed (409)
+    - Missing description for OTHER reason (400)
+end note
+    |||
+    |||
+    |||
+    |||
+
+@enduml

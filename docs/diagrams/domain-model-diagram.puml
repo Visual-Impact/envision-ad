@@ -108,13 +108,6 @@ package "Advertising Subdomain" #LightCoral {
     VIDEO
   }
 
-'  ENUM(AdCampaignApprovalStatus) #Orange {
-'    ACTIVE
-'    PENDING
-'    REJECTED
-'    EXPIRED
-'  }
-
   VALUE_OBJECT(AdIdentifier) #Bisque {
     adId: UUID
   }
@@ -125,118 +118,83 @@ package "Advertising Subdomain" #LightCoral {
 
   AdvertisementCampaign "1" o--> "1" AdCampaignIdentifier
   AdvertisementCampaign "1" o--> "1..*" AdIdentifier
-  AdvertisementCampaign "1" o--> "1" Status
   Ad "1" o--> "1" AdIdentifier
   Ad "1" o--> "1" AdType
 }
 
 ' ===============================
-' TRANSACTIONS
+' RESERVATION
 ' ===============================
-package "Transactions Subdomain" #LightPink {
-  AGGREGATE_ROOT(Transaction) #LightBlue {
-    amount: Decimal
-    timestamp: DateTime
+package "Reservations Subdomain" #LightPink {
+  AGGREGATE_ROOT(Reservation) #LightBlue {
+    reservationId: String
+    startDate: LocalDateTime
+    endDate: LocalDateTime
+    totalPrice: Decimal
+    advertiserId: String
+    campaignId: String
   }
 
-  ENTITY(Invoice) #LightBlue {
-    dueDate: Date
-    paid: Boolean
-  }
-
-   ENUM(Status) #Orange {
-     SUCCESS
-     PENDING
-     FAILED
-   }
-
-  VALUE_OBJECT(TransactionIdentifier) #Bisque {
-    transactionId: UUID
-  }
-
-  VALUE_OBJECT(InvoiceIdentifier) #Bisque {
-    invoiceId: UUID
-  }
-
-  Transaction "1" o--> "1" InvoiceIdentifier
-  Transaction "1" o--> "1" TransactionIdentifier
-  Transaction "1" o--> "1" Status
-  Invoice "1" o--> "1" InvoiceIdentifier
-}
-
-' ===============================
-' MODERATION
-' ===============================
-package "Moderation Subdomain" #LightCyan {
-  AGGREGATE_ROOT(UserReport) #LightBlue {
-    reason: String
+  VALUE_OBJECT(DenialDetails) #Bisque {
     description: String
-    proof: URL
   }
 
-  ENUM(Status) #Orange {
+  ENUM(ReservationStatus) #Orange {
     PENDING
     APPROVED
-    REJECTED
+    DENIED
+    CONFIRMED
   }
 
-   VALUE_OBJECT(UserReportIdentifier) #Bisque {
-     userReportId: UUID
-   }
+  ENUM(DenialReason) #Orange {
+    CONTENT_POLICY
+    CREATIVE_TECHNICAL
+    LEGAL_COMPLIANCE
+    MEDIA_OWNER_RULES
+    LOCAL_VENUE
+    OTHER
+  }
 
-  UserReport "1" o--> "1" UserReportIdentifier
-  UserReport "1" o--> "1" Status
+  VALUE_OBJECT(ReservationIdentifier) #Bisque {
+    reservationId: String
+  }
+
+  Reservation "1" o--> "1" ReservationIdentifier
+  Reservation "1" o--> "1" ReservationStatus
+  Reservation "1" o--> "0..1" DenialDetails
+  Reservation "1" o--> "1" MediaIdentifier
+  Reservation "1" o--> "1" AdCampaignIdentifier
+
+  DenialDetails "1" o--> "1" DenialReason
+
+  note right of Reservation
+    **Invariants:**
+    1) Status Transition: Approve/deny only when PENDING
+    2) Authorization: Only media owner can manage
+    3) Denial Reason: Valid reason required, description mandatory for OTHER
+    4) Existence: Operations require existing reservation
+  end note
 }
 
 ' ===============================
-' ANALYTICS
+' Organization
 ' ===============================
-package "Analytics Subdomain" #lightyellow {
-  AGGREGATE_ROOT(Report) #LightBlue {
-    generatedAt: DateTime
-  }
-
-  AGGREGATE(ReportData) #LightBlue {
-    value: String
-    name: String
-    description: String
-  }
-
-  VALUE_OBJECT(ReportIdentifier) #Bisque {
-    reportID: UUID
-  }
-
-  VALUE_OBJECT(ReportDataIdentifier) #Bisque {
-    reportDataId: UUID
-  }
-
-  Report "1" o--> "1" ReportIdentifier
-  Report "1" o--> "1..*" ReportDataIdentifier
-  ReportData "1" o--> "1" ReportDataIdentifier
-}
-
-' ===============================
-' CUSTOMER
-' ===============================
-package "Customer Subdomain" #Lavender {
-  AGGREGATE_ROOT(Customer) #LightBlue {
-    FirstName: String
-    LastName: String
-    email: String
-    phone: String
-  }
-
-  AGGREGATE(Business)  #LightBlue {
+package "Organization Subdomain" #Lavender {
+  AGGREGATE_ROOT(Organization) #LightBlue {
     name: String
     employees: int
   }
 
-  VALUE_OBJECT(CustomerIdentifier) #Bisque {
-    customerId: UUID
+  AGGREGATE(Employee)  #LightBlue {
+    sub (auth0id): String
   }
 
-  VALUE_OBJECT(BusinessIdentifier) #Bisque {
-    businessId: UUID
+  VALUE_OBJECT(EmployeeIdentifier) #Bisque {
+    employeeId: UUID
+  }
+
+  VALUE_OBJECT(OrganizationIdentifier) #Bisque {
+    organizationId: UUID
   }
 
   VALUE_OBJECT(BillingAddress) #Bisque {
@@ -246,21 +204,19 @@ package "Customer Subdomain" #Lavender {
     postalCode: String
   }
 
-  Business "1" o--> "1..*" CustomerIdentifier
-  Customer "1" o--> "1" CustomerIdentifier
+  Organization "1" o--> "1..*" EmployeeIdentifier
+  Employee "1" o--> "1" EmployeeIdentifier
 
-  Business "1" o--> "1" BusinessIdentifier
-  Business "1" o--> "1" BillingAddress
+  Organization "1" o--> "1" OrganizationIdentifier
+  Organization "1" o--> "1" BillingAddress
 }
 
 ' ===============================
 ' REVIEWS
 ' ===============================
 
-Report "1" o--> "1" BusinessIdentifier
-Media "1" o--> "1" BusinessIdentifier
-AdvertisementCampaign "1" o--> "1" BusinessIdentifier
-Transaction "1" o--> "1" BusinessIdentifier
-UserReport "1" o--> "1" BusinessIdentifier
+Media "1" o--> "1" OrganizationIdentifier
+AdvertisementCampaign "1" o--> "1" OrganizationIdentifier
+Reservation "1" o--> "1" OrganizationIdentifier
 
 @enduml

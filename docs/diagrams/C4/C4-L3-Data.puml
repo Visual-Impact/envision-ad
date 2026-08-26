@@ -1,9 +1,9 @@
- @startuml
-    !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
-    !include https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons/java.puml
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons/java.puml
 
-    allowmixing
-    SetDefaultLegendEntries("")
+allowmixing
+SetDefaultLegendEntries("")
 
 !theme plain
 hide empty methods
@@ -24,199 +24,186 @@ entity "<b>$name</b>" as $slug << (T, Orange) table >>
 {field} $name
 !endprocedure
 
-database  "MySQL Database" as Database #DarkCyan {
-                  $table("Media Asset", "media_asset_tb") {
-                        $pk("id"): INT NOT NULL AUTO_INCREMENT
-                        ---
-                        $fk("user_id"): VARCHAR(36) NOT NULL
+database "PostgreSQL Database" as Database #336791 {
+    $table("Organization", "organization_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("organization_id"): VARCHAR(36) UNIQUE NOT NULL
+        $column("name"): VARCHAR(255) NOT NULL
+        $column("organization_size"): VARCHAR(50) NOT NULL
+        $column("date_created"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        $column("owner_id"): VARCHAR(36)
+        $column("media_owner"): BOOLEAN
+        $column("advertiser"): BOOLEAN
+        $column("verified"): BOOLEAN DEFAULT FALSE
+        $column("street"): VARCHAR(255) NOT NULL
+        $column("city"): VARCHAR(255) NOT NULL
+        $column("state"): VARCHAR(255) NOT NULL
+        $column("zip_code"): VARCHAR(255) NOT NULL
+        $column("country"): VARCHAR(255) NOT NULL
+    }
 
-                        $fk("media_type_id"): VARCHAR(36) NOT NULL
-                        ---
-                        $column("media_id"): VARCHAR(36) NOT NULL
+    $table("Verification", "verification_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("verification_id"): VARCHAR(36) UNIQUE NOT NULL
+        $fk("organization_id"): VARCHAR(36) NOT NULL
+        ---
+        $column("status"): VARCHAR(8) NOT NULL DEFAULT 'PENDING'
+        $column("comments"): VARCHAR(512)
+        $column("date_created"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        $column("date_modified"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    }
 
-                        $column("name"): VARCHAR() NOT NULL
+    $table("Employee", "employee_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("employee_id"): VARCHAR(36) UNIQUE NOT NULL
+        $column("user_id"): VARCHAR(36) UNIQUE NOT NULL
+        $fk("organization_id"): VARCHAR(36) NOT NULL
+        ---
+        $column("email"): VARCHAR(255)
+    }
 
-                        $column("description"): VARCHAR() NOT NULL
+    $table("Invitation", "invitation_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("invitation_id"): VARCHAR(36) UNIQUE NOT NULL
+        $fk("organization_id"): VARCHAR(36) NOT NULL
+        ---
+        $column("email"): VARCHAR(255) NOT NULL
+        $column("token"): VARCHAR(100) NOT NULL
+        $column("time_created"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        $column("time_expires"): TIMESTAMP
+    }
 
-                        $column("price"): DECIMAL(10, 2) NOT NULL
+    $table("Media Location", "media_location_tb") {
+        $pk("media_location_id"): UUID DEFAULT gen_random_uuid()
+        ---
+        $column("name"): VARCHAR(255) NOT NULL
+        $fk("organization_id"): UUID NOT NULL
+        ---
+        $column("country"): VARCHAR(100) NOT NULL
+        $column("province"): VARCHAR(100) NOT NULL
+        $column("city"): VARCHAR(100) NOT NULL
+        $column("street"): VARCHAR(255) NOT NULL
+        $column("postal_code"): VARCHAR(20) NOT NULL
+        $column("latitude"): DOUBLE PRECISION NOT NULL
+        $column("longitude"): DOUBLE PRECISION NOT NULL
+        $column("geocoding_response"): TEXT
+    }
 
-                        $column("estimate_view"): INT
+    $table("Media", "media_tb") {
+        $pk("media_id"): UUID DEFAULT gen_random_uuid()
+        ---
+        $fk("media_location_id"): UUID NOT NULL
+        $fk("organization_id"): UUID
+        ---
+        $column("title"): VARCHAR(255) NOT NULL
+        $column("media_owner_name"): VARCHAR(255) NOT NULL
+        $column("type_of_display"): VARCHAR(50) NOT NULL
+        $column("loop_duration"): INTEGER
+        $column("resolution"): VARCHAR(50)
+        $column("aspect_ratio"): VARCHAR(20)
+        $column("width"): DOUBLE PRECISION
+        $column("height"): DOUBLE PRECISION
+        $column("price"): DECIMAL(10, 2)
+        $column("daily_impressions"): INTEGER
+        $column("schedule"): JSONB
+        $column("status"): VARCHAR(50) NOT NULL
+        $column("image_url"): VARCHAR(2048)
+        $column("image_file_name"): VARCHAR(512)
+        $column("image_content_type"): VARCHAR(100)
+        $column("image_data"): BYTEA
+        $column("preview_configuration"): JSONB
+    }
 
-                        $column("height"): DECIMAL(10, 2) NOT NULL
+    $table("Ad Campaigns", "ad_campaigns_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("campaign_id"): VARCHAR(36) UNIQUE NOT NULL
+        $fk("organization_id"): VARCHAR(36) NOT NULL
+        ---
+        $column("name"): VARCHAR(255) NOT NULL
+    }
 
-                        $column("width"): DECIMAL(10, 2) NOT NULL
+    $table("Ads", "ads_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("ad_id"): VARCHAR(36) UNIQUE NOT NULL
+        $fk("ad_campaign_ref_id"): INTEGER
+        ---
+        $column("name"): VARCHAR(255) NOT NULL
+        $column("ad_url"): VARCHAR(512) NOT NULL
+        $column("ad_duration_seconds"): INTEGER NOT NULL
+        $column("ad_type"): VARCHAR(50) NOT NULL
+    }
 
-                        $column("height"): DECIMAL(10, 2) NOT NULL
+    $table("Reservations", "reservations_tb") {
+        $pk("id"): SERIAL
+        ---
+        $column("reservation_id"): VARCHAR(36) UNIQUE NOT NULL
+        $fk("campaign_id"): VARCHAR(36)
+        $fk("media_id"): UUID
+        ---
+        $column("start_date"): TIMESTAMP
+        $column("end_date"): TIMESTAMP
+        $column("status"): VARCHAR(50) NOT NULL
+        $column("reason"): VARCHAR(50)
+        $column("description"): VARCHAR(512)
+        $column("total_price"): DECIMAL(10, 2)
+        $column("created_at"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        $column("advertiser_id"): VARCHAR(36)
+    }
 
-                        $column("image"): VARCHAR(500) NOT NULL
+    $table("Stripe Accounts", "stripe_accounts_tb") {
+        $pk("id"): BIGSERIAL
+        ---
+        $fk("organization_id"): VARCHAR(36) UNIQUE NOT NULL
+        ---
+        $column("stripe_account_id"): VARCHAR(255) UNIQUE NOT NULL
+        $column("onboarding_complete"): BOOLEAN DEFAULT FALSE
+        $column("charges_enabled"): BOOLEAN DEFAULT FALSE
+        $column("payouts_enabled"): BOOLEAN DEFAULT FALSE
+    }
 
-                        $column("corner_1"): DOUBLE
+    $table("Payment Intents", "payment_intents_tb") {
+        $pk("id"): BIGSERIAL
+        ---
+        $fk("organization_id"): VARCHAR(36) NOT NULL
+        ---
+        $column("stripe_payment_intent_id"): VARCHAR(255) UNIQUE
+        $column("stripe_session_id"): VARCHAR(255) UNIQUE
+        $column("reservation_id"): VARCHAR(36) UNIQUE
+        $column("amount"): DECIMAL(10, 2) NOT NULL
+        $column("currency"): VARCHAR(3) DEFAULT 'CAD'
+        $column("status"): VARCHAR(20) NOT NULL
+        $column("created_at"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        $column("updated_at"): TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    }
 
-                        $column("corner_2"): DOUBLE
+    ' Relationships - showing all foreign key constraints
+    verification_tb }o--|| organization_tb : "FK: organization_id"
+    employee_tb }o--|| organization_tb : "FK: organization_id"
+    invitation_tb }o--|| organization_tb : "FK: organization_id"
 
-                        $column("corner_3"): DOUBLE
+    media_location_tb }o--|| organization_tb : "FK: organization_id"
+    media_tb }o--|| media_location_tb : "FK: media_location_id"
+    media_tb }o--o| organization_tb : "FK: organization_id"
 
-                        $column("corner_4"): DOUBLE
+    ad_campaigns_tb }o--|| organization_tb : "FK: organization_id"
+    ads_tb }o--o| ad_campaigns_tb : "FK: ad_campaign_ref_id"
 
-                        $column("latitude"): FLOAT NOT NULL
+    reservations_tb }o--o| ad_campaigns_tb : "FK: campaign_id"
+    reservations_tb }o--o| media_tb : "FK: media_id"
 
-                        $column("longitude"): FLOAT NOT NULL
-
-                        $column("address"): VARCHAR(255) NOT NULL
-                  }
-
-                  $table("Media Type", "media_type_tb") {
-                        $pk("id"): INT NOT NULL AUTO_INCREMENT
-                        ---
-                        $column("media_type_id"): VARCHAR(36) NOT NULL
-
-                        $column("name"): VARCHAR(50) NOT NULL
-
-                        $column("description"): VARCHAR(255) NOT NULL
-                  }
-
-                  $table("Advertisement Campaign", "advertisement_campaign_tb") {
-                        $pk("id"): VARCHAR(36) NOT NULL
-                        ---
-                        $fk("user_id"): VARCHAR(36) NOT NULL
-
-                        $fk("campaign_identifier_id"): VARCHAR(36) NOT NULL
-                        ---
-                        $column("start_date"): DATE NOT NULL
-
-                        $column("end_date"): DATE NOT NULL
-
-                        $column("budget"): DECIMAL(10,2) NOT NULL
-
-                        $column("status"): VARCHAR(25) NOT NULL
-                  }
-
-                  $table("Advertisement", "advertisement_tb") {
-                        $pk("id"): VARCHAR(36) NOT NULL
-                        ---
-                        $fk("ad_identifier_id"): VARCHAR(36) NOT NULL
-
-                        $fk("campaign_identifier_id") VARCHAR(36) NOT NULL
-                        ---
-                        $column("media_id"): VARCHAR(36) NOT NULL
-
-                        $column("screen_time_minutes"): INT NOT NULL
-
-                        $column("cost"): DECIMAL(10,2) NOT NULL
-
-                        $column("approved_by_owner"): BOOLEAN NOT NULL
-                  }
-
-                  $table("Transaction", "transaction_tb") {
-                        $pk("id"): VARCHAR(36) NOT NULL
-                        ---
-                        $fk("user_id"): VARCHAR(36) NOT NULL
-                        ---
-                        $column("transaction_id"): VARCHAR(36) NOT NULL
-
-                        $column("amount"): DECIMAL(10,2) NOT NULL
-
-                        $column("status"): VARCHAR(25) NOT NULL
-
-                        $column("timestamp"): DATETIME NOT NULL
-                  }
-
-                  $table("Invoice", "invoice_tb") {
-                        $pk("id"): VARCHAR(36) NOT NULL
-                        ---
-                        $fk("transaction_id") VARCHAR(36) NOT NULL
-                        ---
-                        $column("invoice_id") VARCHAR(36) NOT NULL
-
-                        $column("due_date"): DATETIME NOT NULL
-
-                        $column("paid"): BOOLEAN NOT NULL
-                  }
-
-                  $table("User Report", "user_report_tb") {
-                      $pk("id"): VARCHAR(36) NOT NULL
-                      ---
-                      $fk("user_id"): VARCHAR(36) NOT NULL
-                      ---
-                      $column("user_report_id"): VARCHAR(36) NOT NULL
-
-                      $column("reason"): VARCHAR(255) NOT NULL
-
-                      $column("description"): VARCHAR(255) NOT NULL
-
-                      $column("proof"): VARCHAR(500)
-
-                      $column("status"): VARCHAR(25) NOT NULL
-                  }
-
-                $table("Report", "report_tb") {
-                    $pk("id"): VARCHAR(36) NOT NULL
-                    ---
-                    $fk("user_id"): VARCHAR(36) NOT NULL
-                    ---
-                    $column("report_id"): VARCHAR(36) NOT NULL
-
-                    $column("generated_at"): DATETIME NOT NULL
-                }
-
-                $table("Report Data", "report_data_tb") {
-                    $pk("id"): VARCHAR(36) NOT NULL
-                    ---
-                    $fk("report_id"): VARCHAR(36) NOT NULL
-                    ---
-                    $column("report_data_id"): VARCHAR(36) NOT NULL
-
-                    $column("value"): VARCHAR(255) NOT NULL
-
-                    $column("name"): VARCHAR(255) NOT NULL
-
-                    $column("description"): VARCHAR(255)
-                }
-
-                $table("Customer", "customer_tb") {
-                    $pk("id"): VARCHAR(36) NOT NULL
-                    ---
-                    $fk("business_id"): VARCHAR(36) NOT NULL
-                    ---
-                    $column("customerId"): VARCHAR(36) NOT NULL
-
-                    $column("firstName"): VARCHAR(50) NOT NULL
-
-                    $column("lastName"): VARCHAR(50) NOT NULL
-
-                    $column("email"): VARCHAR(255) NOT NULL
-
-                    $column("phone"): VARCHAR(10) NOT NULL
-                }
-
-                $table("Business", "business_tb") {
-                    $pk("id"): VARCHAR(36) NOT NULL
-                    ---
-                    $column("business_id"): VARCHAR(36) NOT NULL
-
-                    $column("name"): VARCHAR(50) NOT NULL
-
-                    $column("employees"): INT NOT NULL
-
-                    $column("street"): VARCHAR(50) NOT NULL
-
-                    $column("city"): VARCHAR(50) NOT NULL
-
-                    $column("province"): VARCHAR(50) NOT NULL
-
-                    $column("postalCode"): VARCHAR(6) NOT NULL
-                }
-
-                "customer_tb" }o--o| "business_tb"
-                "media_asset_tb" |o--o| "media_type_tb"
-                "transaction_tb" |o--o| "invoice_tb"
-                "report_tb" |o--o{ "report_data_tb"
-                "advertisement_campaign_tb" |o--o{ "advertisement_tb"
+    stripe_accounts_tb ||--|| organization_tb : "FK: organization_id"
+    payment_intents_tb }o--|| organization_tb : "FK: organization_id"
 }
 
 AddElementTag("service", $shape=EightSidedShape(), $bgColor="Green", $fontColor="white", $legendText="API \neight sided")
 
-Container(api, "API", "REST API", "API for the Corso System.", $sprite="java", $tags="service")
+Container(api, "API", "REST API", "API for the Envision Ad System.", $sprite="java", $tags="service")
 
-api -[dashed]-> Database : **SQL/TCP** \n[JBDC]
+api --> Database : **SQL/TCP** \n[JDBC]
 @enduml
