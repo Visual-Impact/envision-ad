@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Envision Ad is a B2B marketplace platform connecting media owners (who have physical/digital ad spaces) with advertisers (small businesses). Built for Visual Impact. The repo contains two applications: a Next.js frontend and a Spring Boot backend, orchestrated via Docker Compose with Doppler for secrets management.
+Envision Ad is a two-sided B2B marketplace connecting media owners (operators of physical/digital ad screens) with advertisers (small businesses): advertisers manage ad campaigns and subscribe to bundles of screens; media owners manage their screens (media) and earn revenue from ads shown on them. Built for Visual Impact (the client company; Envision Ad is their product). The repo contains two applications: a Next.js frontend and a Spring Boot backend, orchestrated via Docker Compose with Doppler for secrets management.
 
 ## Commands
 
@@ -26,7 +26,7 @@ Envision Ad is a B2B marketplace platform connecting media owners (who have phys
 - **Start all services:** `doppler run -- docker-compose up` (requires Doppler CLI configured)
 - **Backend only (no frontend):** `docker-compose -f docker-compose-no-frontend.yml up`
 - **Container runtime is OrbStack**, not Docker Desktop — same `docker`/`docker-compose` CLI, same commands above.
-- **Local dev Postgres runs natively on the host.** Neither `docker-compose.yml` nor `docker-compose-no-frontend.yml` defines a `postgres` service — both webservice containers reach it via `SPRING_DATASOURCE_URL` pointed at `host.docker.internal:5432`. Query the real dev DB via `psql -h localhost -p 5432 -U envision_admin -d envision_ad_db`.
+- **Local dev Postgres runs natively on the host**, not in Compose — webservice containers reach it via `SPRING_DATASOURCE_URL` → `host.docker.internal:5432`. Query it with `psql -h localhost -p 5432 -U envision_admin -d envision_ad_db`.
 
 ## Knowledge Graph
 
@@ -93,16 +93,16 @@ Each domain module follows the same internal structure:
 - PostgreSQL 15 with JSONB support (hibernate-types-60)
 - Spring profiles: `local` (host-native Postgres, reached via `host.docker.internal:5432` — see the OrbStack/Postgres note above), `prod` (AWS RDS)
 - Schema managed via Flyway migrations in `src/main/resources/db/migration/` (`ddl-auto: none`, `baseline-on-migrate: true`). There is no `schema.sql`.
-- Local-only sample data lives in `src/main/resources/db/seed/R__seed_dev_data.sql`, a Flyway *repeatable* migration (re-runs when its checksum changes, idempotent via sentinel guards). It's only picked up under the `local` profile — `application-local.yml` sets `spring.flyway.locations: classpath:db/migration,classpath:db/seed`, while `application.yml`/`application-prod.yml` leave it unset and resolve to the plain `classpath:db/migration` default. Never add `db/seed` to a non-local profile's locations. Scope is mostly supply-side (venue/media_location/media/bundles) — no fabricated business/employee rows, since `employee.user_id` is the raw Auth0 JWT `sub` and a fabricated value would just make seeded data invisible to whoever's logged in. The one exception is a single real teammate's business/employee record, keyed to their actual Auth0 sub and guarded on `employee.user_id` (not an arbitrary local ID), since that column is UNIQUE and may already be populated from real prior usage on a given machine.
+- Local-only sample data: `src/main/resources/db/seed/R__seed_dev_data.sql`, a Flyway *repeatable* migration (idempotent via sentinel guards), loaded only under the `local` profile — `application-local.yml` adds `classpath:db/seed` to `spring.flyway.locations`; never add it to a non-local profile. Scope is supply-side only (venue/media_location/media/bundles); no fabricated business/employee rows, because `employee.user_id` is the raw Auth0 JWT `sub` and a fake value makes seeded data invisible to whoever's logged in. Sole exception: one real teammate's business/employee record, keyed to their actual Auth0 sub and guarded on the UNIQUE `employee.user_id`.
 - Tests run against a real PostgreSQL 15 database via Testcontainers (`config/TestcontainersConfig.java`, wired in through `@ServiceConnection`); integration tests extend `config/BaseIntegrationTest`. Test profile disables Flyway and uses `ddl-auto: create`, so the test schema is generated from the JPA entities. Requires a running Docker daemon.
 - JaCoCo enforces 90% code coverage at build time
 
 ### Infrastructure
 
-- **Secrets:** Doppler. Two projects exist — `envision-ad-frontend` and `envision-ad-backend` — but **`envision-ad-backend` is the source of truth for both apps.** It holds the frontend's keys too (`AUTH0_*`, `APP_BASE_URL`, `NEXT_PUBLIC_*`), and because `docker-compose` and `deploy.yml` nest the two calls as `doppler run <frontend> -- doppler run <backend> -- …`, the **inner (backend) call overwrites every conflicting key**. Verified 2026-08-22: the two projects disagree on `AUTH0_AUDIENCE` and all three Cloudinary values, and the backend's win in every case — the frontend project's copies are dead. Put new secrets for either app in `envision-ad-backend`; configs are `dev`, `dev_personal`, `stg`, `prd`.
+- **Secrets:** Doppler. Projects `envision-ad-frontend` and `envision-ad-backend`, but **`envision-ad-backend` is the source of truth for both apps** — it holds the frontend's keys too, and `docker-compose`/`deploy.yml` nest the calls as `doppler run <frontend> -- doppler run <backend> -- …`, so the inner (backend) call overwrites every conflicting key (the frontend project's `AUTH0_AUDIENCE` and Cloudinary copies are dead). Put new secrets for either app in `envision-ad-backend`; configs are `dev`, `dev_personal`, `stg`, `prd`.
 - **Production:** Docker Compose on EC2, PostgreSQL on RDS, Nginx reverse proxy with Let's Encrypt SSL
 - **Routing (prod):** Nginx forwards `/api/*` to webservice:8080, everything else to frontend:3000
-- **CI/CD:** GitHub Actions — lint, build, JaCoCo coverage, and auto-deploy on push to `main` (images build in Actions and push to GHCR; EC2 only pulls). **Playwright e2e is not a gate** — it was red from 2026-08-06 to 2026-08-22 because it referenced Auth0 secrets that never existed in the repo, and stays non-blocking until the `DOPPLER_BACKEND_DEV_TOKEN` secret exists and the Auth0 test tenant is repaired.
+- **CI/CD:** GitHub Actions — lint, build, JaCoCo coverage, auto-deploy on push to `main` (images build in Actions → GHCR; EC2 pulls). **Playwright e2e is not a gate** — it runs on manual `workflow_dispatch` only (CI runner has no backend/Postgres) and has never blocked a deploy.
 
 ## Coding constraints (must follow)
 

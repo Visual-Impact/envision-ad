@@ -169,7 +169,7 @@ export default function AdCampaigns() {
     };
 
     const confirmDeleteAd = async () => {
-        if (!adToDelete) return;
+        if (!adToDelete || !organization) return;
 
         try {
             await deleteAdFromCampaign(
