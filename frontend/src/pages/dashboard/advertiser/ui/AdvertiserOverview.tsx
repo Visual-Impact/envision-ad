@@ -119,7 +119,7 @@ export function AdvertiserOverview() {
     const t = useTranslations("advertiserMetrics");
     const [timeRange, setTimeRange] = useState<string>("Weekly");
     const [mounted, setMounted] = useState(false);
-    const [activeCampaignCount, setActiveCampaignCount] = useState<number | null>(null);
+    const [activeCreativeCount, setActiveCreativeCount] = useState<number | null>(null);
     const [totalSpend, setTotalSpend] = useState<number>(0);
 
     const [estimatedImpressions, setEstimatedImpressions] = useState<number>(0);
@@ -155,14 +155,14 @@ export function AdvertiserOverview() {
                     const business = await businessResponse.json();
                     const businessId = business.businessId;
 
-                    // 2. Get Active Campaign Count
-                    const countResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/businesses/${businessId}/campaigns/active-count`, {
+                    // 2. Get the creative count of the active campaign ("what's on screen now")
+                    const countResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/businesses/${businessId}/campaigns/active-creative-count`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
 
                     if (countResponse.ok) {
                         const count = await countResponse.json();
-                        if (!ignore) setActiveCampaignCount(count);
+                        if (!ignore) setActiveCreativeCount(count);
                     }
 
                     // 3. Get Dashboard Data (Spend & Payments)
@@ -260,8 +260,8 @@ export function AdvertiserOverview() {
             color: "blue",
         },
         {
-            title: t("graphs.activeCampaigns"),
-            value: activeCampaignCount !== null ? activeCampaignCount.toString() : "-",
+            title: t("graphs.activeCreatives"),
+            value: activeCreativeCount !== null ? activeCreativeCount.toString() : "-",
             icon: IconSpeakerphone,
             color: "orange",
         },

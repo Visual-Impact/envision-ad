@@ -100,6 +100,15 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         givenMedia(Status.ACTIVE, "4.00");
         bundle = givenBundle(true);
         campaign = givenCampaign(businessId, true);
+        // Since the P6 follow-up, the campaign a subscription runs is single-sourced on the
+        // business pointer, not the subscription row — so a subscribed business has it set.
+        setActiveCampaign(businessId, campaign.getCampaignId().getCampaignId());
+    }
+
+    private void setActiveCampaign(String businessId, String campaignId) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        business.setActiveCampaignId(campaignId);
+        businessRepository.save(business);
     }
 
     // ---------- guards ----------
@@ -533,7 +542,6 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
         subscription.setSubscriptionId(UUID.randomUUID().toString());
         subscription.setBundleId(bundleId);
         subscription.setAdvertiserBusinessId(advertiserBusinessId);
-        subscription.setCampaignId(campaign.getCampaignId().getCampaignId());
         subscription.setStripeCheckoutSessionId("cs_test_" + UUID.randomUUID());
         subscription.setStatus(status);
         subscription.setMonthlyAmount(new BigDecimal("4.00"));

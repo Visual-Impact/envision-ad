@@ -548,7 +548,6 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
         BundleSubscription subscription = new BundleSubscription();
         subscription.setBundleId(bundle.getBundleId());
         subscription.setAdvertiserBusinessId(UUID.randomUUID().toString());
-        subscription.setCampaignId("campaign-1");
         subscription.setStripeCheckoutSessionId("cs_test_" + UUID.randomUUID());
         subscription.setStatus(status);
         subscription.setMonthlyAmount(new BigDecimal("120.00"));

@@ -487,7 +487,6 @@ class BundleSubscriptionWebhookUnitTest {
         row.setSubscriptionId(LOCAL_SUB_ID);
         row.setBundleId("bundle-1");
         row.setAdvertiserBusinessId("biz-1");
-        row.setCampaignId("camp-1");
         row.setStripeCheckoutSessionId(SESSION_ID);
         row.setStripeSubscriptionId(stripeSubscriptionId);
         row.setStatus(status);

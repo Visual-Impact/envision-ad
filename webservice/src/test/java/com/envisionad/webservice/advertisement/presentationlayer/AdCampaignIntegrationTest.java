@@ -13,6 +13,8 @@ import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepos
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -21,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
 public class AdCampaignIntegrationTest extends BaseIntegrationTest {
@@ -405,50 +408,22 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
     }
 
     /**
-     * D42: the delete guard survives the reservation retirement, re-pointed at live bundle
-     * subscriptions. ACTIVE blocks the delete.
+     * P6 follow-up, behaviour change 2: {@code bundle_subscriptions.campaign_id} and its
+     * {@code ON DELETE RESTRICT} FK are gone, and the campaign-delete guard no longer mirrors
+     * them (D42/D47 reversed). A campaign that is not the business's {@code active_campaign_id}
+     * is deletable regardless of subscription history — live, past-due, cancelled, or abandoned.
+     * Previously any subscription that had ever referenced it froze it forever.
      */
-    @Test
-    void deleteCampaign_tiedToActiveSubscription_shouldReturnConflict() {
-        String campaignId = persistCampaign("Winter Sale");
-        persistSubscription(campaignId, BundleSubscriptionStatus.ACTIVE);
+    @ParameterizedTest
+    @EnumSource(BundleSubscriptionStatus.class)
+    void deleteCampaign_withSubscriptionsButNotTheActiveCampaign_nowDeletes(
+            BundleSubscriptionStatus status) {
+        String campaignId = persistCampaign("Disposable " + status);
+        persistSubscription(campaignId, status);
 
-        expectDeleteStatus(campaignId, 409);
-    }
+        expectDeleteStatus(campaignId, 200);
 
-    /** A failed payment does not release the campaign — PAST_DUE is still live. */
-    @Test
-    void deleteCampaign_tiedToPastDueSubscription_shouldReturnConflict() {
-        String campaignId = persistCampaign("Winter Sale");
-        persistSubscription(campaignId, BundleSubscriptionStatus.PAST_DUE);
-
-        expectDeleteStatus(campaignId, 409);
-    }
-
-    /**
-     * D47: cancelling does not release the campaign. The guard is status-agnostic because it
-     * mirrors the {@code ON DELETE RESTRICT} foreign key, which refuses the delete whatever the
-     * subscription's status — so the advertiser gets this explanatory 409 rather than the
-     * catch-all's generic "conflicting database state" message.
-     *
-     * <p>Before D47 this asserted a 2xx, and passed only because the entity-generated test schema
-     * has no foreign keys (D5). Against a real migrated schema that delete has always failed.
-     */
-    @Test
-    void deleteCampaign_tiedToCanceledSubscriptionOnly_stillReturnsConflict() {
-        String campaignId = persistCampaign("Summer Clearance");
-        persistSubscription(campaignId, BundleSubscriptionStatus.CANCELED);
-
-        expectDeleteStatus(campaignId, 409);
-    }
-
-    /** An abandoned checkout pins the campaign for the same reason a cancelled one does (D47). */
-    @Test
-    void deleteCampaign_tiedToIncompleteSubscriptionOnly_stillReturnsConflict() {
-        String campaignId = persistCampaign("Abandoned Checkout");
-        persistSubscription(campaignId, BundleSubscriptionStatus.INCOMPLETE);
-
-        expectDeleteStatus(campaignId, 409);
+        assertNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId));
     }
 
     @Test
@@ -553,7 +528,6 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
         subscription.setSubscriptionId(UUID.randomUUID().toString());
         subscription.setBundleId(UUID.randomUUID().toString());
         subscription.setAdvertiserBusinessId(businessId.getBusinessId());
-        subscription.setCampaignId(campaignId);
         subscription.setStripeCheckoutSessionId("cs_test_" + UUID.randomUUID());
         subscription.setStatus(status);
         subscription.setMonthlyAmount(new java.math.BigDecimal("48.00"));

@@ -36,10 +36,6 @@ public class BundleSubscription {
     @Column(name = "advertiser_business_id", nullable = false, length = 36)
     private String advertiserBusinessId;
 
-    /** The active campaign hook for P6; protected by the campaign-delete trigger. */
-    @Column(name = "campaign_id", nullable = false, length = 36)
-    private String campaignId;
-
     /** Null until the checkout.session.completed webhook links it. */
     @Column(name = "stripe_subscription_id", unique = true)
     private String stripeSubscriptionId;

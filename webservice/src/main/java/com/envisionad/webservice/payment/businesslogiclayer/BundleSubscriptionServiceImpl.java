@@ -205,7 +205,6 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         subscription.setSubscriptionId(subscriptionId);
         subscription.setBundleId(bundleId);
         subscription.setAdvertiserBusinessId(businessId);
-        subscription.setCampaignId(campaign.getCampaignId().getCampaignId());
         subscription.setStripeCheckoutSessionId(session.getId());
         subscription.setStatus(BundleSubscriptionStatus.INCOMPLETE);
         subscription.setMonthlyAmount(monthlyAmount);
@@ -214,6 +213,21 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         // coupon (present, absent, or different) always wins over the abandoned one's.
         subscription.setCouponId(coupon != null ? coupon.getId() : null);
         bundleSubscriptionRepository.save(subscription);
+
+        // The P6 follow-up dropped bundle_subscriptions.campaign_id — the advertiser's active
+        // campaign is now single-sourced on business.active_campaign_id. The checkout still makes
+        // the advertiser confirm a campaign (validated above by validateCampaign), and until P6
+        // M2 ships ActiveCampaignService.select this sets that pointer directly.
+        // TODO(P6 M2): replace with ActiveCampaignService.select(businessId, campaignId).
+        // Set-if-null, matching /select's FR-6.1/6.3 contract: the pointer is "sticky", so an
+        // advertiser who already has an active campaign keeps it and the checkout picker's
+        // choice does not override it (a known gap flagged for P1 checkout / M2 in the PR). An
+        // abandoned INCOMPLETE checkout can leave the pointer set with no live subscription —
+        // a legitimate sticky state; every reader that matters is gated on a live subscription.
+        if (business.getActiveCampaignId() == null) {
+            business.setActiveCampaignId(campaign.getCampaignId().getCampaignId());
+            businessRepository.save(business);
+        }
 
         writeItems(subscriptionId, quote.eligibleMedias(), retryOf.isPresent());
 
@@ -470,18 +484,27 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         List<BundleSubscription> subscriptions =
                 bundleSubscriptionRepository.findAllByAdvertiserBusinessId(businessId);
 
+        // Since the P6 follow-up, the campaign shown against a subscription is the advertiser's
+        // single active campaign (business.active_campaign_id), not a per-row value — so it is
+        // resolved once, not per subscription. It is the same campaign for every row and may be
+        // null (advertiser has not picked, or has no live subscription).
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        String activeCampaignId = business == null ? null : business.getActiveCampaignId();
+        AdCampaign activeCampaign = activeCampaignId == null
+                ? null
+                : adCampaignRepository.findByCampaignId_CampaignId(activeCampaignId);
+        String activeCampaignName = activeCampaign == null ? null : activeCampaign.getName();
+
         return subscriptions.stream()
                 .sorted(Comparator.comparing(BundleSubscription::getCreatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(subscription -> {
                     Bundle bundle = bundleRepository.findByBundleId(subscription.getBundleId()).orElse(null);
-                    AdCampaign campaign =
-                            adCampaignRepository.findByCampaignId_CampaignId(subscription.getCampaignId());
                     Coupon coupon = subscription.getCouponId() == null
                             ? null
                             : couponRepository.findById(subscription.getCouponId()).orElse(null);
                     return responseMapper.entityToResponseModel(
-                            subscription, bundle, campaign == null ? null : campaign.getName(), coupon);
+                            subscription, bundle, activeCampaignId, activeCampaignName, coupon);
                 })
                 .toList();
     }
@@ -521,16 +544,23 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             return;
         }
 
-        AdCampaign campaign = adCampaignRepository.findByCampaignId_CampaignId(subscription.getCampaignId());
+        Business advertiserBusiness =
+                businessRepository.findByBusinessId_BusinessId(subscription.getAdvertiserBusinessId());
+
+        // Since the P6 follow-up, the campaign for this notification is the advertiser's single
+        // active campaign (business.active_campaign_id), not a value frozen on the subscription.
+        String activeCampaignId =
+                advertiserBusiness == null ? null : advertiserBusiness.getActiveCampaignId();
+        AdCampaign campaign = activeCampaignId == null
+                ? null
+                : adCampaignRepository.findByCampaignId_CampaignId(activeCampaignId);
         // The ads collection is LAZY; this must run inside the caller's transaction to initialize.
         if (campaign == null || campaign.getAds() == null || campaign.getAds().isEmpty()) {
-            log.warn("Skipping new-subscription notification for {}: campaign {} has no creatives",
-                    subscriptionId, subscription.getCampaignId());
+            log.warn("Skipping new-subscription notification for {}: active campaign {} has no creatives",
+                    subscriptionId, activeCampaignId);
             return;
         }
 
-        Business advertiserBusiness =
-                businessRepository.findByBusinessId_BusinessId(subscription.getAdvertiserBusinessId());
         String advertiserName =
                 advertiserBusiness != null ? advertiserBusiness.getName() : subscription.getAdvertiserBusinessId();
 

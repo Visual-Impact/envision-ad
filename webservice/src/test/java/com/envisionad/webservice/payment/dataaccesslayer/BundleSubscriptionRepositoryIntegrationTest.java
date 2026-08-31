@@ -42,7 +42,6 @@ class BundleSubscriptionRepositoryIntegrationTest extends BaseIntegrationTest {
     private static final String OTHER_BUNDLE_ID = "bundle-id-2";
     private static final String BUSINESS_ID = "business-id-1";
     private static final String OTHER_BUSINESS_ID = "business-id-2";
-    private static final String CAMPAIGN_ID = "campaign-id-1";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -87,7 +86,6 @@ class BundleSubscriptionRepositoryIntegrationTest extends BaseIntegrationTest {
         subscription.setSubscriptionId(UUID.randomUUID().toString());
         subscription.setBundleId(bundleId);
         subscription.setAdvertiserBusinessId(businessId);
-        subscription.setCampaignId(CAMPAIGN_ID);
         subscription.setStripeCheckoutSessionId("cs_test_" + UUID.randomUUID());
         subscription.setStatus(status);
         subscription.setMonthlyAmount(new BigDecimal("120.00"));
@@ -114,7 +112,6 @@ class BundleSubscriptionRepositoryIntegrationTest extends BaseIntegrationTest {
 
         assertEquals(BUNDLE_ID, found.getBundleId());
         assertEquals(BUSINESS_ID, found.getAdvertiserBusinessId());
-        assertEquals(CAMPAIGN_ID, found.getCampaignId());
         assertEquals("sub_test_1", found.getStripeSubscriptionId());
         assertEquals(subscription.getStripeCheckoutSessionId(), found.getStripeCheckoutSessionId());
         assertEquals(BundleSubscriptionStatus.ACTIVE, found.getStatus());

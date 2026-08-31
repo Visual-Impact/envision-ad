@@ -284,12 +284,6 @@ public class GlobalControllerHandler {
     }
 
     @ResponseStatus(CONFLICT)
-    @ExceptionHandler(CampaignIsTiedToSubscriptionException.class)
-    public HttpErrorInfo handleCampaignIsTiedToSubscriptionException(CampaignIsTiedToSubscriptionException ex) {
-        return createHttpErrorInfo(CONFLICT, ex);
-    }
-
-    @ResponseStatus(CONFLICT)
     @ExceptionHandler(CampaignIsActiveCampaignException.class)
     public HttpErrorInfo handleCampaignIsActiveCampaignException(CampaignIsActiveCampaignException ex) {
         return createHttpErrorInfo(CONFLICT, ex);
