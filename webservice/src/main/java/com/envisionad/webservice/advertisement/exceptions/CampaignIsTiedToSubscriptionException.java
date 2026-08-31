@@ -23,6 +23,6 @@ public class CampaignIsTiedToSubscriptionException extends RuntimeException {
     public CampaignIsTiedToSubscriptionException(String campaignId) {
         super("Campaign " + campaignId + " cannot be deleted: a bundle subscription references it. "
                 + "Cancelling the subscription does not release the campaign — its billing history "
-                + "keeps pointing at it.");
+                + "keeps pointing at it. Archive the campaign instead.");
     }
 }

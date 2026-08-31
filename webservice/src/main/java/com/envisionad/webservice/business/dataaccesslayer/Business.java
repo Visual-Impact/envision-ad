@@ -41,6 +41,11 @@ public class Business {
     @Column(name = "business_type_venue_id")
     private String businessTypeVenueId;
 
+    // P6's single source of truth for what this advertiser is currently displaying.
+    // Nullable when the business has no live bundle subscription or has not selected yet.
+    @Column(name = "active_campaign_id", length = 36)
+    private String activeCampaignId;
+
     // Defaults true so every existing creation path (self-service createBusiness, the
     // admin-account flow) produces an active business unless a P5 admin explicitly
     // deactivates it afterward — deactivation is opt-in, not a side effect of creation.

@@ -451,6 +451,95 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
         expectDeleteStatus(campaignId, 409);
     }
 
+    @Test
+    void deleteCampaign_whenActiveAndSubscriptionIsLive_returnsConflict() {
+        String campaignId = persistCampaign("Currently Displaying");
+        Business business = businessRepository.findByBusinessId_BusinessId(BUSINESS_ID);
+        business.setActiveCampaignId(campaignId);
+        businessRepository.saveAndFlush(business);
+        persistSubscription(campaignId, BundleSubscriptionStatus.ACTIVE);
+
+        webTestClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}")
+                        .build(BUSINESS_ID, campaignId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isEqualTo(409)
+                .expectBody()
+                .jsonPath("$.message").value(message ->
+                        org.junit.jupiter.api.Assertions.assertTrue(
+                                message.toString().contains("active campaign")));
+
+        assertNotNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId));
+    }
+
+    /**
+     * P6 FR-3.1: the active-campaign delete block is unconditional — no live subscription
+     * required, and the pointer is not cleared to let the delete through.
+     */
+    @Test
+    void deleteCampaign_whenActiveButNoSubscription_stillReturnsConflict() {
+        String campaignId = persistCampaign("Idle Active Campaign");
+        Business business = businessRepository.findByBusinessId_BusinessId(BUSINESS_ID);
+        business.setActiveCampaignId(campaignId);
+        businessRepository.saveAndFlush(business);
+
+        expectDeleteStatus(campaignId, 409);
+
+        assertNotNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId));
+        assertEquals(campaignId,
+                businessRepository.findByBusinessId_BusinessId(BUSINESS_ID).getActiveCampaignId());
+    }
+
+    @Test
+    void deleteFinalCreative_whenCampaignIsActiveAndSubscriptionIsLive_returnsConflict() {
+        String campaignId = persistCampaign("One Creative Live");
+        String adId = createAdAndGetId(campaignId, adRequest("Only Creative", List.of()));
+        Business business = businessRepository.findByBusinessId_BusinessId(BUSINESS_ID);
+        business.setActiveCampaignId(campaignId);
+        businessRepository.saveAndFlush(business);
+        persistSubscription(campaignId, BundleSubscriptionStatus.ACTIVE);
+
+        webTestClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/ads/{adId}")
+                        .build(BUSINESS_ID, campaignId, adId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isEqualTo(409);
+
+        assertEquals(1, adCampaignRepository.findByCampaignIdWithAds(campaignId).getAds().size());
+    }
+
+    @Test
+    void addCreative_toCampaignOwnedByAnotherBusiness_returnsForbidden() {
+        String campaignId = persistCampaign(
+                "Another Business Campaign", new BusinessIdentifier("other-business"));
+
+        postAd(campaignId, adRequest("Unauthorized Creative", List.of()))
+                .expectStatus().isForbidden();
+
+        assertEquals(0, adCampaignRepository.findByCampaignIdWithAds(campaignId).getAds().size());
+    }
+
+    @Test
+    void deleteCreative_fromCampaignOwnedByAnotherBusiness_returnsForbidden() {
+        String campaignId = persistCampaign(
+                "Another Business Campaign", new BusinessIdentifier("other-business"));
+        String adId = createAdAndGetId(campaignId, adRequest("Protected Creative", List.of()));
+
+        webTestClient.delete()
+                .uri(uriBuilder -> uriBuilder
+                        .path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/ads/{adId}")
+                        .build(BUSINESS_ID, campaignId, adId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isForbidden();
+
+        assertEquals(1, adCampaignRepository.findByCampaignIdWithAds(campaignId).getAds().size());
+    }
+
     private String persistCampaign(String name) {
         AdCampaign adCampaign = new AdCampaign();
         adCampaign.setName(name);

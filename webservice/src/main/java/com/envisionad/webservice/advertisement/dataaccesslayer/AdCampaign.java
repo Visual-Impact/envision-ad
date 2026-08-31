@@ -8,6 +8,7 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
@@ -26,6 +27,12 @@ public class AdCampaign {
     private BusinessIdentifier businessId;
 
     private String name;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    @Column(name = "creatives_updated_at")
+    private LocalDateTime creativesUpdatedAt;
 
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // this prevents infinite loops with Lombok
