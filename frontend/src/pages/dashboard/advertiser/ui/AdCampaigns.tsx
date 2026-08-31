@@ -169,10 +169,14 @@ export default function AdCampaigns() {
     };
 
     const confirmDeleteAd = async () => {
-        if (!adToDelete) return;
+        if (!adToDelete || !organization) return;
 
         try {
-            await deleteAdFromCampaign(adToDelete.campaignId, adToDelete.adId);
+            await deleteAdFromCampaign(
+                organization.businessId,
+                adToDelete.campaignId,
+                adToDelete.adId
+            );
             notifications.show({
                 title: t('notifications.deleteAd.success.title'),
                 message: t('notifications.deleteAd.success.message'),

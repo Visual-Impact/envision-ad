@@ -115,10 +115,15 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     }
 
     @Override
-    public AdResponseModel addAdToCampaign(String campaignId, AdRequestModel adRequestModel) {
+    public AdResponseModel addAdToCampaign(Jwt jwt, String businessId, String campaignId,
+                                           AdRequestModel adRequestModel) {
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+
         AdCampaign adCampaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
         if (adCampaign == null)
             throw new AdCampaignNotFoundException(campaignId);
+
+        jwtUtils.validateBusinessOwnsCampaign(businessId, adCampaign);
 
         // Deliberately unguarded (P1 M6, decision D42): an advertiser on a live monthly
         // subscription must be able to change their creative mid-cycle. The weekly-reservation
@@ -150,11 +155,15 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     }
 
     @Override
-    public AdResponseModel deleteAdFromCampaign(String campaignId, String adId) {
+    public AdResponseModel deleteAdFromCampaign(Jwt jwt, String businessId, String campaignId, String adId) {
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+
         AdCampaign adCampaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
         if (adCampaign == null) {
             throw new AdCampaignNotFoundException(campaignId);
         }
+
+        jwtUtils.validateBusinessOwnsCampaign(businessId, adCampaign);
 
         // Deliberately unguarded — see addAdToCampaign above (decision D42).
         Ad adToDelete = adCampaign.getAds().stream()
@@ -166,6 +175,19 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         // once the ad is removed and the campaign saved that would be a read on a deleted
         // entity. Harmless before P7 added the collection; a bug the moment it exists.
         AdResponseModel response = adResponseMapper.entityToResponseModel(adToDelete);
+
+        // P6 FR-3.1a: the campaign currently on screen must keep at least one creative while
+        // the advertiser is paying — an empty active campaign means live screens with nothing
+        // to show. With no live subscription this does not apply; P1's resubscribe flow owns
+        // the "active campaign must have >= 1 ad" check (FR-5.1 / FR-6).
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        boolean deletingFinalCreative = adCampaign.getAds().size() == 1;
+        boolean deletingFromActiveCampaign = business != null
+                && campaignId.equals(business.getActiveCampaignId());
+
+        if (deletingFinalCreative && deletingFromActiveCampaign && hasLiveSubscription(businessId)) {
+            throw new LastActiveCampaignCreativeCannotBeDeletedException(campaignId);
+        }
 
         deleteCloudinaryAssetIfPresent(adToDelete.getAdUrl());
 
@@ -239,12 +261,27 @@ public class AdCampaignServiceImpl implements AdCampaignService {
 
         jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
 
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null) {
+            throw new BusinessNotFoundException(businessId);
+        }
+
         AdCampaign adCampaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
         if (adCampaign == null) {
             throw new AdCampaignNotFoundException(campaignId);
         }
         // Validate the campaign belongs to the business
         jwtUtils.validateBusinessOwnsCampaign(businessId, adCampaign);
+
+        // The active campaign is never deletable (P6 FR-3.1). To remove it from the list the
+        // advertiser swaps to another campaign first and then archives this one — archiving
+        // keeps the row, so no reference is ever left dangling. Unconditional on purpose: a
+        // dangling active_campaign_id is a state we never want to produce, even for an
+        // advertiser with no live subscription. Deletion is not the tool for a subscribed
+        // or once-subscribed campaign; archive is.
+        if (campaignId.equals(business.getActiveCampaignId())) {
+            throw new CampaignIsActiveCampaignException(campaignId);
+        }
 
         // Deletion IS still guarded (decision D42). This is not a product choice: the campaign is
         // referenced by bundle_subscriptions.campaign_id (NOT NULL, ON DELETE RESTRICT) and by the
@@ -341,5 +378,10 @@ public class AdCampaignServiceImpl implements AdCampaignService {
      */
     private boolean campaignIsTiedToSubscription(String campaignId) {
         return bundleSubscriptionRepository.existsByCampaignId(campaignId);
+    }
+
+    private boolean hasLiveSubscription(String businessId) {
+        return bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(
+                businessId, LIVE_SUBSCRIPTION_STATUSES) > 0;
     }
 }

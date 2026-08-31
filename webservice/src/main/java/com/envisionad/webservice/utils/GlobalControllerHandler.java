@@ -290,6 +290,19 @@ public class GlobalControllerHandler {
     }
 
     @ResponseStatus(CONFLICT)
+    @ExceptionHandler(CampaignIsActiveCampaignException.class)
+    public HttpErrorInfo handleCampaignIsActiveCampaignException(CampaignIsActiveCampaignException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(LastActiveCampaignCreativeCannotBeDeletedException.class)
+    public HttpErrorInfo handleLastActiveCampaignCreativeCannotBeDeletedException(
+            LastActiveCampaignCreativeCannotBeDeletedException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
     @ExceptionHandler(MediaNotInActiveSubscriptionException.class)
     public HttpErrorInfo handleMediaNotInActiveSubscriptionException(MediaNotInActiveSubscriptionException ex) {
         return createHttpErrorInfo(CONFLICT, ex);

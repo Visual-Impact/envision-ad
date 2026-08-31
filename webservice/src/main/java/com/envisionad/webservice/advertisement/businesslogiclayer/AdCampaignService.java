@@ -10,9 +10,10 @@ import java.util.List;
 
 public interface AdCampaignService {
 
-    AdResponseModel addAdToCampaign(String campaignId, AdRequestModel adRequestModel);
+    AdResponseModel addAdToCampaign(Jwt jwt, String businessId, String campaignId,
+                                    AdRequestModel adRequestModel);
 
-    AdResponseModel deleteAdFromCampaign(String campaignId, String adId);
+    AdResponseModel deleteAdFromCampaign(Jwt jwt, String businessId, String campaignId, String adId);
 
     AdResponseModel updateAdVenueTags(Jwt jwt, String businessId, String campaignId, String adId,
                                       List<String> venueIds);

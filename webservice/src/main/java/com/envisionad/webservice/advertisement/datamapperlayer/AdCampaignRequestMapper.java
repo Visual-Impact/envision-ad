@@ -12,6 +12,8 @@ public interface AdCampaignRequestMapper {
     @Mapping(target = "campaignId", ignore = true)
     @Mapping(target = "businessId", ignore = true)
     @Mapping(target = "ads", ignore = true)
+    @Mapping(target = "archivedAt", ignore = true)
+    @Mapping(target = "creativesUpdatedAt", ignore = true)
     AdCampaign requestModelToEntity(AdCampaignRequestModel adCampaign);
 
 }

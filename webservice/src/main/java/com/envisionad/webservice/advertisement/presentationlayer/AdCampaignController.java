@@ -52,9 +52,12 @@ public class AdCampaignController {
     @PostMapping("businesses/{businessId}/campaigns/{campaignId}/ads")
     @PreAuthorize("hasAuthority('update:campaign')")
     public ResponseEntity<AdResponseModel> addAdToCampaign(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String businessId,
             @PathVariable String campaignId,
             @RequestBody AdRequestModel adRequestModel) {
-        AdResponseModel newAd = adCampaignService.addAdToCampaign(campaignId, adRequestModel);
+        AdResponseModel newAd = adCampaignService.addAdToCampaign(
+                jwt, businessId, campaignId, adRequestModel);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(newAd);
 
@@ -63,9 +66,12 @@ public class AdCampaignController {
     @DeleteMapping("businesses/{businessId}/campaigns/{campaignId}/ads/{adId}")
     @PreAuthorize("hasAuthority('update:campaign')")
     public ResponseEntity<AdResponseModel> deleteAdFromCampaign(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String businessId,
             @PathVariable String campaignId,
             @PathVariable String adId) {
-        AdResponseModel deletedAd = adCampaignService.deleteAdFromCampaign(campaignId, adId);
+        AdResponseModel deletedAd = adCampaignService.deleteAdFromCampaign(
+                jwt, businessId, campaignId, adId);
 
         return ResponseEntity.ok(deletedAd);
     }

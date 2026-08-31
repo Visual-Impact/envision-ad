@@ -10,7 +10,9 @@ import com.envisionad.webservice.advertisement.datamapperlayer.AdResponseMapper;
 import com.envisionad.webservice.advertisement.datamapperlayer.AdCampaignResponseMapper;
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdRequestModel;
+import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.JwtUtils;
@@ -40,6 +42,7 @@ class AdCampaignServiceUnitTest {
     @Mock private AdResponseMapper adResponseMapper;
     @Mock private AdCampaignResponseMapper adCampaignResponseMapper;
     @Mock private BundleSubscriptionRepository bundleSubscriptionRepository;
+    @Mock private BusinessRepository businessRepository;
 
     @Mock private Cloudinary cloudinary;
     @Mock private Uploader uploader;
@@ -49,11 +52,18 @@ class AdCampaignServiceUnitTest {
 
     @InjectMocks private AdCampaignServiceImpl service;
 
+    private static final String TEST_BUSINESS_ID = "biz-1";
     private Jwt advertiserToken;
     @BeforeEach
     void setUp() {
         lenient().when(cloudinary.uploader()).thenReturn(uploader);
         lenient().when(cloudinary.api()).thenReturn(api);
+        lenient().when(businessRepository.findByBusinessId_BusinessId(anyString()))
+                .thenAnswer(invocation -> {
+                    Business business = new Business();
+                    business.setBusinessId(new BusinessIdentifier(invocation.getArgument(0)));
+                    return business;
+                });
         advertiserToken = createJwtToken(
                 List.of("read:campaign", "create:campaign", "update:campaign", "update:business",
                         "read:employee", "create:employee", "delete:employee", "read:verification", "create:verification",
@@ -108,7 +118,7 @@ class AdCampaignServiceUnitTest {
                 .thenReturn(null);
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(uploader, never()).destroy(anyString(), anyMap());
@@ -131,7 +141,7 @@ class AdCampaignServiceUnitTest {
                 .thenReturn(null);
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(uploader, never()).destroy(anyString(), anyMap());
@@ -158,7 +168,7 @@ class AdCampaignServiceUnitTest {
                 .thenReturn(Map.of("result", "ok"));
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(uploader).destroy(anyString(), argThat(opts ->
@@ -190,7 +200,7 @@ class AdCampaignServiceUnitTest {
                 .thenReturn(Map.of("result", "ok"));
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         ArgumentCaptor<String> publicIdCaptor = ArgumentCaptor.forClass(String.class);
@@ -229,7 +239,7 @@ class AdCampaignServiceUnitTest {
                 .thenReturn(Map.of("result", "ok"));
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(uploader).destroy(anyString(), argThat(opts ->
@@ -257,7 +267,7 @@ class AdCampaignServiceUnitTest {
                 .thenReturn(Map.of("result", "ok"));
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(uploader).destroy(anyString(), argThat(opts ->
@@ -285,7 +295,7 @@ class AdCampaignServiceUnitTest {
                 .thenThrow(new RuntimeException("Cloudinary down"));
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(uploader, times(1)).destroy(anyString(), anyMap());
@@ -306,7 +316,7 @@ class AdCampaignServiceUnitTest {
 
         // Act & Assert
         assertThrows(AdCampaignNotFoundException.class,
-                () -> service.deleteAdFromCampaign(campaignId, adId));
+                () -> service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adId));
 
         verify(uploader, never()).destroy(anyString(), anyMap());
         verify(adCampaignRepository, never()).save(any());
@@ -328,7 +338,7 @@ class AdCampaignServiceUnitTest {
 
         // Act & Assert
         assertThrows(AdNotFoundException.class,
-                () -> service.deleteAdFromCampaign(campaignId, missingAdId));
+                () -> service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, missingAdId));
 
         verify(uploader, never()).destroy(anyString(), anyMap());
         verify(adCampaignRepository, never()).save(any());
@@ -349,7 +359,7 @@ class AdCampaignServiceUnitTest {
         when(venueRepository.findByVenueId("venue-barber")).thenReturn(Optional.of(barber));
         when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of("venue-gym", "venue-barber")));
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequest("IMAGE", List.of("venue-gym", "venue-barber")));
 
         assertEquals(List.of(gym, barber), campaign.getAds().get(0).getVenues());
     }
@@ -363,7 +373,7 @@ class AdCampaignServiceUnitTest {
         when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
         when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addAdToCampaign(campaignId, adRequest("IMAGE", null));
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequest("IMAGE", null));
 
         assertTrue(campaign.getAds().get(0).getVenues().isEmpty());
         verifyNoInteractions(venueRepository);
@@ -378,7 +388,7 @@ class AdCampaignServiceUnitTest {
         when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
         when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of()));
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequest("IMAGE", List.of()));
 
         assertTrue(campaign.getAds().get(0).getVenues().isEmpty());
         verifyNoInteractions(venueRepository);
@@ -395,7 +405,7 @@ class AdCampaignServiceUnitTest {
         when(venueRepository.findByVenueId("venue-gym")).thenReturn(Optional.of(gym));
         when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of("venue-gym", "venue-gym", "venue-gym")));
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequest("IMAGE", List.of("venue-gym", "venue-gym", "venue-gym")));
 
         // A List-mapped @ManyToMany is a bag: without de-dup this would violate the
         // ad_venue_tags composite PK on flush.
@@ -413,7 +423,7 @@ class AdCampaignServiceUnitTest {
         when(venueRepository.findByVenueId("venue-ghost")).thenReturn(Optional.empty());
 
         assertThrows(VenueNotFoundException.class,
-                () -> service.addAdToCampaign(campaignId, adRequest("IMAGE", List.of("venue-ghost"))));
+                () -> service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequest("IMAGE", List.of("venue-ghost"))));
 
         verify(adCampaignRepository, never()).save(any());
     }
@@ -544,7 +554,7 @@ class AdCampaignServiceUnitTest {
             return null;
         });
 
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         InOrder inOrder = inOrder(adResponseMapper, adCampaignRepository);
         inOrder.verify(adResponseMapper).entityToResponseModel(any());
@@ -722,6 +732,125 @@ class AdCampaignServiceUnitTest {
     }
 
     /**
+     * P6 FR-3.1: the active-campaign delete block is unconditional and short-circuits before
+     * the subscription checks are even consulted. The pointer is never cleared to let the
+     * delete through — the sanctioned path is swap, then archive.
+     */
+    @Test
+    void deleteAdCampaign_whenCampaignIsActive_throwsActiveCampaignException() {
+        String businessId = "biz-active";
+        String campaignId = "camp-active";
+        AdCampaign campaign = campaignWithoutAds(campaignId, businessId);
+        Business business = businessWithActiveCampaign(businessId, campaignId);
+
+        when(businessRepository.findByBusinessId_BusinessId(businessId)).thenReturn(business);
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+
+        assertThrows(CampaignIsActiveCampaignException.class,
+                () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
+
+        assertEquals(campaignId, business.getActiveCampaignId());
+        verifyNoInteractions(bundleSubscriptionRepository);
+        verify(businessRepository, never()).save(any());
+        verify(adCampaignRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteAdFromCampaign_whenFinalCreativeIsActiveAndSubscriptionIsLive_throws() {
+        String businessId = "biz-live-creative";
+        String campaignId = "camp-live-creative";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, null);
+        data.campaign.setBusinessId(new BusinessIdentifier(businessId));
+        Business business = businessWithActiveCampaign(businessId, campaignId);
+
+        when(businessRepository.findByBusinessId_BusinessId(businessId)).thenReturn(business);
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(
+                eq(businessId), any())).thenReturn(1L);
+
+        assertThrows(LastActiveCampaignCreativeCannotBeDeletedException.class,
+                () -> service.deleteAdFromCampaign(
+                        advertiserToken, businessId, campaignId, data.adId));
+
+        verify(businessRepository, never()).save(any());
+        verify(adCampaignRepository, never()).save(any());
+        assertEquals(1, data.campaign.getAds().size());
+    }
+
+    /**
+     * With no live subscription the final-creative block does not apply: the removal is
+     * allowed and the active-campaign pointer is left untouched (it stays sticky per FR-6.3;
+     * P1's resubscribe flow owns re-validating that the active campaign has >= 1 ad).
+     */
+    @Test
+    void deleteAdFromCampaign_whenFinalCreativeIsActiveButNoLiveSubscription_deletesAndKeepsPointer() {
+        String businessId = "biz-idle-creative";
+        String campaignId = "camp-idle-creative";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, null);
+        data.campaign.setBusinessId(new BusinessIdentifier(businessId));
+        Business business = businessWithActiveCampaign(businessId, campaignId);
+
+        when(businessRepository.findByBusinessId_BusinessId(businessId)).thenReturn(business);
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(
+                eq(businessId), any())).thenReturn(0L);
+
+        service.deleteAdFromCampaign(advertiserToken, businessId, campaignId, data.adId);
+
+        assertEquals(campaignId, business.getActiveCampaignId());
+        assertTrue(data.campaign.getAds().isEmpty());
+        verify(businessRepository, never()).save(any());
+        verify(adCampaignRepository).save(data.campaign);
+    }
+
+    @Test
+    void addAdToCampaign_whenBusinessDoesNotOwnCampaign_rejectsBeforeMutation() {
+        String campaignId = "camp-other-business";
+        AdCampaign campaign = campaignWithoutAds(campaignId, "other-business");
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        doThrow(new AccessDeniedException("Campaign does not belong to business"))
+                .when(jwtUtils).validateBusinessOwnsCampaign(TEST_BUSINESS_ID, campaign);
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId,
+                        adRequest("IMAGE", List.of())));
+
+        verify(adRequestMapper, never()).requestModelToEntity(any());
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteAdFromCampaign_whenBusinessDoesNotOwnCampaign_rejectsBeforeMutation() {
+        String campaignId = "camp-other-business";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, null);
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        doThrow(new AccessDeniedException("Campaign does not belong to business"))
+                .when(jwtUtils).validateBusinessOwnsCampaign(TEST_BUSINESS_ID, data.campaign);
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.deleteAdFromCampaign(
+                        advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId));
+
+        verify(adResponseMapper, never()).entityToResponseModel(any());
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    private static AdCampaign campaignWithoutAds(String campaignId, String businessId) {
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
+        campaign.setBusinessId(new BusinessIdentifier(businessId));
+        campaign.setAds(new ArrayList<>());
+        return campaign;
+    }
+
+    private static Business businessWithActiveCampaign(String businessId, String campaignId) {
+        Business business = new Business();
+        business.setBusinessId(new BusinessIdentifier(businessId));
+        business.setActiveCampaignId(campaignId);
+        return business;
+    }
+
+    /**
      * D42: adding an ad to a campaign that is running on a live bundle subscription must
      * SUCCEED. Under weekly reservations this was blocked; under a monthly subscription the
      * advertiser is paying continuously and has to be able to change their creative mid-cycle.
@@ -747,7 +876,7 @@ class AdCampaignServiceUnitTest {
         when(adRequestModel.getAdType()).thenReturn("IMAGE");
 
         // Act
-        service.addAdToCampaign(campaignId, adRequestModel);
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequestModel);
 
         // Assert — the ad landed, and the subscription state was never even consulted.
         verify(adCampaignRepository).save(campaign);
@@ -776,7 +905,7 @@ class AdCampaignServiceUnitTest {
         when(adRequestModel.getAdType()).thenReturn("VIDEO");
 
         // Act
-        service.addAdToCampaign(campaignId, adRequestModel);
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequestModel);
 
         // Assert
         verify(adCampaignRepository).save(campaign);
@@ -802,7 +931,7 @@ class AdCampaignServiceUnitTest {
         when(adRequestModel.getAdType()).thenReturn("VIDEO");
 
         // Act & Assert
-        assertThrows(VideoTooLongException.class, () -> service.addAdToCampaign(campaignId, adRequestModel));
+        assertThrows(VideoTooLongException.class, () -> service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequestModel));
         verify(adCampaignRepository, never()).save(any());
         assertEquals(0, campaign.getAds().size());
     }
@@ -829,7 +958,7 @@ class AdCampaignServiceUnitTest {
         when(adRequestModel.getAdType()).thenReturn("VIDEO");
 
         // Act
-        service.addAdToCampaign(campaignId, adRequestModel);
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequestModel);
 
         // Assert
         verify(adCampaignRepository).save(campaign);
@@ -851,7 +980,7 @@ class AdCampaignServiceUnitTest {
         when(adResponseMapper.entityToResponseModel(any())).thenReturn(null);
 
         // Act
-        service.deleteAdFromCampaign(campaignId, data.adId);
+        service.deleteAdFromCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, data.adId);
 
         // Assert
         verify(adCampaignRepository).save(data.campaign);
