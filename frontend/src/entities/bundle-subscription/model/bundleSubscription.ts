@@ -54,7 +54,12 @@ export interface BundleSubscription {
     canceledAt: string | null;
     createdAt: string | null;
 
-    campaignId: string;
+    /**
+     * The advertiser's active campaign (`business.active_campaign_id`). Since the P6 follow-up
+     * this is single-sourced on the business, so it is identical across every row and is null
+     * when they have not picked one (or have no live subscription).
+     */
+    campaignId: string | null;
     campaignName: string | null;
 
     /**

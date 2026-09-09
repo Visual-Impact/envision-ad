@@ -208,6 +208,49 @@ class BundleSubscriptionServiceUnitTest {
                         .collect(java.util.stream.Collectors.toSet()));
     }
 
+    /**
+     * P6 follow-up: bundle_subscriptions.campaign_id is gone. Checkout now single-sources the
+     * advertiser's active campaign onto business.active_campaign_id — set-if-null, matching
+     * P6's /select contract.
+     */
+    @Test
+    void createSubscriptionCheckout_setsTheActiveCampaignPointerWhenTheBusinessHasNone() throws Exception {
+        givenValidPreconditions(); // givenBusiness("Acme Coffee") has a null active_campaign_id
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+            service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID);
+        }
+
+        ArgumentCaptor<Business> savedBusiness = ArgumentCaptor.forClass(Business.class);
+        verify(businessRepository).save(savedBusiness.capture());
+        assertEquals(CAMPAIGN_ID, savedBusiness.getValue().getActiveCampaignId());
+    }
+
+    /**
+     * The pointer is "sticky" (FR-6.3): an advertiser who already has an active campaign keeps
+     * it, and the checkout picker's choice does not override it.
+     */
+    @Test
+    void createSubscriptionCheckout_leavesAnExistingActiveCampaignPointerUntouched() throws Exception {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID))
+                .thenReturn(givenBusinessWithActiveCampaign("Acme Coffee", "already-picked"));
+        givenValidBundleAndCampaign();
+        givenQuote(List.of(montrealScreen), "4.00");
+        givenExistingStripeCustomer();
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            sessions.when(() -> Session.create(any(SessionCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(givenStripeSession());
+            service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID);
+        }
+
+        verify(businessRepository, never()).save(any());
+    }
+
     // ---------- organization verification ----------
 
     /**
@@ -310,7 +353,6 @@ class BundleSubscriptionServiceUnitTest {
         abandoned.setSubscriptionId("existing-sub-id");
         abandoned.setBundleId(BUNDLE_ID);
         abandoned.setAdvertiserBusinessId(BUSINESS_ID);
-        abandoned.setCampaignId(CAMPAIGN_ID);
         abandoned.setStripeCheckoutSessionId("cs_test_stale");
         abandoned.setStatus(BundleSubscriptionStatus.INCOMPLETE);
         abandoned.setMonthlyAmount(new BigDecimal("4.00"));
@@ -556,7 +598,10 @@ class BundleSubscriptionServiceUnitTest {
 
     private void givenValidPreconditions() {
         when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Coffee"));
+        givenValidBundleAndCampaign();
+    }
 
+    private void givenValidBundleAndCampaign() {
         Bundle bundle = new Bundle();
         bundle.setBundleId(BUNDLE_ID);
         bundle.setNameEn("Full Network");
@@ -592,6 +637,12 @@ class BundleSubscriptionServiceUnitTest {
         business.setBusinessId(new BusinessIdentifier(BUSINESS_ID));
         business.setName(name);
         business.setVerified(true);
+        return business;
+    }
+
+    private Business givenBusinessWithActiveCampaign(String name, String activeCampaignId) {
+        Business business = givenBusiness(name);
+        business.setActiveCampaignId(activeCampaignId);
         return business;
     }
 
@@ -742,7 +793,6 @@ class BundleSubscriptionServiceUnitTest {
         subscription.setSubscriptionId("sub-local-1");
         subscription.setBundleId(BUNDLE_ID);
         subscription.setAdvertiserBusinessId(BUSINESS_ID);
-        subscription.setCampaignId(CAMPAIGN_ID);
         subscription.setStripeCheckoutSessionId(SESSION_ID);
         subscription.setStripeSubscriptionId(stripeSubscriptionId);
         subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
@@ -756,7 +806,6 @@ class BundleSubscriptionServiceUnitTest {
         incomplete.setSubscriptionId("sub-local-retry");
         incomplete.setBundleId(BUNDLE_ID);
         incomplete.setAdvertiserBusinessId(BUSINESS_ID);
-        incomplete.setCampaignId(CAMPAIGN_ID);
         incomplete.setStripeCheckoutSessionId(previousSessionId);
         incomplete.setStatus(BundleSubscriptionStatus.INCOMPLETE);
         incomplete.setMonthlyAmount(new BigDecimal("4.00"));
@@ -842,6 +891,8 @@ class BundleSubscriptionServiceUnitTest {
         BundleSubscription subscription = givenSubscriptionRow();
         when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID))
                 .thenReturn(Optional.of(subscription));
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID))
+                .thenReturn(givenBusinessWithActiveCampaign("Acme Co", CAMPAIGN_ID));
         when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(null);
 
         assertDoesNotThrow(() -> service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID));
@@ -854,6 +905,8 @@ class BundleSubscriptionServiceUnitTest {
         BundleSubscription subscription = givenSubscriptionRow();
         when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID))
                 .thenReturn(Optional.of(subscription));
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID))
+                .thenReturn(givenBusinessWithActiveCampaign("Acme Co", CAMPAIGN_ID));
         AdCampaign emptyCampaign = new AdCampaign();
         emptyCampaign.setCampaignId(new AdCampaignIdentifier(CAMPAIGN_ID));
         emptyCampaign.setAds(List.of());
@@ -902,7 +955,8 @@ class BundleSubscriptionServiceUnitTest {
         when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID))
                 .thenReturn(Optional.of(subscription));
         when(adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID)).thenReturn(givenCampaignWithAds());
-        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(givenBusiness("Acme Co"));
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID))
+                .thenReturn(givenBusinessWithActiveCampaign("Acme Co", CAMPAIGN_ID));
 
         Bundle bundle = new Bundle();
         bundle.setBundleId(BUNDLE_ID);
@@ -916,7 +970,6 @@ class BundleSubscriptionServiceUnitTest {
         subscription.setSubscriptionId(NOTIFY_SUB_ID);
         subscription.setBundleId(BUNDLE_ID);
         subscription.setAdvertiserBusinessId(BUSINESS_ID);
-        subscription.setCampaignId(CAMPAIGN_ID);
         subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
         subscription.setMonthlyAmount(new BigDecimal("4.00"));
         subscription.setScreenCount(1);

@@ -16,7 +16,11 @@ public class BundleSubscriptionResponseMapper {
 
     /**
      * @param bundle       the subscribed bundle, or {@code null} if it has since been deleted
-     * @param campaignName the campaign's display name, or {@code null} if it cannot be resolved
+     * @param campaignId   the advertiser's active campaign id (business.active_campaign_id), or
+     *                     {@code null} — since the P6 follow-up this is single-sourced on the
+     *                     business, so it is the same for every one of the advertiser's rows and
+     *                     is no longer stored per subscription
+     * @param campaignName that campaign's display name, or {@code null} if it cannot be resolved
      * @param coupon       the coupon applied at signup, or {@code null} if none was (P3). Only its
      *                     static terms are surfaced — never a computed "current effective price":
      *                     that would have to independently reconstruct billing-cycle state Stripe
@@ -25,7 +29,7 @@ public class BundleSubscriptionResponseMapper {
      *                     pre-coupon price with no explanation).
      */
     public BundleSubscriptionResponseModel entityToResponseModel(
-            BundleSubscription subscription, Bundle bundle, String campaignName, Coupon coupon) {
+            BundleSubscription subscription, Bundle bundle, String campaignId, String campaignName, Coupon coupon) {
 
         BundleSubscriptionResponseModel response = new BundleSubscriptionResponseModel();
         response.setSubscriptionId(subscription.getSubscriptionId());
@@ -46,7 +50,7 @@ public class BundleSubscriptionResponseMapper {
         response.setCancelAtPeriodEnd(subscription.isCancelAtPeriodEnd());
         response.setCanceledAt(subscription.getCanceledAt());
         response.setCreatedAt(subscription.getCreatedAt());
-        response.setCampaignId(subscription.getCampaignId());
+        response.setCampaignId(campaignId);
         response.setCampaignName(campaignName);
 
         if (coupon != null) {

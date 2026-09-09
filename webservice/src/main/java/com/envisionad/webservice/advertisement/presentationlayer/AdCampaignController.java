@@ -90,10 +90,10 @@ public class AdCampaignController {
         return ResponseEntity.ok(updatedAd);
     }
 
-    @GetMapping("businesses/{businessId}/campaigns/active-count")
+    @GetMapping("businesses/{businessId}/campaigns/active-creative-count")
     @PreAuthorize("hasAuthority('readAll:campaign')")
-    public ResponseEntity<Integer> getActiveCampaignCount(@PathVariable String businessId) {
-        return ResponseEntity.ok(adCampaignService.getActiveCampaignCount(businessId));
+    public ResponseEntity<Integer> getActiveCampaignCreativeCount(@PathVariable String businessId) {
+        return ResponseEntity.ok(adCampaignService.getActiveCampaignCreativeCount(businessId));
     }
 
     @DeleteMapping("businesses/{businessId}/campaigns/{campaignId}")

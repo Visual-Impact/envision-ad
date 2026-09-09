@@ -81,25 +81,42 @@ class AdCampaignServiceUnitTest {
     }
 
     @Test
-    void getActiveCampaignCount_shouldReturnCount() {
-
-        // Arrange
+    void getActiveCampaignCreativeCount_whenActiveCampaignSetAndSubscriptionLive_returnsAdCount() {
         String businessId = "business-123";
-        Integer expectedCount = 5;
+        String campaignId = "camp-active";
+        when(businessRepository.findByBusinessId_BusinessId(businessId))
+                .thenReturn(businessWithActiveCampaign(businessId, campaignId));
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(businessId), any()))
+                .thenReturn(1L);
+        AdCampaign campaign = new AdCampaign();
+        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
+        campaign.setAds(new ArrayList<>(List.of(new Ad(), new Ad(), new Ad())));
+        when(adCampaignRepository.findByCampaignIdWithAds(campaignId)).thenReturn(campaign);
 
-        when(bundleSubscriptionRepository.countDistinctCampaignsByAdvertiserBusinessIdAndStatusIn(
-                eq(businessId),
-                any()
-        )).thenReturn(expectedCount);
+        assertEquals(3, service.getActiveCampaignCreativeCount(businessId));
+    }
 
-        // Act
-        Integer result = service.getActiveCampaignCount(businessId);
+    @Test
+    void getActiveCampaignCreativeCount_whenNoActiveCampaign_returnsZero() {
+        String businessId = "business-123";
+        when(businessRepository.findByBusinessId_BusinessId(businessId))
+                .thenReturn(businessWithActiveCampaign(businessId, null));
 
-        // Assert
-        assertEquals(expectedCount, result);
+        assertEquals(0, service.getActiveCampaignCreativeCount(businessId));
+        verify(adCampaignRepository, never()).findByCampaignIdWithAds(any());
+    }
 
-        verify(bundleSubscriptionRepository, times(1))
-                .countDistinctCampaignsByAdvertiserBusinessIdAndStatusIn(eq(businessId), any());
+    @Test
+    void getActiveCampaignCreativeCount_whenActiveCampaignSetButNoLiveSubscription_returnsZero() {
+        String businessId = "business-123";
+        String campaignId = "camp-active";
+        when(businessRepository.findByBusinessId_BusinessId(businessId))
+                .thenReturn(businessWithActiveCampaign(businessId, campaignId));
+        when(bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(eq(businessId), any()))
+                .thenReturn(0L);
+
+        assertEquals(0, service.getActiveCampaignCreativeCount(businessId));
+        verify(adCampaignRepository, never()).findByCampaignIdWithAds(any());
     }
 
 
@@ -637,9 +654,6 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
 
-        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
-                .thenReturn(false);
-
         when(adCampaignResponseMapper.entityToResponseModel(campaign)).thenReturn(null);
 
         // Act
@@ -664,9 +678,6 @@ class AdCampaignServiceUnitTest {
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaignWithAd));
 
-        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
-                .thenReturn(false);
-
         when(uploader.destroy(anyString(), anyMap())).thenReturn(Map.of("result", "ok"));
 
         when(adCampaignResponseMapper.entityToResponseModel(campaignWithAd)).thenReturn(null);
@@ -681,35 +692,14 @@ class AdCampaignServiceUnitTest {
         verify(uploader, atLeastOnce()).destroy(anyString(), anyMap());
     }
 
-    @Test
-    void deleteAdCampaign_whenASubscriptionReferencesIt_throwsException() {
-        // Arrange
-        String businessId = "biz-1";
-        String campaignId = "camp-2";
-        AdCampaign campaign = new AdCampaign();
-        campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
-        campaign.setAds(new ArrayList<>());
-
-        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
-        doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
-        doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
-
-        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
-                .thenReturn(true);
-
-        // Act & Assert
-        assertThrows(CampaignIsTiedToSubscriptionException.class,
-            () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
-        verify(adCampaignRepository, never()).delete(any());
-    }
-
     /**
-     * D47: a CANCELED subscription blocks the delete just as firmly as a live one. The guard is
-     * status-agnostic because it mirrors the ON DELETE RESTRICT foreign key — cancelling does not
-     * release the campaign, since the subscription's billing history still points at it.
+     * P6 follow-up, behaviour change 2: the old status-agnostic "any subscription row references
+     * this campaign" guard (D42/D47) is gone with {@code bundle_subscriptions.campaign_id}. A
+     * campaign that only ever ran on now-cancelled subscriptions and is not the business's active
+     * campaign is hard-deletable again. Previously any historical subscription froze it forever.
      */
     @Test
-    void deleteAdCampaign_whenOnlyTiedToACanceledSubscription_stillThrows() {
+    void deleteAdCampaign_whenOnlyTiedToACanceledSubscriptionAndNotActive_nowDeletes() {
         // Arrange
         String businessId = "biz-1";
         String campaignId = "camp-4";
@@ -717,18 +707,20 @@ class AdCampaignServiceUnitTest {
         campaign.setCampaignId(new AdCampaignIdentifier(campaignId));
         campaign.setAds(new ArrayList<>());
 
+        // Business's active campaign is a different one, so the unconditional active-campaign
+        // guard does not fire for camp-4.
+        when(businessRepository.findByBusinessId_BusinessId(businessId))
+                .thenReturn(businessWithActiveCampaign(businessId, "some-other-campaign"));
         when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
         doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(any(Jwt.class), eq(businessId));
         doNothing().when(jwtUtils).validateBusinessOwnsCampaign(eq(businessId), eq(campaign));
+        when(adCampaignResponseMapper.entityToResponseModel(campaign)).thenReturn(null);
 
-        // The row is CANCELED, but the guard no longer asks — any row at all returns true.
-        when(bundleSubscriptionRepository.existsByCampaignId(eq(campaignId)))
-                .thenReturn(true);
+        // Act
+        service.deleteAdCampaign(advertiserToken, businessId, campaignId);
 
-        // Act & Assert
-        assertThrows(CampaignIsTiedToSubscriptionException.class,
-                () -> service.deleteAdCampaign(advertiserToken, businessId, campaignId));
-        verify(adCampaignRepository, never()).delete(any());
+        // Assert
+        verify(adCampaignRepository).delete(campaign);
     }
 
     /**
@@ -881,7 +873,7 @@ class AdCampaignServiceUnitTest {
         // Assert — the ad landed, and the subscription state was never even consulted.
         verify(adCampaignRepository).save(campaign);
         assertEquals(1, campaign.getAds().size());
-        verify(bundleSubscriptionRepository, never()).existsByCampaignId(any());
+        verifyNoInteractions(bundleSubscriptionRepository);
     }
 
     @Test
@@ -985,6 +977,6 @@ class AdCampaignServiceUnitTest {
         // Assert
         verify(adCampaignRepository).save(data.campaign);
         assertEquals(0, data.campaign.getAds().size());
-        verify(bundleSubscriptionRepository, never()).existsByCampaignId(any());
+        verify(bundleSubscriptionRepository, never()).countByAdvertiserBusinessIdAndStatusIn(any(), any());
     }
 }

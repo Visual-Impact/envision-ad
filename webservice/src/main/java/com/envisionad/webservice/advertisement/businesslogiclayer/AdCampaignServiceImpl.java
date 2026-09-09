@@ -283,14 +283,14 @@ public class AdCampaignServiceImpl implements AdCampaignService {
             throw new CampaignIsActiveCampaignException(campaignId);
         }
 
-        // Deletion IS still guarded (decision D42). This is not a product choice: the campaign is
-        // referenced by bundle_subscriptions.campaign_id (NOT NULL, ON DELETE RESTRICT) and by the
-        // prevent_active_campaign_delete() trigger, so the delete would fail at the database
-        // anyway — the app-layer check is what turns that into a clean 409 instead of a
-        // constraint violation surfacing as the catch-all's 500.
-        if (campaignIsTiedToSubscription(campaignId)) {
-            throw new CampaignIsTiedToSubscriptionException(campaignId);
-        }
+        // The old status-agnostic "any bundle_subscriptions row references this campaign" guard
+        // (D42/D47) is gone with the P6 follow-up: bundle_subscriptions.campaign_id and its
+        // ON DELETE RESTRICT FK were dropped, so the only DB reference that blocks a delete is
+        // business.active_campaign_id — already checked above (unconditionally, and a campaign
+        // can only be its own owner's active campaign). Consequence, accepted by the lead: a
+        // campaign that only ever ran on now-cancelled subscriptions is hard-deletable again.
+        // No orphan risk — proof-of-display persists nothing, ads cascade, swap-event history
+        // has its own FK actions.
 
         // Delete all associated ads and their Cloudinary assets
         for (Ad ad : adCampaign.getAds()) {
@@ -359,25 +359,29 @@ public class AdCampaignServiceImpl implements AdCampaignService {
 
 
     /**
-     * Number of distinct campaigns this advertiser currently has running. Re-sourced in M6 from
-     * reservations to bundle subscriptions (brief req. 20 — keep the metric definition, swap the
-     * source). "Running" was CONFIRMED-and-within-its-date-range; a subscription has no date range,
-     * so its equivalent is simply being live: ACTIVE or PAST_DUE.
+     * Number of creatives (ads) in the advertiser's active campaign — the "what's actually on
+     * screen right now" number for the advertiser-overview tile.
+     * <p>
+     * Redefined by the P6 follow-up: the old metric counted distinct campaigns across live
+     * subscriptions, which collapses to 0-or-1 once there is one active campaign per business.
+     * <p>
+     * Gated on a live (ACTIVE/PAST_DUE) subscription exactly as the old metric was:
+     * {@code business.active_campaign_id} is "sticky" and stays set after subscriptions lapse, so
+     * a raw creative count would show "5 on screen" when nothing is subscribed. Returns 0 when the
+     * pointer is null or no subscription is live.
      */
     @Override
-    public Integer getActiveCampaignCount(String businessId) {
-        return bundleSubscriptionRepository.countDistinctCampaignsByAdvertiserBusinessIdAndStatusIn(
-                businessId, LIVE_SUBSCRIPTION_STATUSES);
-    }
-
-    /**
-     * Matches the foreign key, not the trigger (D47). {@code bundle_subscriptions.campaign_id} is
-     * {@code ON DELETE RESTRICT}, so <em>any</em> subscription row pins the campaign — a cancelled
-     * one just as firmly as a live one. Checking only live statuses would let the delete through
-     * the service and fail at the database with a generic message.
-     */
-    private boolean campaignIsTiedToSubscription(String campaignId) {
-        return bundleSubscriptionRepository.existsByCampaignId(campaignId);
+    public Integer getActiveCampaignCreativeCount(String businessId) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null || business.getActiveCampaignId() == null) {
+            return 0;
+        }
+        if (!hasLiveSubscription(businessId)) {
+            return 0;
+        }
+        AdCampaign activeCampaign =
+                adCampaignRepository.findByCampaignIdWithAds(business.getActiveCampaignId());
+        return activeCampaign == null ? 0 : activeCampaign.getAds().size();
     }
 
     private boolean hasLiveSubscription(String businessId) {

@@ -86,7 +86,7 @@
     "timeRangeSelect": "Sélectionner la période du tableau de bord",
     "graphs": {
       "totalAdSpend": "Dépenses publicitaires totales",
-      "activeCampaigns": "Campagnes actives",
+      "activeCreatives": "Créatifs à l'écran",
       "estimatedImpressions": "Impressions estimées",
       "averageCPM": "CPM moyen",
       "campaignPerformance": "Performance de la campagne",

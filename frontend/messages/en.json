@@ -86,7 +86,7 @@
     "timeRangeSelect": "Select dashboard time range",
     "graphs": {
       "totalAdSpend": "Total Ad Spend",
-      "activeCampaigns": "Active Campaigns",
+      "activeCreatives": "Creatives on Screen",
       "estimatedImpressions": "Estimated Impressions",
       "averageCPM": "Average CPM",
       "campaignPerformance": "Campaign Performance",

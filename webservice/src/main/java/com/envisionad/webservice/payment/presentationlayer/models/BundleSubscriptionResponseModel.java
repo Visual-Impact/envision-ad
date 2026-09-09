@@ -50,7 +50,12 @@ public class BundleSubscriptionResponseModel {
     private LocalDateTime canceledAt;
     private LocalDateTime createdAt;
 
-    /** The campaign running on this subscription's screens — P6's active-campaign slot. */
+    /**
+     * The advertiser's active campaign — P6's active-campaign slot ({@code business.active_campaign_id}).
+     * Since the P6 follow-up this is single-sourced on the business, so it is identical across every
+     * one of the advertiser's subscription rows and is {@code null} when they have not picked one
+     * (or have no live subscription).
+     */
     private String campaignId;
     private String campaignName;
 

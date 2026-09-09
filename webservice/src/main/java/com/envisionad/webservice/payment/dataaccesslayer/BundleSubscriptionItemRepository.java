@@ -17,18 +17,22 @@ public interface BundleSubscriptionItemRepository extends JpaRepository<BundleSu
 
     /**
      * The proof-of-display gate (M6, decision D40): is this campaign actually running on this
-     * screen? True when the campaign holds a subscription in one of {@code statuses} whose
-     * locked item set includes the media.
+     * screen? True when the media is locked into a live (one of {@code statuses}) subscription
+     * whose advertiser's current active campaign is {@code campaignId}.
      * <p>
-     * Joins on {@code subscriptionId} rather than a mapped association because these entities use
-     * plain scalar FK columns throughout (decision D5).
+     * Since the P6 follow-up dropped {@code bundle_subscriptions.campaign_id}, "what runs on the
+     * screen" is derived from the single source of truth — {@code business.active_campaign_id} —
+     * rather than a value frozen at checkout. Joins on scalar FK columns rather than mapped
+     * associations because these entities use plain scalar FKs throughout (decision D5);
+     * {@code Business.businessId} is an embedded identifier, hence the {@code .businessId} path.
      */
     @Query("""
             SELECT (COUNT(i) > 0)
-            FROM BundleSubscriptionItem i, BundleSubscription s
+            FROM BundleSubscriptionItem i, BundleSubscription s, Business b
             WHERE i.subscriptionId = s.subscriptionId
+              AND b.businessId.businessId = s.advertiserBusinessId
               AND i.mediaId = :mediaId
-              AND s.campaignId = :campaignId
+              AND b.activeCampaignId = :campaignId
               AND s.status IN :statuses
             """)
     boolean existsForMediaAndCampaignWithSubscriptionStatusIn(
@@ -38,15 +42,23 @@ public interface BundleSubscriptionItemRepository extends JpaRepository<BundleSu
 
     /**
      * "Which campaigns are live on this screen" — drives the proof-of-display campaign picker,
-     * which previously derived the same list client-side from that media's reservations. DISTINCT
-     * because one campaign can reach the same screen through more than one subscription.
+     * which previously derived the same list client-side from that media's reservations.
+     * <p>
+     * After the P6 follow-up this resolves to the distinct set of advertiser active campaigns
+     * covering the screen. {@code b.activeCampaignId IS NOT NULL} is required, not defensive: the
+     * pointer is legitimately null for an advertiser who has a live subscription but has not
+     * picked a campaign yet, and a null element would flow into the picker as a {@code (null,
+     * null)} row. DISTINCT because one campaign can reach the same screen through more than one
+     * of that advertiser's subscriptions.
      */
     @Query("""
-            SELECT DISTINCT s.campaignId
-            FROM BundleSubscriptionItem i, BundleSubscription s
+            SELECT DISTINCT b.activeCampaignId
+            FROM BundleSubscriptionItem i, BundleSubscription s, Business b
             WHERE i.subscriptionId = s.subscriptionId
+              AND b.businessId.businessId = s.advertiserBusinessId
               AND i.mediaId = :mediaId
               AND s.status IN :statuses
+              AND b.activeCampaignId IS NOT NULL
             """)
     List<String> findLiveCampaignIdsByMediaId(
             @Param("mediaId") UUID mediaId,

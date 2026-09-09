@@ -20,12 +20,18 @@ class BundleSubscriptionResponseMapperUnitTest {
 
     private final BundleSubscriptionResponseMapper mapper = new BundleSubscriptionResponseMapper();
 
+    /**
+     * Since the P6 follow-up the campaign is no longer stored on the subscription — the caller
+     * resolves the advertiser's active campaign (business.active_campaign_id) once and passes it
+     * in. It is identical across every one of the advertiser's rows.
+     */
+    private static final String ACTIVE_CAMPAIGN_ID = "camp-1";
+
     private BundleSubscription subscription() {
         BundleSubscription subscription = new BundleSubscription();
         subscription.setSubscriptionId("sub-1");
         subscription.setBundleId("bundle-1");
         subscription.setAdvertiserBusinessId("biz-1");
-        subscription.setCampaignId("camp-1");
         subscription.setStatus(BundleSubscriptionStatus.ACTIVE);
         subscription.setMonthlyAmount(new BigDecimal("48.00"));
         subscription.setScreenCount(15);
@@ -48,7 +54,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setCurrentPeriodEnd(renewal);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale", null);
+                mapper.entityToResponseModel(subscription, bundle(), ACTIVE_CAMPAIGN_ID, "Winter Sale", null);
 
         assertEquals("sub-1", response.getSubscriptionId());
         assertEquals("bundle-1", response.getBundleId());
@@ -73,7 +79,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setCurrentPeriodEnd(null);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale", null);
+                mapper.entityToResponseModel(subscription, bundle(), ACTIVE_CAMPAIGN_ID, "Winter Sale", null);
 
         assertNull(response.getCurrentPeriodEnd());
     }
@@ -86,7 +92,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setCanceledAt(canceledAt);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, bundle(), "Winter Sale", null);
+                mapper.entityToResponseModel(subscription, bundle(), ACTIVE_CAMPAIGN_ID, "Winter Sale", null);
 
         assertEquals(BundleSubscriptionStatus.ACTIVE, response.getStatus());
         assertTrue(response.isCancelAtPeriodEnd());
@@ -103,7 +109,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         subscription.setStatus(BundleSubscriptionStatus.CANCELED);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription, null, "Winter Sale", null);
+                mapper.entityToResponseModel(subscription, null, ACTIVE_CAMPAIGN_ID, "Winter Sale", null);
 
         assertEquals("sub-1", response.getSubscriptionId());
         assertNull(response.getBundleNameEn());
@@ -114,7 +120,7 @@ class BundleSubscriptionResponseMapperUnitTest {
     @Test
     void toleratesAnUnresolvableCampaignName() {
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription(), bundle(), null, null);
+                mapper.entityToResponseModel(subscription(), bundle(), ACTIVE_CAMPAIGN_ID, null, null);
 
         assertEquals("camp-1", response.getCampaignId());
         assertNull(response.getCampaignName());
@@ -130,7 +136,7 @@ class BundleSubscriptionResponseMapperUnitTest {
         coupon.setDurationInMonths(3);
 
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription(), bundle(), "Winter Sale", coupon);
+                mapper.entityToResponseModel(subscription(), bundle(), ACTIVE_CAMPAIGN_ID, "Winter Sale", coupon);
 
         assertEquals("WELCOME20", response.getCouponCode());
         assertEquals(DiscountType.PERCENT, response.getCouponDiscountType());
@@ -143,7 +149,7 @@ class BundleSubscriptionResponseMapperUnitTest {
     @Test
     void leavesCouponFieldsNullWhenNoCouponWasApplied() {
         BundleSubscriptionResponseModel response =
-                mapper.entityToResponseModel(subscription(), bundle(), "Winter Sale", null);
+                mapper.entityToResponseModel(subscription(), bundle(), ACTIVE_CAMPAIGN_ID, "Winter Sale", null);
 
         assertNull(response.getCouponCode());
         assertNull(response.getCouponDiscountType());
