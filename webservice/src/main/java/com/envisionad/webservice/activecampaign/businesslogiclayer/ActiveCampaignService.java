@@ -41,6 +41,21 @@ public interface ActiveCampaignService {
     NotificationResultModel notifyMediaOwners(Jwt jwt, String businessId);
 
     /**
+     * Sends the automatic notification if — and only if — this business's active campaign still
+     * has creative changes that owners have not been told about (FR-8.2). Re-checking here rather
+     * than trusting the sweep's query is what makes the sweep safe to re-run: a manual notify
+     * that landed in between simply makes this a no-op.
+     *
+     * <p>Deliberately exempt from the swap/notify cooldown (FR-8.5). That cooldown exists to stop
+     * a person hammering a button; this is already rate-limited far more strictly by its own
+     * quiet period, and letting a recent manual action suppress it would reopen the very gap it
+     * closes.
+     *
+     * @return true if an email run actually happened
+     */
+    boolean autoNotifyIfCreativeChangesArePending(String businessId);
+
+    /**
      * The business's campaigns that could go on screen — at least one creative, and not the one
      * already displayed.
      */
