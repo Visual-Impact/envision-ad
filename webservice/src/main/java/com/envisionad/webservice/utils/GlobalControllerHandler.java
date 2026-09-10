@@ -1,5 +1,7 @@
 package com.envisionad.webservice.utils;
 
+import com.envisionad.webservice.activecampaign.exceptions.ActiveCampaignAlreadySetException;
+import com.envisionad.webservice.activecampaign.exceptions.SwapDebounceException;
 import com.envisionad.webservice.admin.exceptions.DuplicateAccountException;
 import com.envisionad.webservice.advertisement.exceptions.*;
 import com.envisionad.webservice.bundle.exceptions.BundleHasActiveSubscriptionsException;
@@ -281,6 +283,23 @@ public class GlobalControllerHandler {
         log.error("Unhandled exception", ex);
         return createHttpErrorInfo(INTERNAL_SERVER_ERROR, ex);
 
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(ActiveCampaignAlreadySetException.class)
+    public HttpErrorInfo handleActiveCampaignAlreadySetException(ActiveCampaignAlreadySetException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    /**
+     * The only handler that returns a body field beyond the standard four: the frontend renders a
+     * live countdown from {@code retryAfterSeconds} rather than making the advertiser guess.
+     */
+    @ResponseStatus(TOO_MANY_REQUESTS)
+    @ExceptionHandler(SwapDebounceException.class)
+    public HttpErrorInfo handleSwapDebounceException(SwapDebounceException ex) {
+        return new HttpErrorInfo(TOO_MANY_REQUESTS, ex.getMessage(), "SWAP_DEBOUNCED",
+                ex.getRetryAfterSeconds());
     }
 
     @ResponseStatus(CONFLICT)

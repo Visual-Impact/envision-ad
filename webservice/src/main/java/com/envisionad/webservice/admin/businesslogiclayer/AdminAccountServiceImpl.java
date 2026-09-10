@@ -55,14 +55,6 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     @Value("${app.base.url}")
     private String appBaseUrl;
 
-    /** The "live" bundle-subscription statuses this service blocks role removal on — matches the
-     * set every other guard in this codebase uses (e.g. AdCampaignServiceImpl, ProofOfDisplayService),
-     * not the wider INCOMPLETE-inclusive set BundleSubscriptionStatus's javadoc describes for the
-     * duplicate-subscription unique index. INCOMPLETE means checkout was started but never
-     * confirmed by Stripe — not a live commercial commitment yet. */
-    private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
-            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
-
     private final BusinessRepository businessRepository;
     private final EmployeeRepository employeeRepository;
     private final BundleSubscriptionRepository bundleSubscriptionRepository;
@@ -248,11 +240,11 @@ public class AdminAccountServiceImpl implements AdminAccountService {
 
     private boolean hasLiveMediaOwnerSubscription(String businessId) {
         return bundleSubscriptionItemRepository.existsLiveSubscriptionForMediaOwnerBusinessId(
-                businessId, LIVE_SUBSCRIPTION_STATUSES);
+                businessId, BundleSubscriptionStatus.LIVE);
     }
 
     private long countLiveAdvertiserSubscriptions(String businessId) {
-        return bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(businessId, LIVE_SUBSCRIPTION_STATUSES);
+        return bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(businessId, BundleSubscriptionStatus.LIVE);
     }
 
     /**

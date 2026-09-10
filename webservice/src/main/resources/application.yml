@@ -67,3 +67,10 @@ stripe:
   platform-fee-percent: 30
   connect:
     client-id: ${STRIPE_CONNECT_CLIENT_ID}
+
+envision:
+  active-campaign:
+    # FR-7: how long after a swap or manual notify the next one is refused. Media owners act on
+    # these emails by physically changing a screen, so a burst of them is noise rather than
+    # information. A value, not a literal in code, so it can be tuned against real usage.
+    swap-debounce: 10m
