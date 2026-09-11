@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "lint:fsd": "steiger src/"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.13.2",

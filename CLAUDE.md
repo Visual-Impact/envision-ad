@@ -12,7 +12,7 @@ Envision Ad is a two-sided B2B marketplace connecting media owners (operators of
 - **Dev server:** `npm run dev`
 - **Build:** `npm run build`
 - **Lint:** `npm run lint` (ESLint 9 flat config)
-- **Architecture lint:** `npx steiger src/` (Feature-Sliced Design rules)
+- **Architecture lint:** `npm run lint:fsd` (steiger, Feature-Sliced Design rules — runs in CI; must report no problems)
 - **E2E tests:** `npx playwright test` / `npx playwright test path/to/test.spec.ts`
 
 ### Backend (`cd webservice/`)
@@ -52,7 +52,7 @@ src/
 ├── pages/        → Page-level components (route compositions)
 ├── features/     → Business logic scoped to a feature (auth, payment, media-management, etc.)
 ├── entities/     → Domain models and stores (organization, media, reservation, ad-campaign)
-├── widgets/      → Reusable composite UI (Header, SideBar, Cards, Map, Carousel)
+├── widgets/      → Composite UI used by several pages or the app shell (app-navigation, footer, media-carousel, media-details)
 ├── shared/       → Generic utilities, API config (axios), UI kit, types, i18n
 ```
 
@@ -111,7 +111,11 @@ Hard rules for any change in this repo. When a rule conflicts with a request, fo
 
 1. **Match the existing layering exactly.**
    - Backend: 3-tier per-domain module — `presentationlayer/` (controllers + DTOs) → `businesslogiclayer/` (services) → `dataaccesslayer/` (JPA entities + repositories), with MapStruct mappers in `mappinglayer/`. A new domain gets its own top-level package under `com.envisionad.webservice`, mirroring `venue/`.
-   - Frontend: Feature-Sliced Design — respect the layer dependency order, and expose every slice only through its `index.ts` public API. API calls are one file per endpoint, mirroring `features/venue-management/api/*`.
+   - Frontend: Feature-Sliced Design — respect the layer dependency order, and expose every slice only through its `index.ts` public API. API calls are one file per endpoint, mirroring `features/venue-management/api/*`. `npm run lint:fsd` (steiger's recommended config, no overrides) enforces this in CI. The specifics it doesn't spell out:
+     - Code with a single consumer lives inside that consumer's page (`pages/<x>/api|model|ui|lib`) until a second consumer exists; only then does it become a feature, entity or widget.
+     - An entity imports another entity only through the target's `@x/<consumer>.ts` cross-import API (e.g. `entities/venue/@x/media.ts`), never its `index.ts`.
+     - Server-only code (anything reaching `@auth0/nextjs-auth0/server` or the Auth0 Management API) is exported from a separate `index.server.ts`, never from the client `index.ts` — see `shared/api/index.server.ts`. Server routes import the same barrels as client components, so a client-only hook or component exported through any `index.ts` must carry `"use client"`.
+     - Route files under the root `app/` stay thin: they import only slice public APIs, and layout composition lives in `src/app/layouts`.
 
 2. **No new dependencies without asking.** Use the established stack only — backend: Spring Boot, Lombok, MapStruct, Stripe Java SDK, Flyway; frontend: Mantine + Tabler Icons, next-intl, axios, Stripe Elements (`@stripe/react-stripe-js`), React Leaflet, Auth0. Do not add a library, or a new major version of one, without proposing it first and getting a yes.
 
