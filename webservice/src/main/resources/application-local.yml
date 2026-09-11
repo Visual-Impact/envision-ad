@@ -3,6 +3,25 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  # The local profile never sends real email. Every message lands in Mailpit, a local SMTP
+  # catcher with a web inbox at http://localhost:8025, so testing a feature that emails people
+  # cannot reach a real one. That matters here: the dev Doppler configs send through a live Gmail
+  # account, and dev data includes real people's Auth0 accounts — a test swap would otherwise mail
+  # actual client staff.
+  #
+  # Set on the profile rather than left to Doppler's EMAIL_* values, so the guarantee holds no
+  # matter what those are. Those values are only read by non-local profiles.
+  mail:
+    host: ${LOCAL_MAIL_HOST:localhost}  # the dev compose files set "mailpit"; a host-native bootRun uses localhost
+    port: 1025
+    username: ""
+    password: ""
+    properties:
+      mail:
+        smtp:
+          auth: false         # Mailpit advertises no AUTH...
+          starttls:
+            enable: false     # ...and no STARTTLS
   flyway:
     # Adds db/seed on top of the default db/migration, local only — application-prod.yml
     # does not set this key, so prod keeps resolving to the plain db/migration default.
