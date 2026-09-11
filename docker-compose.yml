@@ -53,6 +53,17 @@ services:
     networks:
       - appnet
 
+  # Local SMTP catcher: every email the backend sends in dev lands here instead of a real inbox.
+  # Web inbox at http://localhost:8025. See application-local.yml for why this is mandatory.
+  mailpit:
+    image: axllent/mailpit:v1.29.7
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP — also where a host-native bootRun sends
+      - "8025:8025"  # web inbox
+    networks:
+      - appnet
+
   webservice:
     build:
       context: ./webservice
@@ -74,11 +85,8 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://host.docker.internal:5432/${SPRING_DATASOURCE_DBNAME}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD}"
-#     EMAIL
-      EMAIL_SMTP: "${EMAIL_SMTP}"
-      EMAIL_PORT: "${EMAIL_PORT}"
-      EMAIL_USER: "${EMAIL_USER}"
-      EMAIL_PASSWORD: "${EMAIL_PASSWORD}"
+      # EMAIL — the local profile sends all mail to the mailpit service; Doppler's EMAIL_* are unused here
+      LOCAL_MAIL_HOST: "mailpit"
 #     STRIPE
       STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
       STRIPE_EVENTS_WEBHOOK_SECRET: "${STRIPE_EVENTS_WEBHOOK_SECRET}"
