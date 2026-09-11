@@ -1,6 +1,7 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
 import com.envisionad.webservice.advertisement.dataaccesslayer.*;
+import com.envisionad.webservice.activecampaign.businesslogiclayer.ActiveCampaignService;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePriceQuote;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePricingService;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundleService;
@@ -24,6 +25,7 @@ import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundEx
 import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.utils.EmailService;
 import com.envisionad.webservice.utils.JwtUtils;
+import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Subscription;
@@ -42,13 +44,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -83,6 +89,7 @@ class BundleSubscriptionServiceUnitTest {
     @Mock private Auth0Service auth0Service;
     @Mock private EmailService emailService;
     @Mock private CouponRepository couponRepository;
+    @Mock private ActiveCampaignService activeCampaignService;
 
     private Jwt jwt;
     private Media montrealScreen;
@@ -92,10 +99,14 @@ class BundleSubscriptionServiceUnitTest {
 
     @BeforeEach
     void setUp() {
+        // A real MediaOwnerNotifier over the same mocks, deliberately not a mock of its own:
+        // these tests exist to prove what actually reaches EmailService, and stubbing the
+        // notifier would move that assertion off the behaviour it is meant to protect.
         service = new BundleSubscriptionServiceImpl(bundleService, pricingService, adCampaignRepository,
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
                 bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
-                jwtUtils, employeeRepository, auth0Service, emailService, couponRepository);
+                jwtUtils, new MediaOwnerNotifier(employeeRepository, auth0Service, emailService),
+                activeCampaignService, couponRepository);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
 
@@ -225,9 +236,10 @@ class BundleSubscriptionServiceUnitTest {
             service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID);
         }
 
-        ArgumentCaptor<Business> savedBusiness = ArgumentCaptor.forClass(Business.class);
-        verify(businessRepository).save(savedBusiness.capture());
-        assertEquals(CAMPAIGN_ID, savedBusiness.getValue().getActiveCampaignId());
+        // Checkout no longer writes the pointer itself — it goes through the same endpoint the
+        // dashboard uses, so FR-6.1's "first pick" rules live in exactly one place.
+        verify(activeCampaignService).selectInitialActiveCampaign(BUSINESS_ID, CAMPAIGN_ID);
+        verify(businessRepository, never()).save(any());
     }
 
     /**
@@ -248,6 +260,10 @@ class BundleSubscriptionServiceUnitTest {
             service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID);
         }
 
+        // The null guard here is what keeps a returning advertiser's checkout working:
+        // selectInitialActiveCampaign refuses outright once a pointer exists, so calling it
+        // unconditionally would turn every resubscribe into a 409.
+        verify(activeCampaignService, never()).selectInitialActiveCampaign(anyString(), anyString());
         verify(businessRepository, never()).save(any());
     }
 
@@ -924,7 +940,7 @@ class BundleSubscriptionServiceUnitTest {
         when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
                 givenSubscriptionItem(montrealScreen.getId(), ownerA),
                 givenSubscriptionItem(lavalScreen.getId(), ownerB)));
-        when(employeeRepository.findAllByBusinessId_BusinessId(ownerA.toString())).thenReturn(List.of());
+        // Owner A is simply absent from the batched lookup — no employee row, so no address.
         givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com");
 
         service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID);
@@ -999,11 +1015,30 @@ class BundleSubscriptionServiceUnitTest {
         return item;
     }
 
+    /**
+     * Stubs the batched lookups the notifier uses. The notifier resolves every owner in one
+     * employee query and one Auth0 call, so this accumulates across invocations and re-stubs the
+     * whole answer each time — stubbing per business would leave only the last owner resolvable.
+     */
+    private final Map<String, String> ownerUserIds = new LinkedHashMap<>();
+    private final Map<String, String> ownerEmailsByUserId = new LinkedHashMap<>();
+
     private void givenResolvableOwnerEmail(String ownerBusinessId, String userId, String email) {
-        Employee employee = new Employee();
-        employee.setUserId(userId);
-        employee.setBusinessId(new BusinessIdentifier(ownerBusinessId));
-        when(employeeRepository.findAllByBusinessId_BusinessId(ownerBusinessId)).thenReturn(List.of(employee));
-        when(auth0Service.getUserEmailByUserId(userId)).thenReturn(email);
+        ownerUserIds.put(ownerBusinessId, userId);
+        ownerEmailsByUserId.put(userId, email);
+
+        List<Employee> employees = ownerUserIds.entrySet().stream()
+                .map(entry -> {
+                    Employee employee = new Employee();
+                    employee.setBusinessId(new BusinessIdentifier(entry.getKey()));
+                    employee.setUserId(entry.getValue());
+                    return employee;
+                })
+                .toList();
+
+        when(employeeRepository.findAllByBusinessId_BusinessIdInOrderById(anyCollection()))
+                .thenReturn(employees);
+        when(auth0Service.findEmailsByUserIds(anyList()))
+                .thenReturn(Map.copyOf(ownerEmailsByUserId));
     }
 }

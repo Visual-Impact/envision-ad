@@ -24,7 +24,16 @@ public interface BundleSubscriptionRepository extends JpaRepository<BundleSubscr
      */
     long countByAdvertiserBusinessIdAndStatusIn(String advertiserBusinessId, Collection<BundleSubscriptionStatus> statuses);
 
-    List<BundleSubscription> findAllByBundleIdAndStatusIn(
+/**
+     * The advertiser-side counterpart of {@link #countByAdvertiserBusinessIdAndStatusIn}, for
+     * when the rows themselves are needed rather than how many there are — P6's active-campaign
+     * summary reports how many bundles an advertiser is subscribed to, and its notification path
+     * walks those subscriptions.
+     */
+    List<BundleSubscription> findAllByAdvertiserBusinessIdAndStatusIn(
+            String advertiserBusinessId, Collection<BundleSubscriptionStatus> statuses);
+
+        List<BundleSubscription> findAllByBundleIdAndStatusIn(
             String bundleId, Collection<BundleSubscriptionStatus> statuses);
 
     /**

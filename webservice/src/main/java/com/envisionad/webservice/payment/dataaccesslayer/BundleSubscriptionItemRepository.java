@@ -65,6 +65,31 @@ public interface BundleSubscriptionItemRepository extends JpaRepository<BundleSu
             @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
 
     /**
+     * Every screen an advertiser is currently paying to appear on, across all of their live
+     * subscriptions — the input to P6's "who has to be told about a campaign swap" question.
+     * <p>
+     * Deliberately read from the frozen {@code bundle_subscription_items} rows rather than
+     * re-evaluating the bundles' rules through {@code BundleService.getRuleMatchedMedias}. Those
+     * two answers drift apart on purpose: items are locked at checkout (see
+     * {@link BundleSubscriptionItem}'s javadoc) so that payouts reflect what was actually bought,
+     * while rule matching reflects the network as it stands today. Notifying on rule matches
+     * would mail an owner whose screen has newly started matching a bundle the advertiser is not
+     * paying for it under, and skip an owner whose paid-for screen has since stopped matching.
+     * <p>
+     * DISTINCT because one screen can reach the same advertiser through more than one bundle.
+     */
+    @Query("""
+            SELECT DISTINCT i.mediaId
+            FROM BundleSubscriptionItem i, BundleSubscription s
+            WHERE i.subscriptionId = s.subscriptionId
+              AND s.advertiserBusinessId = :businessId
+              AND s.status IN :statuses
+            """)
+    List<UUID> findDistinctMediaIdsByAdvertiserBusinessId(
+            @Param("businessId") String businessId,
+            @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
+
+    /**
      * The Media-Owner-role-removal guard (admin role-change endpoint): true when at
      * least one of this business's screens is locked into a live subscription, via the
      * denormalized {@code mediaOwnerBusinessId} (same id space as {@code business.business_id},

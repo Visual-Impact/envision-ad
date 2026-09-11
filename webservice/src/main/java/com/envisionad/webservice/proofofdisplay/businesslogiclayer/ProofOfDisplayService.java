@@ -35,12 +35,6 @@ public class ProofOfDisplayService {
     private final BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
     private final Auth0Service auth0Service;
 
-    /**
-     * A past-due subscriber is still owed proof of display for the cycle they are in — their
-     * screens keep running until the subscription is actually cancelled (decision D40).
-     */
-    private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
-            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
 
     public ProofOfDisplayService(
             EmailService emailService,
@@ -101,7 +95,11 @@ public class ProofOfDisplayService {
             // replaced the CONFIRMED/PENDING reservation check when reservations were retired).
             boolean campaignRunsOnThisMedia =
                     bundleSubscriptionItemRepository.existsForMediaAndCampaignWithSubscriptionStatusIn(
-                            mediaId, campaignId, LIVE_SUBSCRIPTION_STATUSES);
+                            mediaId, campaignId,
+                            // A past-due subscriber is still owed proof of display for the cycle
+                            // they are in — their screens keep running until the subscription is
+                            // actually cancelled (decision D40), which is why LIVE includes PAST_DUE.
+                            BundleSubscriptionStatus.LIVE);
 
             if (!campaignRunsOnThisMedia) {
                 throw new MediaNotInActiveSubscriptionException(mediaId.toString(), campaignId);

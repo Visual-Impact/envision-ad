@@ -48,10 +48,6 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     private final Cloudinary cloudinary;
     private final VenueRepository venueRepository;
 
-    /** The subscription states that make a campaign undeletable — mirrors the DB trigger. */
-    private static final List<BundleSubscriptionStatus> LIVE_SUBSCRIPTION_STATUSES =
-            List.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
-
     public AdCampaignServiceImpl(AdCampaignRepository adCampaignRepository, AdCampaignRequestMapper adCampaignRequestMapper, AdCampaignResponseMapper adCampaignResponseMapper, AdRequestMapper adRequestMapper, AdResponseMapper adResponseMapper, BusinessRepository businessRepository, JwtUtils jwtUtils, BundleSubscriptionRepository bundleSubscriptionRepository, Cloudinary cloudinary, VenueRepository venueRepository) {
         this.businessRepository = businessRepository;
         this.adCampaignRepository = adCampaignRepository;
@@ -386,6 +382,6 @@ public class AdCampaignServiceImpl implements AdCampaignService {
 
     private boolean hasLiveSubscription(String businessId) {
         return bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(
-                businessId, LIVE_SUBSCRIPTION_STATUSES) > 0;
+                businessId, BundleSubscriptionStatus.LIVE) > 0;
     }
 }

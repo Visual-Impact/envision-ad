@@ -1,5 +1,6 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
+import com.envisionad.webservice.activecampaign.businesslogiclayer.ActiveCampaignService;
 import com.envisionad.webservice.advertisement.dataaccesslayer.Ad;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaign;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaignRepository;
@@ -14,15 +15,12 @@ import com.envisionad.webservice.bundle.exceptions.BundleNoEligibleMediaExceptio
 import com.envisionad.webservice.bundle.exceptions.BundleNotActiveException;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
-import com.envisionad.webservice.business.dataaccesslayer.Employee;
-import com.envisionad.webservice.business.dataaccesslayer.EmployeeRepository;
 import com.envisionad.webservice.business.exceptions.BusinessNotVerifiedException;
-import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
-import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionException;
@@ -47,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -59,8 +58,14 @@ import java.util.stream.Collectors;
 @Service
 public class BundleSubscriptionServiceImpl implements BundleSubscriptionService {
 
-    /** A live subscription: blocks a second subscription to the same bundle. */
-    private static final Set<BundleSubscriptionStatus> LIVE_STATUSES =
+    /**
+     * Which states block a *second* subscription to the same bundle. Deliberately its own
+     * constant rather than {@link BundleSubscriptionStatus#LIVE}: it answers a different
+     * question (duplicate-checkout prevention, backed by the partial unique index) and could
+     * legitimately diverge — the index's own definition covers INCOMPLETE, which this set
+     * does not. Same values today; different reasons.
+     */
+    private static final Set<BundleSubscriptionStatus> DUPLICATE_GUARD_STATUSES =
             Set.of(BundleSubscriptionStatus.ACTIVE, BundleSubscriptionStatus.PAST_DUE);
 
     private static final int MONEY_SCALE = 2;
@@ -80,9 +85,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     private final MediaRepository mediaRepository;
     private final BundleSubscriptionResponseMapper responseMapper;
     private final JwtUtils jwtUtils;
-    private final EmployeeRepository employeeRepository;
-    private final Auth0Service auth0Service;
-    private final EmailService emailService;
+    private final MediaOwnerNotifier mediaOwnerNotifier;
+    private final ActiveCampaignService activeCampaignService;
     private final CouponRepository couponRepository;
 
     public BundleSubscriptionServiceImpl(BundleService bundleService,
@@ -96,9 +100,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             MediaRepository mediaRepository,
             BundleSubscriptionResponseMapper responseMapper,
             JwtUtils jwtUtils,
-            EmployeeRepository employeeRepository,
-            Auth0Service auth0Service,
-            EmailService emailService,
+            MediaOwnerNotifier mediaOwnerNotifier,
+            ActiveCampaignService activeCampaignService,
             CouponRepository couponRepository) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
@@ -111,9 +114,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         this.mediaRepository = mediaRepository;
         this.responseMapper = responseMapper;
         this.jwtUtils = jwtUtils;
-        this.employeeRepository = employeeRepository;
-        this.auth0Service = auth0Service;
-        this.emailService = emailService;
+        this.mediaOwnerNotifier = mediaOwnerNotifier;
+        this.activeCampaignService = activeCampaignService;
         this.couponRepository = couponRepository;
     }
 
@@ -153,7 +155,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         // abandoned checkout, and it is reused below rather than rejected, otherwise the
         // partial unique index would lock the buyer out of this bundle permanently.
         if (bundleSubscriptionRepository
-                .findByBundleIdAndAdvertiserBusinessIdAndStatusIn(bundleId, businessId, LIVE_STATUSES)
+                .findByBundleIdAndAdvertiserBusinessIdAndStatusIn(bundleId, businessId, DUPLICATE_GUARD_STATUSES)
                 .isPresent()) {
             throw new DuplicateBundleSubscriptionException(bundleId, businessId);
         }
@@ -214,19 +216,21 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         subscription.setCouponId(coupon != null ? coupon.getId() : null);
         bundleSubscriptionRepository.save(subscription);
 
-        // The P6 follow-up dropped bundle_subscriptions.campaign_id — the advertiser's active
-        // campaign is now single-sourced on business.active_campaign_id. The checkout still makes
-        // the advertiser confirm a campaign (validated above by validateCampaign), and until P6
-        // M2 ships ActiveCampaignService.select this sets that pointer directly.
-        // TODO(P6 M2): replace with ActiveCampaignService.select(businessId, campaignId).
-        // Set-if-null, matching /select's FR-6.1/6.3 contract: the pointer is "sticky", so an
-        // advertiser who already has an active campaign keeps it and the checkout picker's
-        // choice does not override it (a known gap flagged for P1 checkout / M2 in the PR). An
-        // abandoned INCOMPLETE checkout can leave the pointer set with no live subscription —
-        // a legitimate sticky state; every reader that matters is gated on a live subscription.
+        // FR-6.1: the first subscription must leave a campaign on screen, so checkout makes the
+        // choice through the same endpoint the dashboard uses rather than writing the pointer
+        // itself. The null guard is load-bearing and stays: selectInitialActiveCampaign refuses
+        // outright when a pointer already exists, and the pointer is deliberately sticky
+        // (FR-6.3), so calling it unconditionally would fail checkout for every advertiser who
+        // has ever subscribed before. An abandoned INCOMPLETE checkout can also leave the pointer
+        // set with no live subscription — a legitimate sticky state, since every reader that
+        // matters is gated on a live subscription.
+        //
+        // Known gap, owned by P1's checkout UI and not fixed here: because of that stickiness, a
+        // returning advertiser's picker selection has no effect. Making the picker honest is a
+        // frontend change, shipping with the rest of the P6 dashboard in M3.
         if (business.getActiveCampaignId() == null) {
-            business.setActiveCampaignId(campaign.getCampaignId().getCampaignId());
-            businessRepository.save(business);
+            activeCampaignService.selectInitialActiveCampaign(
+                    businessId, campaign.getCampaignId().getCampaignId());
         }
 
         writeItems(subscriptionId, quote.eligibleMedias(), retryOf.isPresent());
@@ -524,7 +528,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         jwtUtils.validateUserIsEmployeeOfBusiness(userId, media.getBusinessId().toString());
 
         List<String> campaignIds = bundleSubscriptionItemRepository.findLiveCampaignIdsByMediaId(
-                mediaUuid, LIVE_STATUSES);
+                mediaUuid, BundleSubscriptionStatus.LIVE);
 
         return campaignIds.stream()
                 .map(campaignId -> {
@@ -575,15 +579,10 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         Map<String, List<BundleSubscriptionItem>> itemsByOwner = items.stream()
                 .collect(Collectors.groupingBy(BundleSubscriptionItem::getMediaOwnerBusinessId));
 
+        List<MediaOwnerNotifier.OwnerMessage> messages = new ArrayList<>();
         for (Map.Entry<String, List<BundleSubscriptionItem>> entry : itemsByOwner.entrySet()) {
             String ownerBusinessId = entry.getKey();
             try {
-                Optional<String> ownerEmail = resolveOwnerEmail(ownerBusinessId);
-                if (ownerEmail.isEmpty()) {
-                    log.warn("Skipping new-subscription notification for owner {}: no resolvable email",
-                            ownerBusinessId);
-                    continue;
-                }
                 List<BundleSubscriptionItem> ownerItems = entry.getValue();
                 List<UUID> ownerMediaIds = ownerItems.stream()
                         .map(BundleSubscriptionItem::getMediaId)
@@ -595,14 +594,18 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                         .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
                 String body = buildNewSubscriptionEmailBody(
                         advertiserName, bundleName, campaign, ownerMedias, ownerMonthlyTotal);
-                emailService.sendSimpleEmail(ownerEmail.get(), subject, body);
+                messages.add(new MediaOwnerNotifier.OwnerMessage(ownerBusinessId, subject, body));
             } catch (Exception e) {
-                // A mail-server hiccup or a lookup failure for one owner must not stop the
-                // others, and must never propagate into the caller's webhook transaction.
-                log.error("Failed to notify media owner {} of new subscription {}",
-                        ownerBusinessId, subscriptionId, e);
+                // A lookup failure while composing one owner's email must not cost the others
+                // theirs, and must never propagate into the caller's webhook transaction.
+                log.error("Could not compose the new-subscription notification for media owner {} "
+                        + "on subscription {}", ownerBusinessId, subscriptionId, e);
             }
         }
+
+        // Address resolution and delivery — including per-owner failure isolation — live in the
+        // notifier, which P6's swap and auto-notify paths share.
+        mediaOwnerNotifier.send(messages);
     }
 
     private String buildNewSubscriptionEmailBody(
@@ -637,14 +640,5 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         body.append("\nThanks for partnering with Envision Ad!\n");
         body.append("— The Envision Ad Team");
         return body.toString();
-    }
-
-    /** Mirrors ProofOfDisplayService's advertiser-email resolution, business-side. */
-    private Optional<String> resolveOwnerEmail(String ownerBusinessId) {
-        return employeeRepository.findAllByBusinessId_BusinessId(ownerBusinessId).stream()
-                .map(Employee::getUserId)
-                .filter(uid -> uid != null && !uid.isBlank())
-                .findFirst()
-                .map(auth0Service::getUserEmailByUserId);
     }
 }
