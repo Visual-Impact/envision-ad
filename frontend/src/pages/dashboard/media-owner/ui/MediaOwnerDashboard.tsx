@@ -12,7 +12,7 @@ import { notifications } from "@mantine/notifications";
 import { WeeklyScheduleModel } from "@/entities/media";
 import { IconCheck, IconAlertTriangle } from "@tabler/icons-react";
 import { getStripeAccountStatus } from "@/features/payment";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 import Link from "next/link";
 
 const ITEMS_PER_PAGE = 20;

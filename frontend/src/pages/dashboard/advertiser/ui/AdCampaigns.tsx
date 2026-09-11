@@ -23,7 +23,7 @@ import {EditAdVenueTagsModal} from "@/pages/dashboard/advertiser/ui/modals/EditA
 import {CreateCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/CreateCampaignModal";
 import {ConfirmationModal} from "@/shared/ui";
 import {MetricCard} from "@/widgets/Cards/MetricCard";
-import {useOrganization} from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 
 export default function AdCampaigns() {
     const t = useTranslations('adCampaigns');

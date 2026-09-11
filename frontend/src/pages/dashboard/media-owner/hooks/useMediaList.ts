@@ -11,7 +11,7 @@ import type { MediaRowData } from "@/pages/dashboard/media-owner/ui/tables/Media
 import type { MediaFormState } from "./useMediaForm";
 import { MediaRequestDTO } from "@/entities/media";
 import { patchMediaStatus } from "@/features/media-management";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 
 export function useMediaList() {
     const [media, setMedia] = useState<MediaRowData[]>([]);

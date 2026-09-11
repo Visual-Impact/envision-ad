@@ -20,7 +20,7 @@ import { CreateMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modal
 import { EditMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/EditMediaLocationModal";
 import { ConfirmationModal } from "@/shared/ui";
 import { MediaStatusEnum } from "@/entities/media";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 import { getStripeAccountStatus } from "@/features/payment";
 import Link from "next/link";
 

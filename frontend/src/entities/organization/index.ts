@@ -4,3 +4,5 @@ export type { OrganizationRequestDTO, OrganizationResponseDTO, Address, Roles } 
 export { OrganizationSize } from './model/organization';
 export type { VerificationResponseDTO } from './model/verification';
 export { VerificationStatus } from './model/verification';
+export { OrganizationContext, useOrganization } from './model/currentOrganization';
+export type { CurrentOrganizationContextValue } from './model/currentOrganization';

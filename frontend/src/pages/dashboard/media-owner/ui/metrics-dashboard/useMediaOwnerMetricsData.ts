@@ -20,7 +20,7 @@ import { buildPaginationInfo } from "@/pages/dashboard/media-owner/ui/metrics-da
 import { mapPayoutsToRows } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/payout-utils";
 import { filterPayoutsByPeriod } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/shared-utils";
 import type { StripeDashboardPayout } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/types";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 
 const PAYOUTS_PER_PAGE = 10;
 

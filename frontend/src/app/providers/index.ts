@@ -1,3 +1,3 @@
-export { PermissionsProvider, usePermissions } from './PermissionProvider';
-export { OrganizationProvider, useOrganization } from './OrganizationProvider';
+export { PermissionsProvider } from './PermissionProvider';
+export { OrganizationProvider } from './OrganizationProvider';
 export { IntlErrorProvider } from './IntlErrorProvider';

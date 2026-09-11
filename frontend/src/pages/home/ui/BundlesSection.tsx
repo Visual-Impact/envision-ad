@@ -8,7 +8,7 @@ import { Bundle, BundleRuleType } from "@/entities/bundle";
 import { getAllBundles } from "@/features/bundle-management";
 import { getBundleSubscriptions } from "@/features/bundle-subscription";
 import { BundleSubscribeModal } from "@/widgets/BundleSubscribeModal";
-import { useOrganization } from "@/app/providers/OrganizationProvider";
+import { useOrganization } from "@/entities/organization";
 import { BundleCard } from "@/widgets/Cards/BundleCard";
 import { BundleCardLarge } from "@/widgets/Cards/BundleCardLarge";
 import classes from "./BundlesSection.module.css";

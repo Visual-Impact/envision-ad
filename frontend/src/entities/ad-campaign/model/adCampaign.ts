@@ -1,4 +1,4 @@
-import type { Ad } from '@/entities/ad';
+import type { Ad } from '@/entities/ad/@x/ad-campaign';
 
 
 

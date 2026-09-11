@@ -8,7 +8,7 @@ import { IconCheck, IconX, IconAlertTriangle } from '@tabler/icons-react';
 import { useTranslations } from "next-intl";
 import { useSearchParams } from 'next/navigation';
 import { notifications } from '@mantine/notifications';
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 
 interface StripeStatus {
     connected: boolean;

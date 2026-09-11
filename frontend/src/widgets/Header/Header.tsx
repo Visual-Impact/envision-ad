@@ -21,7 +21,8 @@ import { LanguagePicker } from "./LanguagePicker";
 import { Link, usePathname } from "@/shared/lib/i18n";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconUser } from "@tabler/icons-react";
-import { useOrganization, usePermissions } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
+import { usePermissions } from "@/shared/lib/permissions";
 import SideBar from "@/widgets/SideBar/SideBar";
 import styles from "./Header.module.css";
 

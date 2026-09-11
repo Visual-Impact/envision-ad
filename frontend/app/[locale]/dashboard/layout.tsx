@@ -4,7 +4,8 @@ import React from "react";
 import { useMediaQuery } from "@mantine/hooks";
 import {Box, Center, Group, Loader, Paper} from "@mantine/core";
 import SideBar from "@/widgets/SideBar/SideBar";
-import { useOrganization, usePermissions } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
+import { usePermissions } from "@/shared/lib/permissions";
 import { isAdmin as computeIsAdmin } from "@/shared/lib/auth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

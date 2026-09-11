@@ -1,4 +1,4 @@
-import { Address, OrganizationSize, Roles } from "@/entities/organization";
+import { Address, OrganizationSize, Roles } from "@/entities/organization/@x/account";
 
 // Mirrors the backend's AdminAccountRequestModel (P5 FR 4.2) — the "business" sub-object
 // is BusinessRequestModel, extended with the P4 hook field businessTypeVenueId.

@@ -1,6 +1,6 @@
 import type { LatLngBounds, LatLngLiteral } from "leaflet";
-import {MediaLocation} from "@/entities/media-location";
-import {Venue} from "@/entities/venue";
+import {MediaLocation} from "@/entities/media-location/@x/media";
+import {Venue} from "@/entities/venue/@x/media";
 
 export enum MediaStatusEnum {
     ACTIVE = "ACTIVE",

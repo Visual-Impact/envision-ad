@@ -5,11 +5,11 @@ import { Center, Group, Loader, Stack, Title } from "@mantine/core";
 import { OrganizationDetail } from "@/pages/dashboard/organization/ui/tables/OrganizationTable";
 import { OrganizationModal } from "@/pages/dashboard/organization/ui/modals/OrganizationModal";
 import { useTranslations } from "next-intl";
-import { useOrganizationForm } from "@/pages/dashboard/organization/hooks/useOrganizationForm";
+import { useOrganizationForm } from "@/features/organization-management";
 import { OrganizationSize } from "@/entities/organization";
 import { updateOrganization } from "@/features/organization-management";
 import { notifications } from "@mantine/notifications";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 
 export default function OrganizationDashboard() {
     const { formState, updateField, resetForm, setFormState } = useOrganizationForm();

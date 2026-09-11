@@ -7,7 +7,8 @@ import {
 } from "@mantine/core";
 import { useLocale, useTranslations } from "next-intl";
 import { useMediaQuery } from "@mantine/hooks";
-import { useOrganization, usePermissions } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
+import { usePermissions } from "@/shared/lib/permissions";
 import { getStripeAccountStatus, createStripeConnection } from "@/features/payment";
 import {
     IconCheck, IconBuilding, IconCreditCard, IconRocket,

@@ -1,19 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import React, { useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getEmployeeOrganization } from "@/features/organization-management";
-import { OrganizationResponseDTO } from "@/entities/organization";
+import { OrganizationContext, OrganizationResponseDTO } from "@/entities/organization";
 import { useRouter, usePathname } from "@/shared/lib/i18n";
-import { usePermissions } from "@/app/providers/PermissionProvider";
-
-interface OrganizationContextType {
-    organization: OrganizationResponseDTO | null;
-    refreshOrganization: () => Promise<void>;
-    loading: boolean;
-}
-
-const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
+import { usePermissions } from "@/shared/lib/permissions";
 
 type OrganizationFetchResult =
     | { kind: "skip" }
@@ -124,12 +116,4 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
             {children}
         </OrganizationContext.Provider>
     );
-}
-
-export function useOrganization() {
-    const context = useContext(OrganizationContext);
-    if (context === undefined) {
-        throw new Error('useOrganization must be used within OrganizationProvider');
-    }
-    return context;
 }

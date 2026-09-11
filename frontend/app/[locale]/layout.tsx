@@ -12,7 +12,7 @@ import {Header} from "@/widgets/Header/Header";
 import {ModalsProvider} from "@mantine/modals";
 import {auth0} from "@/shared/api/index.server";
 import {Auth0Provider} from "@auth0/nextjs-auth0";
-import {IntlErrorProvider, OrganizationProvider, PermissionsProvider} from "@/app/providers";
+import { IntlErrorProvider, OrganizationProvider, PermissionsProvider } from "@/app/providers";
 import {Metadata, Viewport} from "next";
 
 export const viewport: Viewport = {

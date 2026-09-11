@@ -18,7 +18,7 @@ import { InvitationResponse } from "@/entities/organization";
 import { InvitationTable } from "@/pages/dashboard/organization/ui/tables/InvitationsTable";
 import { notifications } from "@mantine/notifications";
 import { AUTH0_ROLES } from "@/shared/lib/auth";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 
 export default function OrganizationEmployees() {
     const [employees, setEmployees] = useState<Employee[]>([]);

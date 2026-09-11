@@ -18,8 +18,8 @@ import {
     IconUserPlus,
 } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
-import { usePermissions } from "@/app/providers/PermissionProvider";
-import { useOrganization } from "@/app/providers/OrganizationProvider";
+import { usePermissions } from "@/shared/lib/permissions";
+import { useOrganization } from "@/entities/organization";
 import styles from "./SideBar.module.css";
 
 function joinClassNames(...classes: Array<string | false | undefined>) {
