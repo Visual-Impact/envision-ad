@@ -74,3 +74,11 @@ envision:
     # these emails by physically changing a screen, so a burst of them is noise rather than
     # information. A value, not a literal in code, so it can be tuned against real usage.
     swap-debounce: 10m
+    # FR-8.5: how long creative changes sit untouched before media owners are told on the
+    # advertiser's behalf. Long enough that assembling a campaign in one sitting is one email;
+    # short enough that a screen never shows retired creative for a whole business day.
+    notify-quiet-period: 60m
+    sweep:
+      # More often than the quiet period, so a batch waits no longer than it has to.
+      interval: 15m
+      enabled: true

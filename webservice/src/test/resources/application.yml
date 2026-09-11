@@ -66,3 +66,10 @@ envision:
     # these emails by physically changing a screen, so a burst of them is noise rather than
     # information. A value, not a literal in code, so it can be tuned against real usage.
     swap-debounce: 10m
+    notify-quiet-period: 60m
+    sweep:
+      interval: 15m
+      # Off in tests. BaseIntegrationTest shares one Spring context with a mocked EmailService,
+      # so a sweep firing mid-run would pollute verify(emailService, ...) in unrelated classes.
+      # The sweep's own logic is tested by calling it directly, never by waiting on a timer.
+      enabled: false

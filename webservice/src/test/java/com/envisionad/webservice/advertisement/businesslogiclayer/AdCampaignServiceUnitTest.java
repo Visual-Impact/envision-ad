@@ -445,6 +445,68 @@ class AdCampaignServiceUnitTest {
         verify(adCampaignRepository, never()).save(any());
     }
 
+    // ---------- P6 FR-8.2: the creative-change stamp ----------
+    // This stamp is the only record that a running campaign's content has moved on since media
+    // owners were last told what to display. Without it an advertiser can replace every creative
+    // on a live campaign and no owner is ever notified, so screens keep showing retired content.
+
+    @Test
+    void addAdToCampaign_stampsCreativesUpdatedAt() {
+        String campaignId = "camp-stamp-1";
+        AdCampaign campaign = campaignWithNoAds(campaignId, "biz-1");
+        assertNull(campaign.getCreativesUpdatedAt(), "precondition: nothing has changed yet");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(campaign);
+        when(adRequestMapper.requestModelToEntity(any())).thenAnswer(inv -> new Ad());
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        LocalDateTime before = LocalDateTime.now();
+        service.addAdToCampaign(advertiserToken, TEST_BUSINESS_ID, campaignId, adRequest("IMAGE", null));
+
+        assertNotNull(campaign.getCreativesUpdatedAt());
+        assertFalse(campaign.getCreativesUpdatedAt().isBefore(before));
+    }
+
+    @Test
+    void deleteAdFromCampaign_stampsCreativesUpdatedAt() throws IOException {
+        String campaignId = "camp-stamp-2";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, null);
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+        // A second ad, so this is not the final-creative case that FR-3.1a can block.
+        data.campaign.getAds().add(data.campaign.getAds().get(0));
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        LocalDateTime before = LocalDateTime.now();
+        service.deleteAdFromCampaign(advertiserToken, "biz-1", campaignId, data.adId);
+
+        assertNotNull(data.campaign.getCreativesUpdatedAt());
+        assertFalse(data.campaign.getCreativesUpdatedAt().isBefore(before));
+    }
+
+    /**
+     * Retagging routes an existing creative differently; it does not change the creative. An
+     * owner who already has it loaded has nothing to do, so this must not mark the campaign as
+     * having unannounced changes and must not trigger the automatic sweep.
+     */
+    @Test
+    void updateAdVenueTags_doesNotStampCreativesUpdatedAt() {
+        String campaignId = "camp-stamp-3";
+        CampaignAndAdId data = campaignWithSingleAd(campaignId, "https://cdn/a.png");
+        data.campaign.setBusinessId(new BusinessIdentifier("biz-1"));
+        Venue gym = venue("venue-gym");
+
+        when(adCampaignRepository.findByCampaignId_CampaignId(campaignId)).thenReturn(data.campaign);
+        when(venueRepository.findByVenueId("venue-gym")).thenReturn(Optional.of(gym));
+        when(adCampaignRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateAdVenueTags(advertiserToken, "biz-1", campaignId, data.adId, List.of("venue-gym"));
+
+        assertNull(data.campaign.getCreativesUpdatedAt(),
+                "a venue-tag edit is metadata, not a creative change");
+    }
+
     @Test
     void updateAdVenueTags_replacesEntireTagSet() {
         String campaignId = "camp-upd-1";

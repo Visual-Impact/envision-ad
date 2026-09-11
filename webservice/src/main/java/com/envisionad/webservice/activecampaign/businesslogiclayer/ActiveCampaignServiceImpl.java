@@ -184,6 +184,39 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
         return new NotificationResultModel(outcome.notified(), outcome.failed());
     }
 
+    @Transactional
+    @Override
+    public boolean autoNotifyIfCreativeChangesArePending(String businessId) {
+        Business business = requireBusiness(businessId);
+        String activeCampaignId = business.getActiveCampaignId();
+        if (activeCampaignId == null) {
+            return false;
+        }
+
+        AdCampaign campaign = adCampaignRepository.findByCampaignIdWithAds(activeCampaignId);
+        if (campaign == null || campaign.getAds() == null || campaign.getAds().isEmpty()) {
+            // An active campaign with no creatives has nothing to announce. FR-3.1a stops an
+            // advertiser emptying one while they are paying, so this is the abnormal case; say so
+            // rather than failing the whole sweep over it.
+            log.warn("Skipping automatic notification for business {}: active campaign {} has no creatives",
+                    businessId, activeCampaignId);
+            return false;
+        }
+        if (!hasUnnotifiedCreativeChanges(campaign)) {
+            // Already handled — most likely the advertiser pressed "Notify media owners"
+            // themselves between the sweep's query and this call.
+            return false;
+        }
+
+        MediaOwnerNotifier.Outcome outcome = notifyOwnersOf(business, campaign, true);
+        recordEvent(businessId, activeCampaignId, activeCampaignId, CampaignSwapEventType.AUTO_NOTIFY,
+                // Nobody clicked anything, so there is no user to attribute this to.
+                null, outcome.notified(), outcome.failed());
+        log.info("Automatically notified {} media owner(s) of creative changes to campaign {} ({} failed)",
+                outcome.notified(), activeCampaignId, outcome.failed());
+        return true;
+    }
+
     @Transactional(readOnly = true)
     @Override
     public List<AdCampaignResponseModel> getCampaignsEligibleForSwap(String businessId) {

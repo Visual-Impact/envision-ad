@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -124,7 +125,13 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         // Deliberately unguarded (P1 M6, decision D42): an advertiser on a live monthly
         // subscription must be able to change their creative mid-cycle. The weekly-reservation
         // system blocked this because a booking was a short fixed window; a subscription is not.
-        // Notifying the affected media owners of the change is P6's scope.
+        //
+        // What makes that safe is the creatives_updated_at stamp below (P6 FR-8.2): it is the
+        // only record that this campaign's content has moved on since media owners were last
+        // told what to display. Without it an advertiser can replace every creative on a running
+        // campaign and no owner ever hears, so screens keep showing content that was retired.
+        // Stamped on add and remove only — a venue-tag edit changes who receives a creative, not
+        // the creative itself, so it deliberately does not stamp (see updateAdVenueTags).
         Ad newAd = adRequestMapper.requestModelToEntity(adRequestModel);
         newAd.setAdIdentifier(new AdIdentifier());
 
@@ -145,6 +152,7 @@ public class AdCampaignServiceImpl implements AdCampaignService {
 
         newAd.setCampaign(adCampaign);
         adCampaign.getAds().add(newAd);
+        adCampaign.setCreativesUpdatedAt(LocalDateTime.now());
 
         adCampaignRepository.save(adCampaign);
         return adResponseMapper.entityToResponseModel(newAd);
@@ -188,11 +196,19 @@ public class AdCampaignServiceImpl implements AdCampaignService {
         deleteCloudinaryAssetIfPresent(adToDelete.getAdUrl());
 
         adCampaign.getAds().remove(adToDelete);
+        adCampaign.setCreativesUpdatedAt(LocalDateTime.now());
         adCampaignRepository.save(adCampaign);
 
         return response;
     }
 
+    /**
+     * Retagging is metadata: it changes which media owners a creative is <em>routed</em> to, not
+     * what the creative is. It therefore does not stamp {@code creativesUpdatedAt} and does not
+     * make the campaign pending-notification (FR-8.2) — an owner who already has this creative
+     * loaded has nothing to do differently, and an owner who newly qualifies for it will receive
+     * it with the next swap or notify.
+     */
     @Override
     public AdResponseModel updateAdVenueTags(Jwt jwt, String businessId, String campaignId, String adId,
                                              List<String> venueIds) {
