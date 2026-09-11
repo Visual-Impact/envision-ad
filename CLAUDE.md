@@ -48,10 +48,10 @@ Uses **Feature-Sliced Design (FSD)** — layers are strictly ordered by dependen
 
 ```
 src/
-├── app/          → Next.js App Router, global providers
+├── app/          → App layer for the Next.js routes in the root `app/`: global providers, layouts (`layouts/`)
 ├── pages/        → Page-level components (route compositions)
-├── features/     → Business logic scoped to a feature (auth, payment, media-management, etc.)
-├── entities/     → Domain models and stores (organization, media, reservation, ad-campaign)
+├── features/     → User-facing actions used by more than one page (payment, media-management, organization-management, etc.)
+├── entities/     → Domain models, contexts and entity UI (organization, media, bundle, ad-campaign, etc.)
 ├── widgets/      → Composite UI used by several pages or the app shell (app-navigation, footer, media-carousel, media-details)
 ├── shared/       → Generic utilities, API config (axios), UI kit, types, i18n
 ```
