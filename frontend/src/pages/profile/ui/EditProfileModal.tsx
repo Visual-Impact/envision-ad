@@ -2,7 +2,7 @@ import { Modal, TextInput, Button, Group, Stack } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { updateUser } from "@/features/auth";
+import { updateUser } from "../api/updateUser";
 import { Employee } from "@/entities/organization";
 import { useRouter } from "next/navigation";
 import { notifications } from "@mantine/notifications";

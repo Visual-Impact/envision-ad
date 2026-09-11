@@ -18,7 +18,7 @@ import { useRouter } from "@/shared/lib/i18n";
 import { getMediaById } from "@/features/media-management";
 import { useTranslations } from "next-intl";
 import { Media } from "@/entities/media";
-import { useAdminMedia } from "@/pages/dashboard/admin/hooks/useAdminMedia";
+import { useAdminMedia } from "@/pages/dashboard/admin/model/useAdminMedia";
 import { notifications } from "@mantine/notifications";
 import { MediaStatusEnum } from "@/entities/media";
 import { useMediaQuery } from "@mantine/hooks";

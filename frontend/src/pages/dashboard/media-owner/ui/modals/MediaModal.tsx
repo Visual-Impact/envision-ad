@@ -8,7 +8,7 @@ import {notifications} from "@mantine/notifications";
 import {MediaDetailsForm} from "./MediaDetailsForm";
 import {ScheduleSelector} from "./ScheduleSelector";
 import {ImageCornerSelector} from "../components/ImageCornerSelector";
-import type {MediaFormState} from "@/pages/dashboard/media-owner/hooks/useMediaForm";
+import type {MediaFormState} from "@/pages/dashboard/media-owner/model/useMediaForm";
 import {useTranslations} from "next-intl";
 
 // Why do we need this?

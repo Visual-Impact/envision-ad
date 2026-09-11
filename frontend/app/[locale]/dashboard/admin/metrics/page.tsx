@@ -3,7 +3,7 @@
 
 // ^ adjust this import to where your component actually is
 
-import AdminMetricsPage from "@/pages/dashboard/admin/ui/AdminMetrics";
+import { AdminMetricsPage } from "@/pages/dashboard/admin";
 
 export default function Page() {
     return <AdminMetricsPage />;

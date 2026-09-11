@@ -1,1 +1,0 @@
-export { getUserServer } from "./api/getUserServer"

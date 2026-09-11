@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Center, Group, Loader, Pagination, Stack, Text, Title } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { ApproveMediaRowData, ApproveMediaTable } from "@/pages/dashboard/admin/ui/tables/ApproveMediaTable";
-import { useAdminPendingMedia } from "@/pages/dashboard/admin/hooks/useAdminPendingMedia";
+import { useAdminPendingMedia } from "@/pages/dashboard/admin/model/useAdminPendingMedia";
 
 import { MediaStatusEnum } from "@/entities/media";
 

@@ -6,7 +6,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { OrganizationDetailsForm } from "@/features/organization-management";
 import { useOrganizationForm } from "@/features/organization-management";
-import { CreateAccountRequestDTO } from "@/entities/account";
+import { CreateAccountRequestDTO } from "../../model/account";
 import { Venue } from "@/entities/venue";
 
 interface CreateAccountModalProps {

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Select, Stack, Text, TextInput, Tooltip } from "@mantine/core";
-import type { MediaFormState } from "@/pages/dashboard/media-owner/hooks/useMediaForm";
+import type { MediaFormState } from "@/pages/dashboard/media-owner/model/useMediaForm";
 import { VenuePillSelector } from "@/pages/dashboard/media-owner/ui/components/VenuePillSelector";
 import { useTranslations } from "next-intl";
 

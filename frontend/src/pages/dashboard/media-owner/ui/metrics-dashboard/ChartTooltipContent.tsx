@@ -3,8 +3,8 @@
 import React from "react";
 import { Group, Paper, Text, ThemeIcon } from "@mantine/core";
 import { useLocale } from "next-intl";
-import { formatCurrency } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/formatting-utils";
-import type { ChartTooltipPayload } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/types";
+import { formatCurrency } from "@/pages/dashboard/media-owner/lib/metrics/formatting-utils";
+import type { ChartTooltipPayload } from "@/pages/dashboard/media-owner/model/metricsTypes";
 
 interface ChartTooltipContentProps {
     labelText: string;

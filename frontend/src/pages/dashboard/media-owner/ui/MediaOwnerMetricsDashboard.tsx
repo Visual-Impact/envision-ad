@@ -5,8 +5,8 @@ import { DatePickerInput } from "@mantine/dates";
 import { useTranslations } from "next-intl";
 import { KpiCard } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/KpiCard";
 import { PayoutHistorySection } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/PayoutHistorySection";
-import type { OverviewPeriod } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/types";
-import { useMediaOwnerMetricsData } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/useMediaOwnerMetricsData";
+import type { OverviewPeriod } from "@/pages/dashboard/media-owner/model/metricsTypes";
+import { useMediaOwnerMetricsData } from "@/pages/dashboard/media-owner/model/useMediaOwnerMetricsData";
 
 /**
  * Media-owner metrics.

@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useTranslations } from 'next-intl';
-import { useMediaForm } from "@/pages/dashboard/media-owner/hooks/useMediaForm";
+import { useMediaForm } from "@/pages/dashboard/media-owner/model/useMediaForm";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
 import { IconAlertTriangle, IconCheck } from "@tabler/icons-react";
 import { WeeklyScheduleModel } from "@/entities/media";
@@ -14,7 +14,7 @@ import {
     deleteMediaLocation,
     getAllMediaLocations,
 } from "@/features/media-location-management";
-import { useMediaList } from "@/pages/dashboard/media-owner/hooks/useMediaList";
+import { useMediaList } from "@/pages/dashboard/media-owner/model/useMediaList";
 import { MediaLocationsTable } from "@/pages/dashboard/media-owner/ui/tables/MediaLocationsTable";
 import { CreateMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/CreateMediaLocationModal";
 import { EditMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/EditMediaLocationModal";
