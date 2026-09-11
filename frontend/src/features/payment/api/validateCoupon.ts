@@ -1,5 +1,5 @@
 import { CouponValidateResponse } from "@/entities/coupon";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /** Checkout-side preview — no Stripe call on the backend, safe to call on every Apply
  * click (brief §4.6.3). `subtotalCents` is the bundle's post-exclusion,

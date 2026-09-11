@@ -3,14 +3,14 @@
 import React from "react";
 import { Container, Stack, Title, Text, Box, Group, Divider } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { Link } from "@/shared/lib/i18n/navigation";
-import classes from "@/app/page.module.css";
+import { Link } from "@/shared/lib/i18n";
+import classes from "./HomePage.module.css";
 import { useTranslations } from "next-intl";
 import { HeroGridBackground } from "./HeroGridBackground";
 import { HeroScreens } from "./HeroScreens";
 import { AdvertiserTimeline } from "./AdvertiserTimeline";
 import { BundlesSection } from "./BundlesSection";
-import { DisplayGallery } from "@/widgets/DisplayGallery/DisplayGallery";
+import { DisplayGallery } from "./DisplayGallery";
 
 interface HomepageStats {
     activeScreens: number;

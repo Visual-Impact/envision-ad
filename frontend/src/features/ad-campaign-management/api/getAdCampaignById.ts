@@ -1,5 +1,5 @@
 import {AdCampaign} from "@/entities/ad-campaign";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const getAdCampaignById = async (
     campaignId: string

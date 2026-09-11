@@ -1,4 +1,4 @@
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /**
  * Cancels at the end of the current billing period — never immediately. The advertiser keeps

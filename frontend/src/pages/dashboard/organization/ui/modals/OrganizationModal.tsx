@@ -3,7 +3,7 @@
 import React, {useState} from "react";
 import {Alert, Button, Group, Modal, Stack} from "@mantine/core";
 import {useTranslations} from "next-intl";
-import {OrganizationDetailsForm} from "./OrganizationDetailsForm";
+import {OrganizationDetailsForm} from "@/features/organization-management";
 import {OrganizationRequestDTO} from "@/entities/organization";
 import {IconInfoCircle} from "@tabler/icons-react";
 

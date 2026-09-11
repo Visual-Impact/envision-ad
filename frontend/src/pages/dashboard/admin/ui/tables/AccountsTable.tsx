@@ -3,7 +3,7 @@
 import { ActionIcon, Badge, Group, Paper, ScrollArea, Table, Text, Tooltip } from "@mantine/core";
 import { IconMailForward, IconPlayerPause, IconPlayerPlay, IconUserCog } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
-import { AccountListItem } from "@/entities/account";
+import { AccountListItem } from "../../model/account";
 import { Venue } from "@/entities/venue";
 
 interface AccountsTableProps {

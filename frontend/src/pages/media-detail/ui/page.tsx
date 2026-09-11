@@ -9,14 +9,14 @@ import {
 } from "@mantine/core";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { getMediaById, SpecialSort } from "@/features/media-management/api";
+import { getMediaById, SpecialSort } from "@/features/media-management";
 import { useLocale, useTranslations } from "next-intl";
 import { Media } from "@/entities/media";
-import { MediaCardCarouselLoader, MediaCardStackLoader } from "@/widgets/Carousel/CardCarousel";
-import { FilteredActiveMediaProps } from "@/entities/media/model/media";
+import { MediaCardCarouselLoader, MediaCardStackLoader } from "@/widgets/media-carousel";
+import { FilteredActiveMediaProps } from "@/entities/media";
 import type { LatLngLiteral } from "leaflet";
 import { useMediaQuery } from "@mantine/hooks";
-import { MediaDetails } from "@/widgets/MediaDetails/MediaDetails";
+import { MediaDetails } from "@/widgets/media-details";
 
 export default function MediaDetailsPage() {
   const t = useTranslations("mediaPage");

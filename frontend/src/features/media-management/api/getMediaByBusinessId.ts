@@ -1,5 +1,5 @@
 import { Media } from "@/entities/media";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 
 export async function getMediaByBusinessId(businessId: string): Promise<Media[]> {

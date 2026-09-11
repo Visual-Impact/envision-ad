@@ -1,4 +1,4 @@
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export interface StripeDashboardPayout {
     id?: string;

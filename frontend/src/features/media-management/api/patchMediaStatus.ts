@@ -1,6 +1,6 @@
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 import type { Media } from "@/entities/media";
-import type { MediaStatusEnum } from "@/entities/media/model/media";
+import type { MediaStatusEnum } from "@/entities/media";
 
 export type PatchMediaStatusDTO = { status: MediaStatusEnum };
 

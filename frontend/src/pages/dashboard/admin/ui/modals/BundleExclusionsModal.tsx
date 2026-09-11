@@ -18,7 +18,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { Bundle, BundleCandidateMedia } from "@/entities/bundle";
-import { addExclusion, getCandidateMedias, removeExclusion } from "@/features/bundle-management/api";
+import { addExclusion, getCandidateMedias, removeExclusion } from "@/features/bundle-management";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 
 interface BundleExclusionsModalProps {

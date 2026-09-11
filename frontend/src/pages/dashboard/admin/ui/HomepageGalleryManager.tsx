@@ -13,7 +13,7 @@ import { notifications } from "@mantine/notifications";
 import { useTranslations } from "next-intl";
 import {
     getGalleryImages, saveGalleryImages, deleteGalleryImageAsset, applyGalleryCrop, type GalleryImage,
-} from "@/features/app-settings/api";
+} from "@/features/app-settings";
 
 // Signed upload into a dedicated folder so the delete endpoint can safely scope
 // destructive calls to gallery assets only. 3:4 crop matches the homepage card.

@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
-import { auth0 } from "@/shared/api/auth0/auth0";
+import { auth0 } from "@/shared/api/index.server";
 import { jwtDecode } from "jwt-decode";
 import { Token } from "@/entities/auth";
 

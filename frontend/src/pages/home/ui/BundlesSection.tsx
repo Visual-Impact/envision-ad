@@ -5,12 +5,12 @@ import { notifications } from "@mantine/notifications";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Bundle, BundleRuleType } from "@/entities/bundle";
-import { getAllBundles } from "@/features/bundle-management/api";
-import { getBundleSubscriptions } from "@/features/bundle-subscription/api";
-import { BundleSubscribeModal } from "@/widgets/BundleSubscribeModal";
-import { useOrganization } from "@/app/providers/OrganizationProvider";
-import { BundleCard } from "@/widgets/Cards/BundleCard";
-import { BundleCardLarge } from "@/widgets/Cards/BundleCardLarge";
+import { getAllBundles } from "@/features/bundle-management";
+import { getBundleSubscriptions } from "@/features/bundle-subscription";
+import { BundleSubscribeModal } from "./BundleSubscribeModal";
+import { useOrganization } from "@/entities/organization";
+import { BundleCard } from "@/entities/bundle";
+import { BundleCardLarge } from "@/entities/bundle";
 import classes from "./BundlesSection.module.css";
 
 // Statuses that occupy a business's one-live-subscription-per-bundle slot (brief

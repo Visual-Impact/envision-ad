@@ -5,14 +5,13 @@ import "@mantine/notifications/styles.css";
 import {ColorSchemeScript, mantineHtmlProps, MantineProvider} from "@mantine/core";
 import {josefinSans, lato, theme} from "@/app/theme";
 import type {ReactNode} from "react";
-import Footer from "@/widgets/Footer/Footer";
 import {getMessages, getTimeZone, getTranslations} from "next-intl/server";
 import {Notifications} from "@mantine/notifications";
-import {Header} from "@/widgets/Header/Header";
+import { AppShell } from "@/app/layouts";
 import {ModalsProvider} from "@mantine/modals";
-import {auth0} from "@/shared/api/auth0/auth0";
+import {auth0} from "@/shared/api/index.server";
 import {Auth0Provider} from "@auth0/nextjs-auth0";
-import {IntlErrorProvider, OrganizationProvider, PermissionsProvider} from "@/app/providers";
+import { IntlErrorProvider, OrganizationProvider, PermissionsProvider } from "@/app/providers";
 import {Metadata, Viewport} from "next";
 
 export const viewport: Viewport = {
@@ -83,12 +82,9 @@ export default async function RootLayout({
                             <MantineProvider theme={theme}>
                                 <ModalsProvider>
                                     <Notifications/>
-                                    <Header bookMeetingUrl={bookMeetingUrl} />
-                                    {/* 20px (navbar top offset) + 56px (navbar height) + 16px breathing room */}
-                                    <div style={{ paddingTop: 92 }}>
+                                    <AppShell bookMeetingUrl={bookMeetingUrl}>
                                         {children}
-                                    </div>
-                                    <Footer bookMeetingUrl={bookMeetingUrl} />
+                                    </AppShell>
                                 </ModalsProvider>
                             </MantineProvider>
                         </OrganizationProvider>

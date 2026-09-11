@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Alert, Button, Group, Modal, Select, Stack, TextInput } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
-import { OrganizationDetailsForm } from "@/pages/dashboard/organization/ui/modals/OrganizationDetailsForm";
-import { useOrganizationForm } from "@/pages/dashboard/organization/hooks/useOrganizationForm";
-import { CreateAccountRequestDTO } from "@/entities/account";
+import { OrganizationDetailsForm } from "@/features/organization-management";
+import { useOrganizationForm } from "@/features/organization-management";
+import { CreateAccountRequestDTO } from "../../model/account";
 import { Venue } from "@/entities/venue";
 
 interface CreateAccountModalProps {

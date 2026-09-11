@@ -1,4 +1,4 @@
-import { Media } from "@/entities/media";
+import { Media } from "@/entities/media/@x/media-location";
 import { AddressDetails } from "@/shared/lib/geolocation";
 
 export interface MediaLocation {

@@ -2,7 +2,7 @@
 
 import { Button, Group, Loader, Paper, ScrollArea, Table, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
-import {VerificationResponseDTO} from "@/entities/organization/model/verification";
+import {VerificationResponseDTO} from "@/entities/organization";
 
 interface OrganizationVerificationTableProps {
     rows: VerificationResponseDTO[];

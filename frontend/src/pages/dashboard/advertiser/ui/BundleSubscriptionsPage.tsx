@@ -18,7 +18,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { BundleSubscription, BundleSubscriptionStatus } from "@/entities/bundle-subscription";
 import { cancelBundleSubscription, getBundleSubscriptions } from "@/features/bundle-subscription";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 
 /** Only a live subscription can be cancelled at Stripe; the rest are already closed out. */

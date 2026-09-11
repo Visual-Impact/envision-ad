@@ -1,4 +1,4 @@
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /**
  * Reads a single app setting value. Returns null when the key has never been set

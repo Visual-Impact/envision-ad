@@ -3,7 +3,7 @@ import { Modal, TextInput, Button, Group, Box, Text, Stack, ThemeIcon, Alert, Ba
 import { useForm } from '@mantine/form';
 import { IconUpload, IconCheck, IconAlertCircle } from '@tabler/icons-react';
 import { AdRequestDTO } from "@/entities/ad";
-import { VenueMultiSelectPicker } from "@/features/venue-management/ui";
+import { VenueMultiSelectPicker } from "@/features/venue-management";
 import { CldUploadWidget, CloudinaryUploadWidgetResults } from 'next-cloudinary';
 import { useTranslations } from 'next-intl'
 

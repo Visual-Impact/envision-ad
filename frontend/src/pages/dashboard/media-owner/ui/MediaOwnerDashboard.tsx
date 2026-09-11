@@ -3,8 +3,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
 import { MediaTable } from "@/pages/dashboard/media-owner/ui/tables/MediaTable";
-import { useMediaList } from "@/pages/dashboard/media-owner/hooks/useMediaList";
-import { useMediaForm } from "@/pages/dashboard/media-owner/hooks/useMediaForm";
+import { useMediaList } from "@/pages/dashboard/media-owner/model/useMediaList";
+import { useMediaForm } from "@/pages/dashboard/media-owner/model/useMediaForm";
 import { useTranslations } from "next-intl";
 import {Alert, Button, Group, Loader, Pagination, Stack, Title, VisuallyHidden} from "@mantine/core";
 import { modals } from "@mantine/modals";
@@ -12,7 +12,7 @@ import { notifications } from "@mantine/notifications";
 import { WeeklyScheduleModel } from "@/entities/media";
 import { IconCheck, IconAlertTriangle } from "@tabler/icons-react";
 import { getStripeAccountStatus } from "@/features/payment";
-import { useOrganization } from "@/app/providers";
+import { useOrganization } from "@/entities/organization";
 import Link from "next/link";
 
 const ITEMS_PER_PAGE = 20;

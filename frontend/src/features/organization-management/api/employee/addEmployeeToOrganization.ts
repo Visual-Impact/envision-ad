@@ -1,5 +1,5 @@
 import { InvitationAcceptResponse } from "@/entities/organization";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 // P5 FR 3.2: callable regardless of session state now — axiosInstance simply omits the
 // Authorization header when there's no session, and the backend branches on that (see

@@ -1,18 +1,11 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { useState, useEffect, ReactNode, useCallback } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import {jwtDecode} from "jwt-decode";
 import {Token} from "@/entities/auth";
-import {resetTokenCache} from "@/shared/api/axios/axios";
-
-interface PermissionsContextType {
-    permissions: string[];
-    refreshPermissions: () => Promise<void>;
-    loading: boolean;
-}
-
-const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
+import {resetTokenCache} from "@/shared/api";
+import { PermissionsContext } from "@/shared/lib/permissions";
 
 export function PermissionsProvider({ children }: { children: ReactNode }) {
     const [permissions, setPermissions] = useState<string[]>([]);
@@ -99,12 +92,4 @@ export function PermissionsProvider({ children }: { children: ReactNode }) {
             {children}
         </PermissionsContext.Provider>
     );
-}
-
-export function usePermissions() {
-    const context = useContext(PermissionsContext);
-    if (context === undefined) {
-        throw new Error('usePermissions must be used within PermissionsProvider');
-    }
-    return context;
 }

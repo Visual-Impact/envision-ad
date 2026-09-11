@@ -1,13 +1,13 @@
-import {Auth0ManagementService} from "@/shared/api/auth0/management";
+import {Auth0ManagementService} from "@/shared/api/index.server";
 import {NextRequest, NextResponse} from "next/server";
-import {auth0} from "@/shared/api/auth0/auth0";
+import {auth0} from "@/shared/api/index.server";
 import {jwtDecode} from "jwt-decode";
 import {Token} from "@/entities/auth";
-import {ASSIGNABLE_ROLE_IDS, AUTH0_ROLES} from "@/shared/lib/auth/roles";
+import {ASSIGNABLE_ROLE_IDS, AUTH0_ROLES} from "@/shared/lib/auth";
 import {
     getAllOrganizationEmployeesServer,
     getEmployeeOrganizationServer
-} from "@/features/organization-management/api";
+} from "@/features/organization-management";
 
 export async function POST(
     request: NextRequest,

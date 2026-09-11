@@ -3,7 +3,7 @@
 import React, {useState} from "react";
 import {Alert, Button, Group, Modal, Stack, TextInput} from "@mantine/core";
 import {useTranslations} from "next-intl";
-import {createInviteEmployeeToOrganization} from "@/features/organization-management/api";
+import {createInviteEmployeeToOrganization} from "@/features/organization-management";
 import {IconInfoCircle} from "@tabler/icons-react";
 import {notifications} from "@mantine/notifications";
 import {Employee, InvitationResponse} from "@/entities/organization";

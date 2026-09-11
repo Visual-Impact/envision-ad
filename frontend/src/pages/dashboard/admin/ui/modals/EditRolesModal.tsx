@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Group, Modal, Stack } from "@mantine/core";
 import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
-import { AccountListItem, RoleRemovalEligibilityDTO } from "@/entities/account";
+import { AccountListItem, RoleRemovalEligibilityDTO } from "../../model/account";
 import { Roles } from "@/entities/organization";
-import { getRoleRemovalEligibility } from "@/features/account-management/api";
+import { getRoleRemovalEligibility } from "../../api";
 
 interface EditRolesModalProps {
     opened: boolean;

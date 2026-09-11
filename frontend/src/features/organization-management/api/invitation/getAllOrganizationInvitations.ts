@@ -1,6 +1,6 @@
 // 'use server';
 import { InvitationResponse } from "@/entities/organization";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const getAllOrganizationInvitations = async (
     organizationId: string

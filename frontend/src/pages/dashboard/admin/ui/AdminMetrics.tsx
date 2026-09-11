@@ -26,9 +26,9 @@ import { useTranslations } from "next-intl";
 import {
   getAdminOverview,
   type AdminOverviewResponse,
-} from "@/features/admin-dashboard/api/getAdminOverview";
+} from "../api";
 
-import { MetricCard } from "@/widgets/Cards/MetricCard";
+import { MetricCard } from "@/shared/ui";
 
 export default function AdminMetricsPage() {
   const t = useTranslations("admin.metricsPage");

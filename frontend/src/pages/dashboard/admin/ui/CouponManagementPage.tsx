@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { Coupon, CouponRequestDTO } from "@/entities/coupon";
-import { getAllCoupons, createCoupon, updateCouponActive, archiveCoupon } from "@/features/coupon-management/api";
+import { getAllCoupons, createCoupon, updateCouponActive, archiveCoupon } from "../api";
 import { CouponTable } from "@/pages/dashboard/admin/ui/tables/CouponTable";
 import { CouponFormModal } from "@/pages/dashboard/admin/ui/modals/CouponFormModal";
 import { CouponDeleteModal } from "@/pages/dashboard/admin/ui/modals/CouponDeleteModal";

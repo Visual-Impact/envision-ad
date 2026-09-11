@@ -1,4 +1,4 @@
-import {RoleId} from "@/shared/lib/auth/roles";
+import {RoleId} from "@/shared/lib/auth";
 
 /**
  * Service for interacting with the Auth0 Management API.

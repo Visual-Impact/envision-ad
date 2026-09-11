@@ -1,6 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
-import { auth0 } from "@/shared/api/auth0/auth0";
+import { auth0 } from "@/shared/api/index.server";
 
 // Allowed keys for a standard upload to prevent signing unauthorized params
 const ALLOWED_CLOUDINARY_KEYS = ['timestamp', 'source', 'upload_preset', 'public_id', 'folder', 'custom_coordinates'];

@@ -1,11 +1,11 @@
 import React from "react";
 import { Accordion, ActionIcon, Button, Group, Table, Text, Box, Flex, Tooltip, VisuallyHidden } from "@mantine/core";
 import { IconTrash, IconPlus, IconMapPin } from "@tabler/icons-react";
-import { MediaLocation } from "@/entities/media-location/model/mediaLocation";
+import { MediaLocation } from "@/entities/media-location";
 import { useTranslations } from "next-intl";
 
 import { MediaRow } from "@/pages/dashboard/media-owner/ui/tables/MediaRow";
-import {MediaStatusEnum} from "@/entities/media/model/media";
+import {MediaStatusEnum} from "@/entities/media";
 
 interface MediaLocationsTableProps {
     locations: MediaLocation[];

@@ -4,23 +4,23 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useTranslations } from 'next-intl';
-import { useMediaForm } from "@/pages/dashboard/media-owner/hooks/useMediaForm";
+import { useMediaForm } from "@/pages/dashboard/media-owner/model/useMediaForm";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
 import { IconAlertTriangle, IconCheck } from "@tabler/icons-react";
 import { WeeklyScheduleModel } from "@/entities/media";
-import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location/model/mediaLocation";
+import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location";
 import {
     createMediaLocation,
     deleteMediaLocation,
     getAllMediaLocations,
-} from "@/features/media-location-management/api";
-import { useMediaList } from "@/pages/dashboard/media-owner/hooks/useMediaList";
+} from "@/features/media-location-management";
+import { useMediaList } from "@/pages/dashboard/media-owner/model/useMediaList";
 import { MediaLocationsTable } from "@/pages/dashboard/media-owner/ui/tables/MediaLocationsTable";
 import { CreateMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/CreateMediaLocationModal";
 import { EditMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/EditMediaLocationModal";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
-import { MediaStatusEnum } from "@/entities/media/model/media";
-import { useOrganization } from "@/app/providers";
+import { ConfirmationModal } from "@/shared/ui";
+import { MediaStatusEnum } from "@/entities/media";
+import { useOrganization } from "@/entities/organization";
 import { getStripeAccountStatus } from "@/features/payment";
 import Link from "next/link";
 

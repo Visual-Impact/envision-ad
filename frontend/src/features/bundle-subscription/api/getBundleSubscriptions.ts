@@ -1,5 +1,5 @@
 import { BundleSubscription } from "@/entities/bundle-subscription";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /**
  * Every bundle subscription held by a business, newest first — including INCOMPLETE and

@@ -5,7 +5,7 @@ import { Badge, Group, Pagination, Paper, Table, Text, Tooltip } from "@mantine/
 import { useMediaQuery } from "@mantine/hooks";
 import { useLocale, useTranslations } from "next-intl";
 import type { PayoutHistoryRow } from "@/pages/dashboard/media-owner/model/mockMetrics";
-import { formatCurrency } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/formatting-utils";
+import { formatCurrency } from "@/pages/dashboard/media-owner/lib/metrics/formatting-utils";
 
 interface PayoutHistorySectionProps {
     rows: PayoutHistoryRow[];

@@ -7,3 +7,6 @@ export { updateMedia } from './updateMedia';
 export { getMediaByBusinessId } from './getMediaByBusinessId';
 
 
+export { SortOptions } from './getAllFilteredActiveMedia';
+export { patchMediaStatus } from './patchMediaStatus';
+export type { PatchMediaStatusDTO } from './patchMediaStatus';

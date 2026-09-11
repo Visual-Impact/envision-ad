@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import type { MetricsKpi } from "@/pages/dashboard/media-owner/model/mockMetrics";
-import { formatCurrency } from "@/pages/dashboard/media-owner/ui/metrics-dashboard/formatting-utils";
+import { formatCurrency } from "@/pages/dashboard/media-owner/lib/metrics/formatting-utils";
 import styles from "./KpiCard.module.css";
 
 const kpiIconMap: Record<string, React.ElementType> = {

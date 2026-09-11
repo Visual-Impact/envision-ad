@@ -6,12 +6,12 @@ import {Alert, Button, Group, Stack, Title} from "@mantine/core";
 import {IconAlertTriangle} from "@tabler/icons-react";
 import {useCallback, useEffect, useRef, useState} from "react";
 import {useTranslations} from "next-intl";
-import {VerificationResponseDTO} from "@/entities/organization/model/verification";
+import {VerificationResponseDTO} from "@/entities/organization";
 import {
     approveOrganizationVerification, denyOrganizationVerification,
     getAllVerificationRequests,
     getOrganizationById
-} from "@/features/organization-management/api";
+} from "@/features/organization-management";
 import {OrganizationResponseDTO} from "@/entities/organization";
 import {notifications} from "@mantine/notifications";
 

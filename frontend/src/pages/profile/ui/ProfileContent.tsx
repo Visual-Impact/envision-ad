@@ -3,7 +3,7 @@
 import { Text, Group, Avatar, Stack, Badge, Title, Box, Divider, Paper, Button } from "@mantine/core";
 import { IconPencil, IconArrowLeft } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
-import { Link } from "@/shared/lib/i18n/navigation";
+import { Link } from "@/shared/lib/i18n";
 import { useDisclosure } from "@mantine/hooks";
 import { EditProfileModal } from "@/pages/profile/ui/EditProfileModal";
 import { InfoRow } from "@/pages/profile/ui/InfoRow";

@@ -1,5 +1,5 @@
 import { LiveCampaign } from "@/entities/bundle-subscription";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /**
  * The campaigns currently running on one screen, for the media owner's proof-of-display picker.

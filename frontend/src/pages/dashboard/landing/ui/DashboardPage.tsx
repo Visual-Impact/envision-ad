@@ -1,0 +1,471 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import {
+    Center, Stack, Title, Text, Button, Group, Loader,
+    ThemeIcon, Badge, Divider, Paper, Box, Alert, SimpleGrid,
+} from "@mantine/core";
+import { useLocale, useTranslations } from "next-intl";
+import { useMediaQuery } from "@mantine/hooks";
+import { useOrganization } from "@/entities/organization";
+import { usePermissions } from "@/shared/lib/permissions";
+import { getStripeAccountStatus, createStripeConnection } from "@/features/payment";
+import {
+    IconCheck, IconBuilding, IconCreditCard, IconRocket,
+    IconAlertTriangle, IconPhoto, IconSpeakerphone, IconCalendar,
+} from "@tabler/icons-react";
+import { getAllMediaLocations } from "@/features/media-location-management";
+import { getAllAdCampaigns } from "@/features/ad-campaign-management";
+import { getBundleSubscriptions } from "@/features/bundle-subscription";
+import { useRouter, Link } from "@/shared/lib/i18n";
+
+interface StripeStatus {
+    connected: boolean;
+    onboardingComplete: boolean;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
+}
+
+type StepStatus = "complete" | "current" | "upcoming";
+type StepKey = "organization" | "stripe" | "media" | "campaign" | "subscription";
+
+interface Step {
+    number: number;
+    key: StepKey;
+    icon: React.ReactNode;
+    status: StepStatus;
+}
+
+export default function OnboardingPage() {
+    const t = useTranslations("onboarding");
+    const locale = useLocale();
+    const { organization, loading: orgLoading } = useOrganization();
+    const { permissions, loading: permissionsLoading } = usePermissions();
+    const isMobile = useMediaQuery("(max-width: 48em)") ?? false;
+    const router = useRouter();
+
+    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+    const [isStripeLoading, setIsStripeLoading] = useState(false);
+    const [isConnecting, setIsConnecting] = useState(false);
+    const [stripeError, setStripeError] = useState<string | null>(null);
+
+    const isMediaOwner = !!organization?.roles?.mediaOwner;
+    const isAdvertiser = !!organization?.roles?.advertiser;
+    const isBoth = isMediaOwner && isAdvertiser;
+    const isAdmin =
+        permissions.includes('patch:media_status') &&
+        permissions.includes('readAll:verification') &&
+        permissions.includes('update:verification');
+
+    useEffect(() => {
+        if (isAdmin) {
+            router.push('/dashboard/admin/metrics');
+        }
+    }, [isAdmin, router]);
+
+    useEffect(() => {
+        if (!organization || !isMediaOwner) return;
+        let cancelled = false;
+
+        (async () => {
+            setIsStripeLoading(true);
+            try {
+                const status = await getStripeAccountStatus(organization.businessId);
+                if (!cancelled) setStripeStatus(status);
+            } catch (e) {
+                console.error("Failed to fetch Stripe status", e);
+            } finally {
+                if (!cancelled) setIsStripeLoading(false);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [organization, isMediaOwner]);
+
+    const handleStripeConnect = async () => {
+        if (!organization) return;
+        setIsConnecting(true);
+        setStripeError(null);
+        try {
+            const response = await createStripeConnection(organization.businessId);
+            if (response?.onboardingUrl) {
+                window.location.href = response.onboardingUrl;
+            } else {
+                setStripeError(t("actions.stripe.errors.connectFailed"));
+            }
+        } catch (e) {
+            console.error("Failed to connect to Stripe", e);
+            setStripeError(t("actions.stripe.errors.connectFailed"));
+        } finally {
+            setIsConnecting(false);
+        }
+    };
+
+    const isStripeOnboarded =
+        !isMediaOwner || (
+            stripeStatus?.onboardingComplete &&
+            stripeStatus?.chargesEnabled &&
+            stripeStatus?.payoutsEnabled
+        );
+
+    const [hasMedia, setHasMedia] = useState(false);
+    const [hasCampaign, setHasCampaign] = useState(false);
+    const [hasSubscription, setHasSubscription] = useState(false);
+
+    useEffect(() => {
+        if (!organization || !isMediaOwner) return;
+        getAllMediaLocations(organization.businessId)
+            .then((locations) => {
+                const anyMedia = locations.some((loc) => loc.mediaList && loc.mediaList.length > 0);
+                setHasMedia(anyMedia);
+            })
+            .catch((e) => console.error("Failed to fetch media locations", e));
+    }, [organization, isMediaOwner]);
+
+    useEffect(() => {
+        if (!organization || !isAdvertiser) return;
+        getAllAdCampaigns(organization.businessId)
+            .then((campaigns) => setHasCampaign(campaigns.length > 0))
+            .catch((e) => console.error("Failed to fetch campaigns", e));
+    }, [organization, isAdvertiser]);
+
+    useEffect(() => {
+        if (!organization || !isAdvertiser) return;
+        getBundleSubscriptions(organization.businessId)
+            .then((subscriptions) => {
+                // PAST_DUE counts as onboarded: the advertiser has completed the flow, they just
+                // have a payment problem. INCOMPLETE does not — that is an abandoned checkout.
+                const anyLive = subscriptions.some(
+                    (s) => s.status === "ACTIVE" || s.status === "PAST_DUE"
+                );
+                setHasSubscription(anyLive);
+            })
+            .catch((e) => console.error("Failed to fetch bundle subscriptions", e));
+    }, [organization, isAdvertiser]);
+
+    const hasOrganization = !!organization;
+
+    const stepCompletionMap: Record<StepKey, boolean> = {
+        organization: hasOrganization,
+        stripe: !!isStripeOnboarded,
+        media: hasMedia,
+        campaign: hasCampaign,
+        subscription: hasSubscription,
+    };
+
+    const iconMap: Record<StepKey, React.ReactNode> = {
+        organization: <IconBuilding size="1.25rem" />,
+        stripe: <IconCreditCard size="1.25rem" />,
+        media: <IconPhoto size="1.25rem" />,
+        campaign: <IconSpeakerphone size="1.25rem" />,
+        subscription: <IconCalendar size="1.25rem" />,
+    };
+
+    const mediaOwnerKeys: StepKey[] = ["stripe", "media"];
+    const advertiserKeys: StepKey[] = ["campaign", "subscription"];
+
+    const buildFlatKeys = (): StepKey[] => {
+        const keys: StepKey[] = ["organization"];
+        if (isMediaOwner) keys.push(...mediaOwnerKeys);
+        if (isAdvertiser) keys.push(...advertiserKeys);
+        return keys;
+    };
+
+    const flatKeys = buildFlatKeys();
+
+    const makeStep = (key: StepKey, number: number, trackKeys?: StepKey[]): Step => {
+        const isComplete = stepCompletionMap[key];
+        let status: StepStatus;
+        if (isComplete) {
+            status = "complete";
+        } else {
+            const keysToCheck = trackKeys ?? flatKeys;
+            const idx = keysToCheck.indexOf(key);
+            const allPreviousComplete = keysToCheck.slice(0, idx).every((k) => stepCompletionMap[k]);
+            const orgDone = key === "organization" || stepCompletionMap["organization"];
+            status = orgDone && allPreviousComplete ? "current" : "upcoming";
+        }
+        return { number, key, icon: iconMap[key], status };
+    };
+
+    const allStepKeys = buildFlatKeys();
+    const allDone = allStepKeys.every((k) => stepCompletionMap[k]);
+
+    const getCurrentStep = (keys: StepKey[]): Step | undefined => {
+        return keys
+            .map((key, i) => makeStep(key, i + 1, keys))
+            .find((s) => s.status === "current");
+    };
+
+    // --- Render helpers ---
+
+    const renderActionPanel = (stepKey: StepKey) => {
+        // No "organization" branch: by the time this page renders past the
+        // no-organization fallback below, the business is always admin-provisioned
+        // already (P5) — that step is always "complete", never "current", so this
+        // is never invoked with stepKey === "organization" in practice.
+        if (stepKey === "stripe") return (
+            <Stack gap="sm">
+                {isStripeLoading ? (
+                    <Group>
+                        <Loader size="sm" />
+                        <Text size="sm" c="dimmed">{t("actions.stripe.loading")}</Text>
+                    </Group>
+                ) : (
+                    <>
+                        <Text fw={500}>{t("actions.stripe.prompt")}</Text>
+                        <Text size="sm" c="dimmed">{t("actions.stripe.hint")}</Text>
+                        {stripeError && (
+                            <Alert icon={<IconAlertTriangle size="1rem" />} color="red" variant="light">
+                                {stripeError}
+                            </Alert>
+                        )}
+                        <Button fullWidth variant="gradient" onClick={handleStripeConnect} loading={isConnecting}>
+                            {stripeStatus?.connected ? t("actions.stripe.ctaContinue") : t("actions.stripe.cta")}
+                        </Button>
+                    </>
+                )}
+            </Stack>
+        );
+        if (stepKey === "media") return (
+            <Stack gap="sm">
+                <Text fw={500}>{t("actions.media.prompt")}</Text>
+                <Text size="sm" c="dimmed">{t("actions.media.hint")}</Text>
+                <Button fullWidth variant="gradient" component={Link} href="/dashboard/media-owner/locations">
+                    {t("actions.media.cta")}
+                </Button>
+            </Stack>
+        );
+        if (stepKey === "campaign") return (
+            <Stack gap="sm">
+                <Text fw={500}>{t("actions.campaign.prompt")}</Text>
+                <Text size="sm" c="dimmed">{t("actions.campaign.hint")}</Text>
+                <Button fullWidth variant="gradient" component={Link} href="/dashboard/advertiser/campaigns">
+                    {t("actions.campaign.cta")}
+                </Button>
+            </Stack>
+        );
+        if (stepKey === "subscription") return (
+            <Stack gap="sm">
+                <Text fw={500}>{t("actions.subscription.prompt")}</Text>
+                <Text size="sm" c="dimmed">{t("actions.subscription.hint")}</Text>
+                {/*
+                  Bundle discovery is a home-page section (D17), not a route, and the typed Link
+                  href has no `hash` field — so this is a plain locale-prefixed anchor.
+                */}
+                <Button fullWidth variant="gradient" component="a" href={`/${locale}#bundles`}>
+                    {t("actions.subscription.cta")}
+                </Button>
+            </Stack>
+        );
+    };
+
+    const renderStepList = (keys: StepKey[], trackKeys?: StepKey[]) => (
+        <Stack gap="sm">
+            {keys.map((key, index) => {
+                const step = makeStep(key, index + 1, trackKeys ?? keys);
+                return (
+                    <React.Fragment key={key}>
+                        <StepCard step={step} t={t} />
+                        {index < keys.length - 1 && (
+                            <Box pl={28}>
+                                <Divider orientation="vertical" h={16} style={{ alignSelf: "flex-start" }} />
+                            </Box>
+                        )}
+                    </React.Fragment>
+                );
+            })}
+        </Stack>
+    );
+
+    const mediaTrackFull: StepKey[] = ["organization", ...mediaOwnerKeys];
+    const advertiserTrackFull: StepKey[] = ["organization", ...advertiserKeys];
+
+    const mediaCurrentStep = isBoth ? getCurrentStep(mediaTrackFull) : undefined;
+    const advertiserCurrentStep = isBoth ? getCurrentStep(advertiserTrackFull) : undefined;
+
+    const singleCurrentStep = !isBoth ? getCurrentStep(allStepKeys) : undefined;
+
+    if (permissionsLoading || orgLoading || isAdmin) {
+        return (
+            <Center h="100vh">
+                <Loader />
+            </Center>
+        );
+    }
+
+    // P5: there is no in-app way for a non-admin to create a business anymore — the
+    // admin provisions it before the client ever logs in. This state should be rare
+    // (a still-provisioning account, or a client logging in before the admin
+    // finishes), but must degrade to an explanatory message, not a broken step list.
+    if (!organization) {
+        return (
+            <Center h="100vh" px="md">
+                <Stack gap="sm" maw={480} align="center" ta="center">
+                    <ThemeIcon size={56} radius="xl" variant="gradient" color="gray">
+                        <IconBuilding size="1.75rem" />
+                    </ThemeIcon>
+                    <Title order={3}>{t("noOrganization.title")}</Title>
+                    <Text c="dimmed" size="sm">{t("noOrganization.description")}</Text>
+                </Stack>
+            </Center>
+        );
+    }
+
+    return (
+        <Center py={{ base: "md", sm: "xl" }} px={{ base: "xs", sm: "md" }}>
+            <Stack gap="xl" w="100%" maw={isBoth ? 760 : 560}>
+                {/* Header */}
+                <Stack gap="xs" align="center" ta="center">
+                    <ThemeIcon size={56} radius="xl" variant="gradient">
+                        <IconRocket size="1.75rem" />
+                    </ThemeIcon>
+                    <Title order={2}>{t("header.title")}</Title>
+                    <Text c="dimmed" size="sm" maw={400}>
+                        {t("header.description")}
+                    </Text>
+                </Stack>
+
+                {/* Steps */}
+                {!isBoth ? (
+                    renderStepList(allStepKeys)
+                ) : (
+                    <Stack gap="sm">
+                        {/* Shared org step */}
+                        <StepCard step={makeStep("organization", 1, allStepKeys)} t={t} />
+                        <Box pl={28}>
+                            <Divider orientation="vertical" h={16} style={{ alignSelf: "flex-start" }} />
+                        </Box>
+
+                        {/* Desktop: two rows of two columns (steps, then actions) */}
+                        {!isMobile && (
+                            <Stack gap="lg">
+                                <SimpleGrid cols={2} spacing="lg">
+                                    <Paper shadow="sm" radius="lg" p="md">
+                                        <Stack gap="xs" mb="sm">
+                                            <Badge color="violet" variant="light" size="sm">
+                                                {t("roles.mediaOwner")}
+                                            </Badge>
+                                        </Stack>
+                                        {renderStepList(mediaOwnerKeys, mediaTrackFull)}
+                                    </Paper>
+                                    <Paper shadow="sm" radius="lg" p="md">
+                                        <Stack gap="xs" mb="sm">
+                                            <Badge color="orange" variant="light" size="sm">
+                                                {t("roles.advertiser")}
+                                            </Badge>
+                                        </Stack>
+                                        {renderStepList(advertiserKeys, advertiserTrackFull)}
+                                    </Paper>
+                                </SimpleGrid>
+                                {!allDone && (
+                                    <SimpleGrid cols={2} spacing="lg">
+                                        <Paper shadow="sm" radius="lg" p="lg">
+                                            {mediaCurrentStep
+                                                ? renderActionPanel(mediaCurrentStep.key)
+                                                : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.mediaOwner")}</Text></Group>}
+                                        </Paper>
+                                        <Paper shadow="sm" radius="lg" p="lg">
+                                            {advertiserCurrentStep
+                                                ? renderActionPanel(advertiserCurrentStep.key)
+                                                : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.advertiser")}</Text></Group>}
+                                        </Paper>
+                                    </SimpleGrid>
+                                )}
+                            </Stack>
+                        )}
+
+                        {/* Mobile: each track's steps immediately followed by its action */}
+                        {isMobile && (
+                            <Stack gap="sm">
+                                <Paper shadow="sm" radius="lg" p="sm">
+                                    <Stack gap="xs" mb="sm">
+                                        <Badge color="violet" variant="light" size="sm">
+                                            {t("roles.mediaOwner")}
+                                        </Badge>
+                                    </Stack>
+                                    {renderStepList(mediaOwnerKeys, mediaTrackFull)}
+                                </Paper>
+                                {!allDone && (
+                                    <Paper shadow="sm" radius="lg" p="md">
+                                        {mediaCurrentStep
+                                            ? renderActionPanel(mediaCurrentStep.key)
+                                            : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.mediaOwner")}</Text></Group>}
+                                    </Paper>
+                                )}
+                                <Paper shadow="sm" radius="lg" p="sm">
+                                    <Stack gap="xs" mb="sm">
+                                        <Badge color="orange" variant="light" size="sm">
+                                            {t("roles.advertiser")}
+                                        </Badge>
+                                    </Stack>
+                                    {renderStepList(advertiserKeys, advertiserTrackFull)}
+                                </Paper>
+                                {!allDone && (
+                                    <Paper shadow="sm" radius="lg" p="md">
+                                        {advertiserCurrentStep
+                                            ? renderActionPanel(advertiserCurrentStep.key)
+                                            : <Group gap="xs"><ThemeIcon size={28} radius="xl" color="green"><IconCheck size="1rem" /></ThemeIcon><Text size="sm" c="dimmed">{t("trackComplete.advertiser")}</Text></Group>}
+                                    </Paper>
+                                )}
+                            </Stack>
+                        )}
+                    </Stack>
+                )}
+
+                {/* Action panel — single role only */}
+                {!allDone && !isBoth && singleCurrentStep && (
+                    <Paper shadow="sm" radius="lg" p={{ base: "md", sm: "lg" }}>
+                        {renderActionPanel(singleCurrentStep.key)}
+                    </Paper>
+                )}
+
+                {/* All done */}
+                {allDone && (
+                    <Paper shadow="sm" radius="lg" p={{ base: "md", sm: "lg" }} bg="green.0">
+                        <Stack gap="xs" align="center" ta="center">
+                            <ThemeIcon size={44} radius="xl" color="green">
+                                <IconCheck size="1.5rem" />
+                            </ThemeIcon>
+                            <Title order={4}>{t("allDone.title")}</Title>
+                            <Text size="sm" c="dimmed">{t("allDone.description")}</Text>
+                        </Stack>
+                    </Paper>
+                )}
+            </Stack>
+        </Center>
+    );
+}
+
+function StepCard({ step, t }: { step: Step; t: ReturnType<typeof useTranslations> }) {
+    const { status, number, key, icon } = step;
+    const colorMap: Record<StepStatus, string> = { complete: "green", current: "blue", upcoming: "gray" };
+    const color = colorMap[status];
+
+    return (
+        <Group gap="md" align="flex-start" wrap="nowrap">
+            <ThemeIcon
+                size={40} radius="xl" color={color}
+                variant={status === "upcoming" ? "light" : "filled"}
+                style={{ flexShrink: 0, marginTop: 2 }}
+            >
+                {status === "complete" ? <IconCheck size="1.1rem" /> : icon}
+            </ThemeIcon>
+            <Stack gap={4} style={{ flex: 1, minWidth: 0 }}>
+                <Group gap="xs" wrap="wrap">
+                    <Text size="xs" c="dimmed" fw={500}>{t("stepLabel", { number })}</Text>
+                    {status === "complete" && <Badge size="xs" color="green" variant="light">{t("badge.complete")}</Badge>}
+                    {status === "current" && <Badge size="xs" color="blue" variant="light">{t("badge.current")}</Badge>}
+                </Group>
+                <Text fw={600} c={status === "upcoming" ? "dimmed" : undefined}>
+                    {t(`steps.${key}.title`)}
+                </Text>
+                <Text size="sm" c="dimmed">
+                    {t(`steps.${key}.description`)}
+                </Text>
+            </Stack>
+        </Group>
+    );
+}

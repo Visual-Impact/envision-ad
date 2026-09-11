@@ -26,7 +26,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # 24, not 20: steiger's parser loads a WebAssembly module that fails on Node 20
+          # ("bad export type for 'deleter'"). Verified on 22 and 24. The app itself still
+          # builds and ships on Node 20 (frontend/Dockerfile) — this is the linter's runtime only.
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -35,3 +38,6 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Run FSD architecture lint (steiger)
+        run: npm run lint:fsd
