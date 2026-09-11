@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Auth0ManagementService } from "@/shared/api/auth0/management";
-import { auth0 } from "@/shared/api/auth0/auth0";
-import { routing } from "@/shared/lib/i18n/routing";
+import { Auth0ManagementService } from "@/shared/api/index.server";
+import { auth0 } from "@/shared/api/index.server";
+import { routing } from "@/shared/lib/i18n";
 
 export async function PATCH(
     request: NextRequest,

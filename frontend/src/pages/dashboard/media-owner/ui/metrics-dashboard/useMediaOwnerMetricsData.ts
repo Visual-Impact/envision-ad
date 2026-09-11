@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getAllMediaLocations } from "@/features/media-location-management/api/getAllMediaLocations";
+import { getAllMediaLocations } from "@/features/media-location-management";
 import { getPaymentsDashboardData } from "@/features/payment";
-import type { MediaLocation } from "@/entities/media-location/model/mediaLocation";
+import type { MediaLocation } from "@/entities/media-location";
 import {
     type MetricsKpi,
     type PayoutHistoryRow,

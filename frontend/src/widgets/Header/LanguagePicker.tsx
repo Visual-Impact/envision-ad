@@ -1,6 +1,6 @@
 import { useTransition } from "react";
 import { Button } from "@mantine/core";
-import { useRouter, usePathname } from "@/shared/lib/i18n/navigation";
+import { useRouter, usePathname } from "@/shared/lib/i18n";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useUser } from "@auth0/nextjs-auth0/client";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getPendingMedia } from "@/features/media-management/api";
+import { getPendingMedia } from "@/features/media-management";
 import type { Media } from "@/entities/media";
 
 export function useAdminPendingMedia() {

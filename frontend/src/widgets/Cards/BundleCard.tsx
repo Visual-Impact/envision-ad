@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { Bundle } from "@/entities/bundle";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
-import { Link } from "@/shared/lib/i18n/navigation";
+import { Link } from "@/shared/lib/i18n";
 
 export interface BundleCardProps {
     bundle: Bundle;

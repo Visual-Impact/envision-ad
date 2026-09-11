@@ -4,7 +4,7 @@ import {ActionIcon, Autocomplete, Button, Container, Group, Loader, Pagination, 
 import { MediaCardGrid, SkeletonMediaCardGrid } from '@/widgets/Grid/CardGrid';
 import BrowseActions from '@/widgets/BrowseActions/BrowseActions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {SpecialSort} from "@/features/media-management/api";
+import {SpecialSort} from "@/features/media-management";
 import { FilterPricePopover, FilterValuePopover } from '@/widgets/BrowseActions/FilterPopover';
 import { FilterVenuePopover } from '@/widgets/BrowseActions/FilterVenuePopover';
 import { useTranslations } from "next-intl";
@@ -12,10 +12,10 @@ import { IconMap, IconSearch } from '@tabler/icons-react';
 import { AddressDetails, GetAddressDetails, GetUserGeoLocation, SearchLocations} from '@/shared/lib/geolocation';
 
 import type { LatLngBounds, LatLngLiteral, Map } from 'leaflet';
-import { MediaStatus } from '@/entities/media/model/media';
-import { LocationStatus } from '@/shared/lib/geolocation/LocationService';
-import { useMediaList } from '@/features/media-management/api/useMediaList';
-import { SortOptions } from '@/features/media-management/api/getAllFilteredActiveMedia';
+import { MediaStatus } from '@/entities/media';
+import { LocationStatus } from '@/shared/lib/geolocation';
+import { useMediaList } from '@/features/media-management';
+import { SortOptions } from '@/features/media-management';
 import dynamic from 'next/dynamic';
 
 const MapView = dynamic(() => import('@/widgets/Map/MapView'), { ssr: false });

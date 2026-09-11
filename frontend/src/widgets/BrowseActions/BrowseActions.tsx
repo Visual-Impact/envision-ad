@@ -1,5 +1,5 @@
-import { SpecialSort } from "@/features/media-management/api";
-import { SortOptions } from "@/features/media-management/api/getAllFilteredActiveMedia";
+import { SpecialSort } from "@/features/media-management";
+import { SortOptions } from "@/features/media-management";
 import { Group, ScrollArea, Select, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
 

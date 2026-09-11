@@ -5,7 +5,7 @@ import { IconChevronDown } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { Venue } from "@/entities/venue";
-import { getAllVenues } from "@/features/venue-management/api";
+import { getAllVenues } from "@/features/venue-management";
 
 interface FilterVenuePopoverProps {
     id?: string;

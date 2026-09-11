@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { useUser } from '@auth0/nextjs-auth0/client';
 import {jwtDecode} from "jwt-decode";
 import {Token} from "@/entities/auth";
-import {resetTokenCache} from "@/shared/api/axios/axios";
+import {resetTokenCache} from "@/shared/api";
 
 interface PermissionsContextType {
     permissions: string[];

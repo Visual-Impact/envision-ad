@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Container } from "@mantine/core";
 import React from "react";
-import { getUserServer } from "@/features/auth/server";
+import { getUserServer } from "@/features/auth/index.server";
 import ProfileContent from "@/pages/profile/ui/ProfileContent";
 
 export default async function ProfilePage() {

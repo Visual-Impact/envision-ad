@@ -26,7 +26,7 @@ import { useTranslations } from "next-intl";
 import {
   getAdminOverview,
   type AdminOverviewResponse,
-} from "@/features/admin-dashboard/api/getAdminOverview";
+} from "@/features/admin-dashboard";
 
 import { MetricCard } from "@/widgets/Cards/MetricCard";
 

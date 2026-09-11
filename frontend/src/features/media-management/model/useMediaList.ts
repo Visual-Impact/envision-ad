@@ -1,7 +1,7 @@
-import { UseMediaListProps } from "@/entities/media/model/media";
+import { UseMediaListProps } from "@/entities/media";
 import { MediaCardProps } from "@/widgets/Cards/MediaCard";
 import { useEffect, useState } from "react";
-import { getAllFilteredActiveMedia, SpecialSort } from ".";
+import { getAllFilteredActiveMedia, SpecialSort } from "../api";
 
 
 export function useMediaList({

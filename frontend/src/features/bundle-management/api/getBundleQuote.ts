@@ -1,5 +1,5 @@
 import { BundlePriceQuote } from "@/entities/bundle";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /**
  * Buyer-specific price preview for a bundle. Authenticated; the backend validates

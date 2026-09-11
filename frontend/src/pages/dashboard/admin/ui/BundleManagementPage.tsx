@@ -12,8 +12,8 @@ import {
     deleteBundle,
     getAllBundles,
     updateBundle,
-} from "@/features/bundle-management/api";
-import { getAllVenues } from "@/features/venue-management/api";
+} from "@/features/bundle-management";
+import { getAllVenues } from "@/features/venue-management";
 import { BundleTable } from "@/pages/dashboard/admin/ui/tables/BundleTable";
 import { BundleFormModal } from "@/pages/dashboard/admin/ui/modals/BundleFormModal";
 import { BundleDeleteModal } from "@/pages/dashboard/admin/ui/modals/BundleDeleteModal";

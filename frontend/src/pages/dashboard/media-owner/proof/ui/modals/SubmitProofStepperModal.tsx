@@ -17,7 +17,7 @@ import { IconUpload, IconTrash, IconArrowRight, IconArrowLeft } from "@tabler/ic
 import { CldUploadWidget } from "next-cloudinary";
 import axios from "axios";
 import { useProofStepper } from "../../hooks/useProofStepper";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 import { useTranslations } from "next-intl";
 
 type Props = {

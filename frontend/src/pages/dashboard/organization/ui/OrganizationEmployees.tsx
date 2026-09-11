@@ -10,14 +10,14 @@ import {
     getAllOrganizationEmployees,
     getAllOrganizationInvitations,
     removeEmployeeFromOrganization
-} from "@/features/organization-management/api";
+} from "@/features/organization-management";
 import { EmployeeTable } from "@/pages/dashboard/organization/ui/tables/EmployeesTable";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
+import { ConfirmationModal } from "@/shared/ui";
 import type { Employee } from "@/entities/organization";
 import { InvitationResponse } from "@/entities/organization";
 import { InvitationTable } from "@/pages/dashboard/organization/ui/tables/InvitationsTable";
 import { notifications } from "@mantine/notifications";
-import { AUTH0_ROLES } from "@/shared/lib/auth/roles";
+import { AUTH0_ROLES } from "@/shared/lib/auth";
 import { useOrganization } from "@/app/providers";
 
 export default function OrganizationEmployees() {

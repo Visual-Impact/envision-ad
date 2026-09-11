@@ -1,7 +1,7 @@
 "use client";
 
-import { MediaStatusEnum } from "@/entities/media/model/media";
-import { patchMediaStatus } from "@/features/media-management/api/patchMediaStatus";
+import { MediaStatusEnum } from "@/entities/media";
+import { patchMediaStatus } from "@/features/media-management";
 
 export function useAdminMedia() {
     const approveMedia = (id: string) =>

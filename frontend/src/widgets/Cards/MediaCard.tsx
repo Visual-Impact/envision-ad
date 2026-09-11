@@ -18,7 +18,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
 import { MediaLocation } from "@/entities/media-location";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
-import calculateWeeklyImpressions from "@/features/media-management/api/calculateWeeklyImpressions";
+import { calculateWeeklyImpressions } from "@/features/media-management";
 import { ImgNotFound } from "../imageNotFound";
 import { IconEye } from "@tabler/icons-react";
 

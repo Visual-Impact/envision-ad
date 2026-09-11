@@ -7,7 +7,7 @@ import { OrganizationModal } from "@/pages/dashboard/organization/ui/modals/Orga
 import { useTranslations } from "next-intl";
 import { useOrganizationForm } from "@/pages/dashboard/organization/hooks/useOrganizationForm";
 import { OrganizationSize } from "@/entities/organization";
-import { updateOrganization } from "@/features/organization-management/api";
+import { updateOrganization } from "@/features/organization-management";
 import { notifications } from "@mantine/notifications";
 import { useOrganization } from "@/app/providers";
 

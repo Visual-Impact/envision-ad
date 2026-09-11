@@ -2,8 +2,8 @@ import { Carousel } from "@mantine/carousel";
 import classes from "./CardCarousel.module.css";
 import { Stack, StyleProp, Title } from "@mantine/core";
 import MediaCard, { MediaCardProps } from "../Cards/MediaCard";
-import { FilteredActiveMediaProps } from "@/entities/media/model/media";
-import { useMediaList } from "@/features/media-management/api/useMediaList";
+import { FilteredActiveMediaProps } from "@/entities/media";
+import { useMediaList } from "@/features/media-management";
 import '@mantine/carousel/styles.css';
 
 interface CardCarouselProps {

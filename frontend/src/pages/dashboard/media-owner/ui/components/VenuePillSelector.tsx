@@ -4,7 +4,7 @@ import { Badge, Group, Text, Loader } from "@mantine/core";
 import { useTranslations, useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { Venue } from "@/entities/venue";
-import { getAllVenues } from "@/features/venue-management/api";
+import { getAllVenues } from "@/features/venue-management";
 
 interface VenuePillSelectorProps {
     selectedVenueId: string | null;

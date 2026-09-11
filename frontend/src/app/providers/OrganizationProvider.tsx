@@ -2,9 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import { getEmployeeOrganization } from "@/features/organization-management/api";
+import { getEmployeeOrganization } from "@/features/organization-management";
 import { OrganizationResponseDTO } from "@/entities/organization";
-import { useRouter, usePathname } from "@/shared/lib/i18n/navigation";
+import { useRouter, usePathname } from "@/shared/lib/i18n";
 import { usePermissions } from "@/app/providers/PermissionProvider";
 
 interface OrganizationContextType {

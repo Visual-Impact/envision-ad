@@ -15,13 +15,13 @@ import {
     deleteAdFromCampaign,
     getAllAdCampaigns,
     updateAdVenueTags
-} from "@/features/ad-campaign-management/api";
-import {getAllVenues} from "@/features/venue-management/api";
+} from "@/features/ad-campaign-management";
+import {getAllVenues} from "@/features/venue-management";
 import {AdCampaignsTable} from "@/pages/dashboard/advertiser/ui/tables/AdCampaignsTable";
 import {AddAdModal} from "@/pages/dashboard/advertiser/ui/modals/AddAdModal";
 import {EditAdVenueTagsModal} from "@/pages/dashboard/advertiser/ui/modals/EditAdVenueTagsModal";
 import {CreateCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/CreateCampaignModal";
-import {ConfirmationModal} from "@/shared/ui/ConfirmationModal";
+import {ConfirmationModal} from "@/shared/ui";
 import {MetricCard} from "@/widgets/Cards/MetricCard";
 import {useOrganization} from "@/app/providers";
 

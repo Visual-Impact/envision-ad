@@ -13,10 +13,10 @@ import {
     IconCheck, IconBuilding, IconCreditCard, IconRocket,
     IconAlertTriangle, IconPhoto, IconSpeakerphone, IconCalendar,
 } from "@tabler/icons-react";
-import { getAllMediaLocations } from "@/features/media-location-management/api";
-import { getAllAdCampaigns } from "@/features/ad-campaign-management/api";
+import { getAllMediaLocations } from "@/features/media-location-management";
+import { getAllAdCampaigns } from "@/features/ad-campaign-management";
 import { getBundleSubscriptions } from "@/features/bundle-subscription";
-import { useRouter, Link } from "@/shared/lib/i18n/navigation";
+import { useRouter, Link } from "@/shared/lib/i18n";
 
 interface StripeStatus {
     connected: boolean;

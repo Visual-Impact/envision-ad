@@ -1,5 +1,5 @@
-import {VerificationResponseDTO} from "@/entities/organization/model/verification";
-import axiosInstance from "@/shared/api/axios/axios";
+import {VerificationResponseDTO} from "@/entities/organization";
+import { axiosInstance } from "@/shared/api";
 
 export const approveOrganizationVerification = async (
     businessId: string,

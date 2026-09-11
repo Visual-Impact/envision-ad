@@ -5,7 +5,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import {Box, Center, Group, Loader, Paper} from "@mantine/core";
 import SideBar from "@/widgets/SideBar/SideBar";
 import { useOrganization, usePermissions } from "@/app/providers";
-import { isAdmin as computeIsAdmin } from "@/shared/lib/auth/isAdmin";
+import { isAdmin as computeIsAdmin } from "@/shared/lib/auth";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const isMobile = useMediaQuery("(max-width: 768px)");

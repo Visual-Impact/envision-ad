@@ -3,7 +3,7 @@ import { Modal, TextInput, Button, Group, Stack, Anchor, Text, Loader } from '@m
 import { useForm } from '@mantine/form';
 import { useLocale, useTranslations } from 'next-intl';
 import { notifications } from '@mantine/notifications';
-import { MediaLocationRequestDTO, addressDetailsToLocationFields } from "@/entities/media-location/model/mediaLocation";
+import { MediaLocationRequestDTO, addressDetailsToLocationFields } from "@/entities/media-location";
 import { AddressAutocomplete, PinDropMap } from '@/shared/ui';
 import { AddressDetails, ReverseGeocode } from '@/shared/lib/geolocation';
 

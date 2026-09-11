@@ -1,4 +1,4 @@
-import { auth0 } from "@/shared/api/auth0/auth0";
+import { auth0 } from "@/shared/api/index.server";
 import { NextResponse } from "next/server";
 
 export async function GET() {

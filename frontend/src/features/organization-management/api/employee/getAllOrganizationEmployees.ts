@@ -1,5 +1,5 @@
 import { Employee } from "@/entities/organization";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const getAllOrganizationEmployees = async (organizationId: string): Promise<Employee[]> => {
     const response = await axiosInstance.get<Array<{employeeId: string; userId: string}>>(`/businesses/${organizationId}/employees`);

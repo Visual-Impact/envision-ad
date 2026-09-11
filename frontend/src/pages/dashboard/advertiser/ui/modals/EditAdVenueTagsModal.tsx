@@ -4,7 +4,7 @@ import { Button, Group, Modal, Stack, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Ad } from "@/entities/ad";
-import { VenueMultiSelectPicker } from "@/features/venue-management/ui";
+import { VenueMultiSelectPicker } from "@/features/venue-management";
 
 interface EditAdVenueTagsModalProps {
     opened: boolean;

@@ -6,7 +6,7 @@ import { Group, Text, ActionIcon } from "@mantine/core";
 import { IconBrandLinkedin, IconBrandInstagram } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { useTranslations } from "next-intl";
-import { Link } from "@/shared/lib/i18n/navigation";
+import { Link } from "@/shared/lib/i18n";
 import styles from "./Footer.module.css";
 
 interface FooterProps {

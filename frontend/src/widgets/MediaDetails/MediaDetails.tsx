@@ -1,5 +1,5 @@
 import { getJoinedAddress, Media } from "@/entities/media";
-import calculateWeeklyImpressions from "@/features/media-management/api/calculateWeeklyImpressions";
+import { calculateWeeklyImpressions } from "@/features/media-management";
 import { Anchor, AspectRatio, Group, Stack, Title, Image, Text, Divider, Card, SimpleGrid, Badge, Center, Loader, Modal } from "@mantine/core";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";

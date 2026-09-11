@@ -1,9 +1,9 @@
 import createMiddleware from "next-intl/middleware";
-import { routing } from "@/shared/lib/i18n/routing";
-import { auth0 } from "@/shared/api/auth0/auth0";
+import { routing } from "@/shared/lib/i18n";
+import { auth0 } from "@/shared/api/index.server";
 import { NextRequest, NextResponse } from "next/server";
-import { Auth0ManagementService } from "@/shared/api/auth0/management";
-import { ROUTE_PERMISSIONS } from "@/shared/lib/auth/routes";
+import { Auth0ManagementService } from "@/shared/api/index.server";
+import { ROUTE_PERMISSIONS } from "@/shared/lib/auth";
 import {jwtDecode} from "jwt-decode";
 import {Token} from "@/entities/auth";
 

@@ -1,6 +1,6 @@
 import { MediaListResponseDTO } from "@/entities/media";
-import axiosInstance from "@/shared/api/axios/axios";
-import { FilteredActiveMediaProps } from "@/entities/media/model/media";
+import { axiosInstance } from "@/shared/api";
+import { FilteredActiveMediaProps } from "@/entities/media";
 
 
 export enum SpecialSort {

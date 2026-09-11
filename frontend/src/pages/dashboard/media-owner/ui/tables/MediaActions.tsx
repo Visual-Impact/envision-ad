@@ -6,7 +6,7 @@ import { IconClock, IconEdit, IconMenu2, IconPower, IconTrash } from "@tabler/ic
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { MediaRowData } from "./MediaRow";
-import { MediaStatusEnum } from "@/entities/media/model/media";
+import { MediaStatusEnum } from "@/entities/media";
 
 interface MediaActionsProps {
     row: MediaRowData;

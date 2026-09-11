@@ -14,13 +14,13 @@ import {
 } from "@mantine/core";
 import { BackButton } from "@/widgets/BackButton";
 import { useParams } from "next/navigation";
-import { useRouter } from "@/shared/lib/i18n/navigation";
-import { getMediaById } from "@/features/media-management/api";
+import { useRouter } from "@/shared/lib/i18n";
+import { getMediaById } from "@/features/media-management";
 import { useTranslations } from "next-intl";
 import { Media } from "@/entities/media";
 import { useAdminMedia } from "@/pages/dashboard/admin/hooks/useAdminMedia";
 import { notifications } from "@mantine/notifications";
-import { MediaStatusEnum } from "@/entities/media/model/media";
+import { MediaStatusEnum } from "@/entities/media";
 import { useMediaQuery } from "@mantine/hooks";
 import { MediaDetails } from "@/widgets/MediaDetails/MediaDetails";
 import { MediaLocationReviewCard } from "./MediaLocationReviewCard";

@@ -4,8 +4,8 @@ import { Button, Stack, TextInput, Title, Text, Divider } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
-import { updateAppSetting } from "@/features/app-settings/api";
-import axiosInstance from "@/shared/api/axios/axios";
+import { updateAppSetting } from "@/features/app-settings";
+import { axiosInstance } from "@/shared/api";
 import { HomepageGalleryManager } from "./HomepageGalleryManager";
 
 export default function AppSettingsPage() {

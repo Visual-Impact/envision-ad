@@ -1,5 +1,5 @@
 import { HomePage } from "@/pages/home";
-import { parseGalleryImages } from "@/features/app-settings/api";
+import { parseGalleryImages } from "@/features/app-settings";
 
 interface HomepageStats {
     activeScreens: number;

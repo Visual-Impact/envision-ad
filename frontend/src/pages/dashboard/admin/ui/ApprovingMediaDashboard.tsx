@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { ApproveMediaRowData, ApproveMediaTable } from "@/pages/dashboard/admin/ui/tables/ApproveMediaTable";
 import { useAdminPendingMedia } from "@/pages/dashboard/admin/hooks/useAdminPendingMedia";
 
-import { MediaStatusEnum } from "@/entities/media/model/media";
+import { MediaStatusEnum } from "@/entities/media";
 
 const ITEMS_PER_PAGE = 20;
 

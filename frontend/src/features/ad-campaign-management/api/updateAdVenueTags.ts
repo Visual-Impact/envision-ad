@@ -1,5 +1,5 @@
 import { Ad } from "@/entities/ad";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const updateAdVenueTags = async (
     businessId: string,

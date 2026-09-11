@@ -3,7 +3,7 @@
 import { Avatar, Paper, ScrollArea, Table, Text } from "@mantine/core";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import type { MediaStatusEnum } from "@/entities/media/model/media";
+import type { MediaStatusEnum } from "@/entities/media";
 
 export interface ApproveMediaRowData {
     id: string | number;

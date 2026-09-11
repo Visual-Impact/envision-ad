@@ -6,10 +6,10 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import { useEffect, useRef, useState } from "react";
 import { Button, Loader, Stack, Text, Title } from "@mantine/core";
 import { IconCheck, IconMail, IconX } from "@tabler/icons-react";
-import { addEmployeeToOrganization, getOrganizationById } from "@/features/organization-management/api";
-import { AUTH0_ROLES } from "@/shared/lib/auth/roles";
+import { addEmployeeToOrganization, getOrganizationById } from "@/features/organization-management";
+import { AUTH0_ROLES } from "@/shared/lib/auth";
 import { usePermissions } from "@/app/providers";
-import { Link } from "@/shared/lib/i18n/navigation";
+import { Link } from "@/shared/lib/i18n";
 
 export default function OrganizationInvitationPage() {
     const t = useTranslations('invitation');

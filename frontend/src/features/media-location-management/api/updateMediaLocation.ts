@@ -1,5 +1,5 @@
-import axiosInstance from "@/shared/api/axios/axios";
-import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location/model/mediaLocation";
+import { axiosInstance } from "@/shared/api";
+import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location";
 
 const BASE_URL = "/media-locations";
 

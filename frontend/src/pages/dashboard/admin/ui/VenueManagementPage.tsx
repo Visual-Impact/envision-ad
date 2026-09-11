@@ -7,7 +7,7 @@ import { useLocale } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { Venue, VenueRequestDTO } from "@/entities/venue";
-import { getAllVenues, createVenue, updateVenue, deleteVenue, getVenueAdCount } from "@/features/venue-management/api";
+import { getAllVenues, createVenue, updateVenue, deleteVenue, getVenueAdCount } from "@/features/venue-management";
 import { VenueTable } from "@/pages/dashboard/admin/ui/tables/VenueTable";
 import { VenueFormModal } from "@/pages/dashboard/admin/ui/modals/VenueFormModal";
 import { VenueDeleteModal } from "@/pages/dashboard/admin/ui/modals/VenueDeleteModal";

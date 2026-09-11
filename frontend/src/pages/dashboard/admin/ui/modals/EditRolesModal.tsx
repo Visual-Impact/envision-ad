@@ -6,7 +6,7 @@ import { IconInfoCircle } from "@tabler/icons-react";
 import { useTranslations } from "next-intl";
 import { AccountListItem, RoleRemovalEligibilityDTO } from "@/entities/account";
 import { Roles } from "@/entities/organization";
-import { getRoleRemovalEligibility } from "@/features/account-management/api";
+import { getRoleRemovalEligibility } from "@/features/account-management";
 
 interface EditRolesModalProps {
     opened: boolean;

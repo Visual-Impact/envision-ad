@@ -1,6 +1,6 @@
-import { auth0 } from "@/shared/api/auth0/auth0";
+import { auth0 } from "@/shared/api/index.server";
 import { Employee } from "@/entities/organization";
-import { Auth0ManagementService } from "@/shared/api/auth0/management";
+import { Auth0ManagementService } from "@/shared/api/index.server";
 
 export async function getUserServer(): Promise<Employee | null> {
     const session = await auth0.getSession();

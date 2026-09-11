@@ -1,5 +1,5 @@
 import { BundleSubscriptionCheckout, BundleSubscriptionRequestDTO } from "@/entities/bundle-subscription";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 /**
  * Opens a subscription-mode Stripe Checkout Session and freezes the locked price and

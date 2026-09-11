@@ -1,5 +1,5 @@
 import { AccountListPageResponse } from "@/entities/account";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 // Server-paginated (P5 M6 fix) — resolving every owner's email in one unpaged load hit
 // Auth0's Management API rate limit once the table held more than a handful of rows.

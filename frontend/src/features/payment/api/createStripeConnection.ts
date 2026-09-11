@@ -1,4 +1,4 @@
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const createStripeConnection = async (businessId: string) => {
     const response = await axiosInstance.post('/payments/connect-account', {

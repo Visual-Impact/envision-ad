@@ -1,4 +1,4 @@
-import { UpdateUserRequestModel } from "@/features/auth";
+import { UpdateUserRequestModel } from "../model/UpdateUserRequestModel";
 import { Employee } from "@/entities/organization";
 
 export const updateUser = async (id: string, data: UpdateUserRequestModel): Promise<Employee> => {

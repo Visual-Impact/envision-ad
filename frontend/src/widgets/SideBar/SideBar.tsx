@@ -1,6 +1,6 @@
 import type { ComponentProps, ElementType } from "react";
 import { NavLink, Stack, Accordion } from "@mantine/core";
-import { Link, usePathname } from "@/shared/lib/i18n/navigation";
+import { Link, usePathname } from "@/shared/lib/i18n";
 import {
     IconAd,
     IconDeviceTv,

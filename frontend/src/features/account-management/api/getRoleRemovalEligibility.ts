@@ -1,5 +1,5 @@
 import { RoleRemovalEligibilityDTO } from "@/entities/account";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const getRoleRemovalEligibility = async (businessId: string): Promise<RoleRemovalEligibilityDTO> => {
     const response = await axiosInstance.get(`/admin/accounts/${businessId}/roles/removal-eligibility`);

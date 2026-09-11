@@ -1,5 +1,5 @@
 import { InvitationRequest } from "@/entities/organization";
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const createInviteEmployeeToOrganization = async (
     organizationId: string,

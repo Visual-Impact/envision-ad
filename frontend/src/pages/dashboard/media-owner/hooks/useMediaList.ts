@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
-import { MediaStatusEnum } from "@/entities/media/model/media";
+import { MediaStatusEnum } from "@/entities/media";
 import {
     addMedia,
     getMediaByBusinessId,
     getMediaById,
     updateMedia,
     deleteMedia,
-} from "@/features/media-management/api";
+} from "@/features/media-management";
 import type { MediaRowData } from "@/pages/dashboard/media-owner/ui/tables/MediaRow";
 import type { MediaFormState } from "./useMediaForm";
 import { MediaRequestDTO } from "@/entities/media";
-import { patchMediaStatus } from "@/features/media-management/api/patchMediaStatus";
+import { patchMediaStatus } from "@/features/media-management";
 import { useOrganization } from "@/app/providers";
 
 export function useMediaList() {

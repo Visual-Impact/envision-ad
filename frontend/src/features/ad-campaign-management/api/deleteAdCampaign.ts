@@ -1,4 +1,4 @@
-import axiosInstance from "@/shared/api/axios/axios";
+import { axiosInstance } from "@/shared/api";
 
 export const deleteAdCampaign = async(businessId: string, campaignId: string): Promise<void> => {
     const response = await axiosInstance.delete(`/businesses/${businessId}/campaigns/${campaignId}`);

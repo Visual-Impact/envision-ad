@@ -3,7 +3,7 @@
 import React from "react";
 import { Container, Stack, Title, Text, Box, Group, Divider } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { Link } from "@/shared/lib/i18n/navigation";
+import { Link } from "@/shared/lib/i18n";
 import classes from "@/app/page.module.css";
 import { useTranslations } from "next-intl";
 import { HeroGridBackground } from "./HeroGridBackground";

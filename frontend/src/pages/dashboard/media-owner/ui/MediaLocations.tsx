@@ -8,18 +8,18 @@ import { useMediaForm } from "@/pages/dashboard/media-owner/hooks/useMediaForm";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
 import { IconAlertTriangle, IconCheck } from "@tabler/icons-react";
 import { WeeklyScheduleModel } from "@/entities/media";
-import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location/model/mediaLocation";
+import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location";
 import {
     createMediaLocation,
     deleteMediaLocation,
     getAllMediaLocations,
-} from "@/features/media-location-management/api";
+} from "@/features/media-location-management";
 import { useMediaList } from "@/pages/dashboard/media-owner/hooks/useMediaList";
 import { MediaLocationsTable } from "@/pages/dashboard/media-owner/ui/tables/MediaLocationsTable";
 import { CreateMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/CreateMediaLocationModal";
 import { EditMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/EditMediaLocationModal";
-import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
-import { MediaStatusEnum } from "@/entities/media/model/media";
+import { ConfirmationModal } from "@/shared/ui";
+import { MediaStatusEnum } from "@/entities/media";
 import { useOrganization } from "@/app/providers";
 import { getStripeAccountStatus } from "@/features/payment";
 import Link from "next/link";

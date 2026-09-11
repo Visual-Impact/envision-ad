@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { MediaActions } from "./MediaActions";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
-import { MediaStatusEnum } from "@/entities/media/model/media";
+import { MediaStatusEnum } from "@/entities/media";
 import { Venue } from "@/entities/venue";
 
 export interface MediaRowData {

@@ -18,7 +18,7 @@ import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { useDisclosure } from "@mantine/hooks";
 import { LanguagePicker } from "./LanguagePicker";
-import { Link, usePathname } from "@/shared/lib/i18n/navigation";
+import { Link, usePathname } from "@/shared/lib/i18n";
 import { useUser } from "@auth0/nextjs-auth0/client";
 import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconUser } from "@tabler/icons-react";
 import { useOrganization, usePermissions } from "@/app/providers";

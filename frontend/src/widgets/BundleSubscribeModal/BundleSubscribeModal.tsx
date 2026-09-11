@@ -28,11 +28,11 @@ import axios from "axios";
 import { Bundle, BundlePriceQuote } from "@/entities/bundle";
 import { AdCampaign } from "@/entities/ad-campaign";
 import { CouponValidateError } from "@/entities/coupon";
-import { getBundleQuote } from "@/features/bundle-management/api";
-import { getAllAdCampaigns } from "@/features/ad-campaign-management/api";
-import { createBundleSubscription } from "@/features/bundle-subscription/api";
+import { getBundleQuote } from "@/features/bundle-management";
+import { getAllAdCampaigns } from "@/features/ad-campaign-management";
+import { createBundleSubscription } from "@/features/bundle-subscription";
 import { validateCoupon } from "@/features/payment";
-import { Link } from "@/shared/lib/i18n/navigation";
+import { Link } from "@/shared/lib/i18n";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 
 // Lazy singleton: loadStripe() must not run at module scope, since this component is

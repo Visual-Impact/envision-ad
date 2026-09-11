@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Button, Stack, Text, Title } from "@mantine/core";
-import {Link} from "@/shared/lib/i18n/navigation";
+import {Link} from "@/shared/lib/i18n";
 
 export default function NotFoundPage() {
     const t = useTranslations('notFound');
