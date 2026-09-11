@@ -1,5 +1,7 @@
+"use client";
+
 import { UseMediaListProps } from "@/entities/media";
-import { MediaCardProps } from "@/widgets/Cards/MediaCard";
+import { MediaCardProps } from "@/entities/media";
 import { useEffect, useState } from "react";
 import { getAllFilteredActiveMedia, SpecialSort } from "../api";
 

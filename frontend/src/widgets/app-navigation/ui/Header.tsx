@@ -23,7 +23,7 @@ import { useUser } from "@auth0/nextjs-auth0/client";
 import { IconChevronDown, IconHome, IconLayoutDashboard, IconLogout, IconSearch, IconUser } from "@tabler/icons-react";
 import { useOrganization } from "@/entities/organization";
 import { usePermissions } from "@/shared/lib/permissions";
-import SideBar from "@/widgets/SideBar/SideBar";
+import SideBar from "./SideBar";
 import styles from "./Header.module.css";
 
 // 1px border + 8px padding + 38px logo image + 8px padding + 1px border = 56px

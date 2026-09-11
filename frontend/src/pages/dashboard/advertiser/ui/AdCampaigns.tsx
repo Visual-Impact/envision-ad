@@ -22,7 +22,7 @@ import {AddAdModal} from "@/pages/dashboard/advertiser/ui/modals/AddAdModal";
 import {EditAdVenueTagsModal} from "@/pages/dashboard/advertiser/ui/modals/EditAdVenueTagsModal";
 import {CreateCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/CreateCampaignModal";
 import {ConfirmationModal} from "@/shared/ui";
-import {MetricCard} from "@/widgets/Cards/MetricCard";
+import {MetricCard} from "@/shared/ui";
 import { useOrganization } from "@/entities/organization";
 
 export default function AdCampaigns() {

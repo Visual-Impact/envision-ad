@@ -1,12 +1,12 @@
 'use client'
 
 import {ActionIcon, Autocomplete, Button, Container, Group, Loader, Pagination, Stack, Text, TextInput} from '@mantine/core';
-import { MediaCardGrid, SkeletonMediaCardGrid } from '@/widgets/Grid/CardGrid';
-import BrowseActions from '@/widgets/BrowseActions/BrowseActions';
+import { MediaCardGrid, SkeletonMediaCardGrid } from './CardGrid';
+import BrowseActions from './BrowseActions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {SpecialSort} from "@/features/media-management";
-import { FilterPricePopover, FilterValuePopover } from '@/widgets/BrowseActions/FilterPopover';
-import { FilterVenuePopover } from '@/widgets/BrowseActions/FilterVenuePopover';
+import { FilterPricePopover, FilterValuePopover } from './FilterPopover';
+import { FilterVenuePopover } from './FilterVenuePopover';
 import { useTranslations } from "next-intl";
 import { IconMap, IconSearch } from '@tabler/icons-react';
 import { AddressDetails, GetAddressDetails, GetUserGeoLocation, SearchLocations} from '@/shared/lib/geolocation';
@@ -18,7 +18,7 @@ import { useMediaList } from '@/features/media-management';
 import { SortOptions } from '@/features/media-management';
 import dynamic from 'next/dynamic';
 
-const MapView = dynamic(() => import('@/widgets/Map/MapView'), { ssr: false });
+const MapView = dynamic(() => import('./MapView'), { ssr: false });
 import { useMediaQuery } from '@mantine/hooks';
 import { groupBy } from '@/shared/lib/groupBy';
 

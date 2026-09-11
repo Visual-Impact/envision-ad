@@ -1,6 +1,5 @@
 import { Grid, GridCol } from "@mantine/core";
-import MediaCard, { MediaCardProps } from "../Cards/MediaCard";
-import SkeletonMediaCard from "../Cards/SkeletonMediaCard";
+import { MediaCard, SkeletonMediaCard, type MediaCardProps } from "@/entities/media";
 
 interface CardGridProps {
     children?: React.ReactNode; 

@@ -10,7 +10,7 @@ import { HeroGridBackground } from "./HeroGridBackground";
 import { HeroScreens } from "./HeroScreens";
 import { AdvertiserTimeline } from "./AdvertiserTimeline";
 import { BundlesSection } from "./BundlesSection";
-import { DisplayGallery } from "@/widgets/DisplayGallery/DisplayGallery";
+import { DisplayGallery } from "./DisplayGallery";
 
 interface HomepageStats {
     activeScreens: number;

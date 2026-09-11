@@ -3,7 +3,7 @@
 import React from "react";
 import { useMediaQuery } from "@mantine/hooks";
 import {Box, Center, Group, Loader, Paper} from "@mantine/core";
-import SideBar from "@/widgets/SideBar/SideBar";
+import { SideBar } from "@/widgets/app-navigation";
 import { useOrganization } from "@/entities/organization";
 import { usePermissions } from "@/shared/lib/permissions";
 import { isAdmin as computeIsAdmin } from "@/shared/lib/auth";

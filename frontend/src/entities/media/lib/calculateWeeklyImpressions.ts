@@ -1,4 +1,4 @@
-import { WeeklyScheduleModel } from "@/entities/media";
+import { WeeklyScheduleModel } from "../model/media";
 
 export default function calculateWeeklyImpressions(dailyImpressions: number, weeklySchedule: WeeklyScheduleModel[]){
     if (!weeklySchedule || weeklySchedule.length === 0) {

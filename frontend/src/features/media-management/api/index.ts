@@ -10,4 +10,3 @@ export { getMediaByBusinessId } from './getMediaByBusinessId';
 export { SortOptions } from './getAllFilteredActiveMedia';
 export { patchMediaStatus } from './patchMediaStatus';
 export type { PatchMediaStatusDTO } from './patchMediaStatus';
-export { default as calculateWeeklyImpressions } from './calculateWeeklyImpressions';

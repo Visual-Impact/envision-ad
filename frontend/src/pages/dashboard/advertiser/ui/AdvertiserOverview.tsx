@@ -23,7 +23,7 @@ import { AreaChart } from "@mantine/charts";
 import { useTranslations } from "next-intl";
 
 import { jwtDecode } from "jwt-decode";
-import { MetricCard } from "@/widgets/Cards/MetricCard";
+import { MetricCard } from "@/shared/ui";
 
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;

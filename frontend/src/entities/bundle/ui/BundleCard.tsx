@@ -4,7 +4,7 @@ import { Badge, Box, Button, Divider, Group, List, Paper, Stack, Text, ThemeIcon
 import { IconCheck } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { Bundle } from "@/entities/bundle";
+import { Bundle } from "../model/bundle";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 import { Link } from "@/shared/lib/i18n";
 

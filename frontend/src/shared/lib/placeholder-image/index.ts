@@ -1,0 +1,1 @@
+export { ImgNotFound } from './imageNotFound';

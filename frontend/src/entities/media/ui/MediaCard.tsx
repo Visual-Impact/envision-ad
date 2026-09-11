@@ -1,3 +1,5 @@
+"use client";
+
 import {
     Paper,
     Text,
@@ -12,14 +14,14 @@ import {
 } from "@mantine/core";
 import styles from "./MediaCard.module.css";
 import { useLocale, useTranslations } from "next-intl";
-import { getJoinedAddress, MonthlyScheduleModel } from "@/entities/media";
-import { Venue } from "@/entities/venue";
+import { getJoinedAddress, MonthlyScheduleModel } from "../model/media";
+import { Venue } from "@/entities/venue/@x/media";
 import { useMediaQuery } from "@mantine/hooks";
 import { useState } from "react";
-import { MediaLocation } from "@/entities/media-location";
+import { MediaLocation } from "@/entities/media-location/@x/media";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
-import { calculateWeeklyImpressions } from "@/features/media-management";
-import { ImgNotFound } from "../imageNotFound";
+import calculateWeeklyImpressions from "../lib/calculateWeeklyImpressions";
+import { ImgNotFound } from "@/shared/lib/placeholder-image";
 import { IconEye } from "@tabler/icons-react";
 
 export interface MediaCardProps {

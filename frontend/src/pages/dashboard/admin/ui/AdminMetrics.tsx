@@ -28,7 +28,7 @@ import {
   type AdminOverviewResponse,
 } from "@/features/admin-dashboard";
 
-import { MetricCard } from "@/widgets/Cards/MetricCard";
+import { MetricCard } from "@/shared/ui";
 
 export default function AdminMetricsPage() {
   const t = useTranslations("admin.metricsPage");

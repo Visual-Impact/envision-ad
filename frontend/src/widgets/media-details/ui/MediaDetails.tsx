@@ -1,11 +1,10 @@
-import { getJoinedAddress, Media } from "@/entities/media";
-import { calculateWeeklyImpressions } from "@/features/media-management";
+import { calculateWeeklyImpressions, getJoinedAddress, Media } from "@/entities/media";
 import { Anchor, AspectRatio, Group, Stack, Title, Image, Text, Divider, Card, SimpleGrid, Badge, Center, Loader, Modal } from "@mantine/core";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { BackButton } from "../BackButton";
+import { BackButton } from "@/shared/ui";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
-import { ImgNotFound } from "../imageNotFound";
+import { ImgNotFound } from "@/shared/lib/placeholder-image";
 
 const monthDefs = [
   { id: "January", key: "january" },

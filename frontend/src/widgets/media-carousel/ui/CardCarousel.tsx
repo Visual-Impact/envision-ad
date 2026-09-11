@@ -1,7 +1,7 @@
 import { Carousel } from "@mantine/carousel";
 import classes from "./CardCarousel.module.css";
 import { Stack, StyleProp, Title } from "@mantine/core";
-import MediaCard, { MediaCardProps } from "../Cards/MediaCard";
+import { MediaCard, type MediaCardProps } from "@/entities/media";
 import { FilteredActiveMediaProps } from "@/entities/media";
 import { useMediaList } from "@/features/media-management";
 import '@mantine/carousel/styles.css';

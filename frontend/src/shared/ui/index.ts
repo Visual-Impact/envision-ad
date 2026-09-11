@@ -1,3 +1,5 @@
 export * from './ConfirmationModal'
 export * from './AddressAutocomplete'
 export * from './PinDropMap'
+export * from './MetricCard'
+export * from './BackButton'

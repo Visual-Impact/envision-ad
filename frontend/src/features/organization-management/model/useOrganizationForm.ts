@@ -1,3 +1,5 @@
+"use client";
+
 import {useState} from "react";
 import {OrganizationRequestDTO, OrganizationSize} from "@/entities/organization";
 
