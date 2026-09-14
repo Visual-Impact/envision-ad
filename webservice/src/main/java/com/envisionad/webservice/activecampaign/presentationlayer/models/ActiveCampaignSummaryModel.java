@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 /**
@@ -26,14 +26,26 @@ public class ActiveCampaignSummaryModel {
     private int subscribedBundleCount;
     private int subscribedScreenCount;
 
-    /** When media owners were last told about this business's campaign; null if never. */
-    private LocalDateTime lastSwapAt;
+    /**
+     * When a person last told media owners about this business's campaign (a swap or a manual
+     * notify); null if never.
+     *
+     * <p>All three timestamps here carry an offset. Event times are stored zone-less in the JVM's
+     * zone — UTC in the production container — so without one, a browser in Montreal would read
+     * them as local time and render a cooldown hours too long.
+     */
+    private OffsetDateTime lastSwapAt;
 
     /**
      * Non-null only while the cooldown is actually in force, so the frontend can render its
      * countdown without a second request and without recomputing the window itself.
      */
-    private LocalDateTime swapAvailableAt;
+    private OffsetDateTime swapAvailableAt;
+    /**
+     * When the automatic sweep last emailed owners about this campaign on the advertiser's behalf;
+     * null if never. Lets the dashboard say so, so an email sent in their name is never a surprise.
+     */
+    private OffsetDateTime lastAutoNotifiedAt;
 
     /** True when creatives changed since owners were last notified (FR-8.2). */
     private boolean hasUnnotifiedCreativeChanges;

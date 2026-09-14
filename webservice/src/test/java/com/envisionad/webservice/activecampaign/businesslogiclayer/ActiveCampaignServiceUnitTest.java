@@ -32,6 +32,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -129,6 +130,74 @@ class ActiveCampaignServiceUnitTest {
 
         assertThrows(AdCampaignNotFoundException.class,
                 () -> service.selectInitialActiveCampaign(BUSINESS_ID, CAMPAIGN_A));
+    }
+
+    // ---------- replacing an emptied sticky campaign at checkout ----------
+
+    @Test
+    void replaceIfEmpty_whenTheStickyCampaignHasNoCreatives_pointsAtThePickedCampaignWithoutEmailing() {
+        Business business = givenBusiness(CAMPAIGN_A);
+        givenCampaign(CAMPAIGN_A, 0);
+        givenCampaign(CAMPAIGN_B, 2);
+
+        assertTrue(service.replaceActiveCampaignIfEmpty(BUSINESS_ID, CAMPAIGN_B));
+
+        assertEquals(CAMPAIGN_B, business.getActiveCampaignId());
+        verify(businessRepository).save(business);
+        CampaignSwapEvent event = capturedEvent();
+        assertEquals(CampaignSwapEventType.INITIAL_SELECTION, event.getEventType());
+        assertEquals(CAMPAIGN_A, event.getFromCampaignId(), "the audit trail keeps what was replaced");
+        assertEquals(CAMPAIGN_B, event.getToCampaignId());
+        verifyNoInteractions(mediaOwnerNotifier);
+    }
+
+    /** The sticky rule (FR-6.3) still holds for a campaign that can actually be displayed. */
+    @Test
+    void replaceIfEmpty_whenTheStickyCampaignStillHasCreatives_leavesItOnScreen() {
+        Business business = givenBusiness(CAMPAIGN_A);
+        givenCampaign(CAMPAIGN_A, 1);
+
+        assertFalse(service.replaceActiveCampaignIfEmpty(BUSINESS_ID, CAMPAIGN_B));
+
+        assertEquals(CAMPAIGN_A, business.getActiveCampaignId());
+        verify(businessRepository, never()).save(any());
+        verify(campaignSwapEventRepository, never()).save(any());
+    }
+
+    @Test
+    void replaceIfEmpty_withNothingOnScreen_leavesTheFirstPickToSelect() {
+        givenBusiness(null);
+
+        assertFalse(service.replaceActiveCampaignIfEmpty(BUSINESS_ID, CAMPAIGN_B));
+
+        verifyNoInteractions(adCampaignRepository);
+        verify(campaignSwapEventRepository, never()).save(any());
+    }
+
+    // ---------- summary ----------
+
+    /**
+     * The dashboard tells the advertiser when the sweep emailed owners in their name. The offset is
+     * the other half: event times are zone-less on the server, and UTC in production.
+     */
+    @Test
+    void summary_reportsTheLastAutomaticNotificationWithAnOffset() {
+        givenBusiness(CAMPAIGN_A);
+        givenCampaign(CAMPAIGN_A, 1);
+        givenNoSubscriptions();
+        givenNoRecentEvent();
+        LocalDateTime sentAt = LocalDateTime.of(2026, 9, 12, 14, 30);
+        CampaignSwapEvent automatic = new CampaignSwapEvent();
+        automatic.setEventType(CampaignSwapEventType.AUTO_NOTIFY);
+        automatic.setTriggeredAt(sentAt);
+        when(campaignSwapEventRepository.findTopByToCampaignIdAndEventTypeInOrderByTriggeredAtDesc(
+                CAMPAIGN_A, List.of(CampaignSwapEventType.AUTO_NOTIFY))).thenReturn(Optional.of(automatic));
+
+        var summary = service.getActiveCampaignSummary(BUSINESS_ID);
+
+        assertEquals(sentAt.atZone(ZoneId.systemDefault()).toOffsetDateTime(), summary.getLastAutoNotifiedAt());
+        assertNull(summary.getLastSwapAt(), "an automatic send is not a person's action");
+        assertNull(summary.getSwapAvailableAt(), "and so it starts no cooldown");
     }
 
     @Test

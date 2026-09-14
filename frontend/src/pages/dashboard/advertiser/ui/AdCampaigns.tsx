@@ -1,32 +1,56 @@
 "use client";
 
 import React, {useCallback, useEffect, useState} from "react";
+import axios from "axios";
 import {Button, Group, SimpleGrid, Stack, Title} from "@mantine/core";
 import {IconAd, IconMovie, IconPhoto, IconSpeakerphone} from "@tabler/icons-react";
 import {notifications} from "@mantine/notifications";
 import {useLocale, useTranslations} from 'next-intl';
 
 import {Ad, AdRequestDTO} from "@/entities/ad";
-import {AdCampaign, AdCampaignRequestDTO} from "@/entities/ad-campaign";
+import {ActiveCampaignSummary, AdCampaign, AdCampaignRequestDTO} from "@/entities/ad-campaign";
 import {Venue} from "@/entities/venue";
 import {
     addAdToCampaign,
     createAdCampaign, deleteAdCampaign,
     deleteAdFromCampaign,
+    getActiveCampaign,
     getAllAdCampaigns,
+    notifyMediaOwners,
     updateAdVenueTags
 } from "@/features/ad-campaign-management";
+import {getBundleSubscriptions} from "@/features/bundle-subscription";
 import {getAllVenues} from "@/features/venue-management";
 import {AdCampaignsTable} from "@/pages/dashboard/advertiser/ui/tables/AdCampaignsTable";
 import {AddAdModal} from "@/pages/dashboard/advertiser/ui/modals/AddAdModal";
 import {EditAdVenueTagsModal} from "@/pages/dashboard/advertiser/ui/modals/EditAdVenueTagsModal";
 import {CreateCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/CreateCampaignModal";
+import {SwapCampaignModal} from "@/pages/dashboard/advertiser/ui/modals/SwapCampaignModal";
+import {ActiveCampaignSlot, ActiveCampaignSlotState} from "@/pages/dashboard/advertiser/ui/ActiveCampaignSlot";
+import {useCooldownSeconds} from "@/pages/dashboard/advertiser/model/useCooldownSeconds";
+import {SUPPORT_EMAIL} from "@/shared/config";
 import {ConfirmationModal} from "@/shared/ui";
 import {MetricCard} from "@/shared/ui";
 import { useOrganization } from "@/entities/organization";
 
+interface ActiveCampaignState {
+    loading: boolean;
+    summary: ActiveCampaignSummary | null;
+    hasLiveSubscription: boolean;
+}
+
+/** A 429 from swap or notify, which carries how long the shared cooldown still has to run. */
+function retryAfterSecondsOf(error: unknown): number | null {
+    if (!axios.isAxiosError(error)) return null;
+    const data = error.response?.data;
+    return data?.code === "SWAP_DEBOUNCED" && typeof data.retryAfterSeconds === "number"
+        ? data.retryAfterSeconds
+        : null;
+}
+
 export default function AdCampaigns() {
     const t = useTranslations('adCampaigns');
+    const tSlot = useTranslations('activeCampaignSlot');
     const tEditTags = useTranslations('editAdVenueTags');
     const locale = useLocale();
 
@@ -34,6 +58,15 @@ export default function AdCampaigns() {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [refreshCount, setRefreshCount] = useState(0);
     const { organization } = useOrganization();
+
+    const [activeCampaign, setActiveCampaign] = useState<ActiveCampaignState>(
+        { loading: true, summary: null, hasLiveSubscription: false });
+    const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+    const cooldownSeconds = useCooldownSeconds(cooldownUntil);
+    const [notifying, setNotifying] = useState(false);
+    const [isSwapModalOpen, setIsSwapModalOpen] = useState(false);
+    /** The campaign an ad was just added to or removed from, while owners haven't been told. */
+    const [promptCampaignId, setPromptCampaignId] = useState<string | null>(null);
 
     const [isEditTagsModalOpen, setIsEditTagsModalOpen] = useState(false);
     const [adToEditTags, setAdToEditTags] = useState<{ campaignId: string; ad: Ad } | null>(null);
@@ -81,6 +114,37 @@ export default function AdCampaigns() {
     }, [businessId, t, refreshCount]);
 
     useEffect(() => {
+        if (!businessId) return;
+
+        let ignored = false;
+
+        // IIFE-nested per react-hooks/set-state-in-effect (see VenueMultiSelectPicker).
+        (async () => {
+            try {
+                // The subscriptions decide whether the slot exists at all (FR-1.3), and tell a
+                // business with nothing on screen yet apart from inconsistent data (FR-1.4).
+                const [summary, subscriptions] = await Promise.all([
+                    getActiveCampaign(businessId),
+                    getBundleSubscriptions(businessId),
+                ]);
+                if (ignored) return;
+                setActiveCampaign({
+                    loading: false,
+                    summary,
+                    hasLiveSubscription: subscriptions.some((s) => s.status === "ACTIVE" || s.status === "PAST_DUE"),
+                });
+                setCooldownUntil(summary?.swapAvailableAt ? Date.parse(summary.swapAvailableAt) : null);
+            } catch (error) {
+                console.error('Failed to load the active campaign', error);
+                // The campaigns list still works; hide the slot rather than show a wrong one.
+                if (!ignored) setActiveCampaign({ loading: false, summary: null, hasLiveSubscription: false });
+            }
+        })();
+
+        return () => { ignored = true; };
+    }, [businessId, refreshCount]);
+
+    useEffect(() => {
         let ignored = false;
 
         // IIFE-nested per react-hooks/set-state-in-effect (see VenueMultiSelectPicker).
@@ -96,6 +160,72 @@ export default function AdCampaigns() {
 
         return () => { ignored = true; };
     }, [locale]);
+
+    const slotState: ActiveCampaignSlotState = activeCampaign.loading
+        ? { kind: "loading" }
+        : !activeCampaign.hasLiveSubscription
+            ? { kind: "hidden" }
+            : activeCampaign.summary
+                ? { kind: "ready", summary: activeCampaign.summary }
+                : { kind: "missing" };
+    /** On screen right now — the campaign whose edits owners need to hear about. */
+    const displayedCampaignId = slotState.kind === "ready" ? slotState.summary.campaignId : null;
+    /** Set even without a live subscription: the active campaign is never deletable (FR-3.1). */
+    const activeCampaignId = activeCampaign.summary?.campaignId ?? null;
+
+    const handleNotify = async () => {
+        if (!businessId) return;
+
+        setNotifying(true);
+        try {
+            const result = await notifyMediaOwners(businessId);
+            if (result.failedCount > 0) {
+                notifications.show({
+                    title: tSlot('notifications.notify.partial.title'),
+                    message: tSlot('notifications.notify.partial.message',
+                        { notified: result.notifiedCount, failed: result.failedCount }),
+                    color: 'yellow'
+                });
+            } else {
+                notifications.show({
+                    title: tSlot('notifications.notify.success.title'),
+                    message: tSlot('notifications.notify.success.message', { notified: result.notifiedCount }),
+                    color: 'green'
+                });
+            }
+            setPromptCampaignId(null);
+            refreshCampaigns();
+        } catch (error) {
+            console.error('Failed to notify media owners', error);
+            const retryAfterSeconds = retryAfterSecondsOf(error);
+            if (retryAfterSeconds !== null) setCooldownUntil(Date.now() + retryAfterSeconds * 1000);
+            notifications.show({
+                title: tSlot('notifications.notify.error.title'),
+                message: tSlot(retryAfterSeconds !== null
+                    ? 'notifications.notify.error.debounceMessage'
+                    : 'notifications.notify.error.genericMessage'),
+                color: 'red'
+            });
+        } finally {
+            setNotifying(false);
+        }
+    };
+
+    const handleSwapped = (_summary: ActiveCampaignSummary, campaignName: string) => {
+        setIsSwapModalOpen(false);
+        setPromptCampaignId(null);
+        notifications.show({
+            title: tSlot('notifications.swap.success.title'),
+            message: tSlot('notifications.swap.success.message', { campaignName }),
+            color: 'green'
+        });
+        refreshCampaigns();
+    };
+
+    const handleCreateFromSwap = () => {
+        setIsSwapModalOpen(false);
+        setIsCreateCampaignOpen(true);
+    };
 
     const handleOpenEditAdTags = (campaignId: string, ad: Ad) => {
         setAdToEditTags({ campaignId, ad });
@@ -146,6 +276,8 @@ export default function AdCampaigns() {
                 color: 'green'
             });
             setIsAddAdModalOpen(false);
+            // Offer to tell owners now, without blocking the next edit (FR-8.3).
+            if (targetCampaignId === displayedCampaignId) setPromptCampaignId(targetCampaignId);
             refreshCampaigns();
         } catch (error) {
             notifications.show({
@@ -182,14 +314,20 @@ export default function AdCampaigns() {
                 message: t('notifications.deleteAd.success.message'),
                 color: 'green'
             });
+            if (adToDelete.campaignId === displayedCampaignId) setPromptCampaignId(adToDelete.campaignId);
             refreshCampaigns();
             setConfirmDeleteAdOpen(false);
             setAdToDelete(null);
         } catch (error) {
             console.error('Failed to delete ad', error);
+            // The only conflict here: the last creative of the campaign on screen while a
+            // subscription is live.
+            const status = axios.isAxiosError(error) ? error.response?.status : undefined;
             notifications.show({
                 title: t('notifications.deleteAd.error.title'),
-                message: t('notifications.deleteAd.error.genericMessage'),
+                message: status === 409
+                    ? t('notifications.deleteAd.error.lastActiveCreativeMessage')
+                    : t('notifications.deleteAd.error.genericMessage'),
                 color: 'red'
             });
         }
@@ -210,19 +348,14 @@ export default function AdCampaigns() {
             setCampaignIdToDelete(null);
         } catch (error) {
             console.error('Failed to delete campaign', error);
-            const err = error as { response?: { status?: number } };
-            const status = err.response?.status;
-
-            let messageToShow: string;
-            if (status === 409) {
-                messageToShow = t('notifications.deleteCampaign.error.tiedReservationMessage');
-            } else {
-                messageToShow = t('notifications.deleteCampaign.error.genericMessage');
-            }
-
+            // The only conflict left since subscriptions stopped referencing campaigns: it is the
+            // business's active campaign.
+            const status = axios.isAxiosError(error) ? error.response?.status : undefined;
             notifications.show({
                 title: t('notifications.deleteCampaign.error.title'),
-                message: messageToShow,
+                message: status === 409
+                    ? t('notifications.deleteCampaign.error.isActiveCampaignMessage')
+                    : t('notifications.deleteCampaign.error.genericMessage'),
                 color: 'red'
             });
         }
@@ -270,6 +403,15 @@ export default function AdCampaigns() {
                 </Button>
             </Group>
 
+            <ActiveCampaignSlot
+                state={slotState}
+                cooldownSeconds={cooldownSeconds}
+                notifying={notifying}
+                supportHref={`mailto:${SUPPORT_EMAIL}`}
+                onSwap={() => setIsSwapModalOpen(true)}
+                onNotify={handleNotify}
+            />
+
             <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
                 {stats.map((stat) => (
                     <MetricCard
@@ -285,11 +427,28 @@ export default function AdCampaigns() {
             <AdCampaignsTable
                 campaigns={campaigns}
                 venues={venues}
+                activeCampaignId={activeCampaignId}
+                promptCampaignId={promptCampaignId}
+                notifying={notifying}
+                notifyDisabled={cooldownSeconds > 0}
+                onNotifyNow={handleNotify}
+                onDismissPrompt={() => setPromptCampaignId(null)}
                 onDeleteAd={handleDeleteAd}
                 onDeleteAdCampaign={handleDeleteAdCampaign}
                 onOpenAddAd={handleOpenAddAd}
                 onEditAdTags={handleOpenEditAdTags}
             />
+
+            {businessId && (
+                <SwapCampaignModal
+                    opened={isSwapModalOpen}
+                    businessId={businessId}
+                    onClose={() => setIsSwapModalOpen(false)}
+                    onSwapped={handleSwapped}
+                    onCooldown={(retryAfterSeconds) => setCooldownUntil(Date.now() + retryAfterSeconds * 1000)}
+                    onCreateCampaign={handleCreateFromSwap}
+                />
+            )}
 
             <AddAdModal
                 opened={isAddAdModalOpen}

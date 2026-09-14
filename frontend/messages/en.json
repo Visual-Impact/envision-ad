@@ -1018,7 +1018,9 @@
       "deleteAd": "Delete ad {name}",
       "venueTags": "Venue Tags",
       "allVenues": "All venues",
-      "editTags": "Edit venue tags for {name}"
+      "editTags": "Edit venue tags for {name}",
+      "activeBadge": "Active",
+      "activeCampaignDeleteHint": "This campaign is on screen. Swap to another campaign before deleting it."
     },
     "notifications": {
       "loadFailed": {
@@ -1042,6 +1044,7 @@
         },
         "error": {
           "title": "Error",
+          "lastActiveCreativeMessage": "You can't remove the last creative from the campaign that's currently on screen while you have an active subscription. Add another creative first, or swap campaigns.",
           "genericMessage": "Failed to delete ad"
         }
       },
@@ -1052,7 +1055,7 @@
         },
         "error": {
           "title": "Error",
-          "tiedReservationMessage": "Failed to delete campaign because it still has an ongoing subscription. Please wait until the subscription for this campaign have ended before deleting.",
+          "isActiveCampaignMessage": "Failed to delete campaign because it is currently your active campaign. Swap to a different campaign first.",
           "genericMessage": "Failed to delete campaign"
         }
       },
@@ -1079,6 +1082,66 @@
       "delete": {
         "cancel": "Cancel",
         "confirm": "Delete"
+      }
+    }
+  },
+  "activeCampaignSlot": {
+    "badge": "Currently Displaying",
+    "stats": "{bundles, plural, one {# bundle} other {# bundles}} · {screens, plural, one {# screen} other {# screens}}",
+    "swapButton": "Swap campaign",
+    "notifyButton": "Notify media owners",
+    "moreThumbnails": "+{count} more",
+    "pendingBanner": "Creative changes on this campaign haven't been sent to media owners yet.",
+    "autoNotifiedNotice": "Media owners were notified automatically on {date}.",
+    "cooldown": "You can swap or notify media owners again in {minutes}m {seconds}s.",
+    "errorState": {
+      "title": "No active campaign set",
+      "message": "Something went wrong — your account has an active subscription but no active campaign. Please contact support.",
+      "contactSupport": "Contact support"
+    },
+    "prompt": {
+      "message": "Media owners haven't been told about this change yet.",
+      "notifyNow": "Notify now",
+      "later": "Later"
+    },
+    "swapModal": {
+      "title": "Swap active campaign",
+      "noEligibleCampaigns": "Campaigns need at least one ad before they can go live — add one from the campaigns list first.",
+      "createCampaignShortcut": "Create Campaign",
+      "adsCount": "{count, plural, one {# ad} other {# ads}}",
+      "loadFailed": "Couldn't load your campaigns. Please try again.",
+      "buttons": {
+        "cancel": "Cancel",
+        "confirm": "Confirm swap"
+      }
+    },
+    "notifications": {
+      "swap": {
+        "success": {
+          "title": "Campaign swapped",
+          "message": "{campaignName} is now on screen, and the affected media owners have been emailed."
+        },
+        "error": {
+          "title": "Error",
+          "debounceMessage": "Please wait before swapping again.",
+          "noAdsMessage": "That campaign has no ads yet — add one before making it active.",
+          "genericMessage": "Failed to swap active campaign"
+        }
+      },
+      "notify": {
+        "success": {
+          "title": "Media owners notified",
+          "message": "{notified, plural, one {# media owner} other {# media owners}} notified with your current creatives."
+        },
+        "partial": {
+          "title": "Some media owners weren't reached",
+          "message": "{notified, plural, one {# media owner} other {# media owners}} notified, but {failed, plural, one {# couldn't} other {# couldn't}} be reached."
+        },
+        "error": {
+          "title": "Error",
+          "debounceMessage": "Please wait before notifying media owners again.",
+          "genericMessage": "Failed to notify media owners"
+        }
       }
     }
   },
@@ -1900,6 +1963,10 @@
       "campaignLabel": "Active campaign",
       "campaignHelp": "The campaign whose ads will run on these screens.",
       "campaignPlaceholder": "Select a campaign",
+      "onScreenCampaignLabel": "Campaign on screen",
+      "onScreenCampaign": "{name} will run on these screens — it's the campaign currently on screen for your business.",
+      "manageCampaigns": "Change it from My Campaigns",
+      "emptyOnScreenCampaign": "The campaign you had on screen has no ads left, so pick the campaign to put on these screens.",
       "noCampaigns": "You need a campaign with at least one ad before you can subscribe.",
       "createCampaign": "Create a campaign",
       "noScreens": "This bundle has no available screens right now, so it cannot be subscribed to.",

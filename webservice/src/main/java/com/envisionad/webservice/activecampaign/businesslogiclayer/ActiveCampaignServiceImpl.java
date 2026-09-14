@@ -35,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -134,6 +136,32 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
         // audit trail of what went on screen should not start halfway through.
         recordEvent(businessId, null, campaignId, CampaignSwapEventType.INITIAL_SELECTION, null, 0, 0);
         return summaryOf(business, campaign);
+    }
+
+    @Transactional
+    @Override
+    public boolean replaceActiveCampaignIfEmpty(String businessId, String campaignId) {
+        Business business = requireBusiness(businessId);
+        String currentCampaignId = business.getActiveCampaignId();
+        if (currentCampaignId == null) {
+            return false;
+        }
+        AdCampaign current = adCampaignRepository.findByCampaignIdWithAds(currentCampaignId);
+        if (current != null && current.getAds() != null && !current.getAds().isEmpty()) {
+            return false;
+        }
+
+        requireOwnedCampaignWithAds(businessId, campaignId);
+        business.setActiveCampaignId(campaignId);
+        businessRepository.save(business);
+
+        // No email, exactly like a first pick: the campaign being replaced had nothing on it for an
+        // owner to take down, and a subscription can't have been live while it was empty (removing
+        // the last creative is blocked then). from_campaign_id keeps the emptied campaign, so the
+        // audit trail shows what was replaced rather than looking like a fresh start.
+        recordEvent(businessId, currentCampaignId, campaignId, CampaignSwapEventType.INITIAL_SELECTION,
+                null, 0, 0);
+        return true;
     }
 
     @Transactional
@@ -394,6 +422,12 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
             swapAvailableAt = candidate.isAfter(LocalDateTime.now()) ? candidate : null;
         }
 
+        LocalDateTime lastAutoNotifiedAt = campaignSwapEventRepository
+                .findTopByToCampaignIdAndEventTypeInOrderByTriggeredAtDesc(
+                        campaign.getCampaignId().getCampaignId(), List.of(CampaignSwapEventType.AUTO_NOTIFY))
+                .map(CampaignSwapEvent::getTriggeredAt)
+                .orElse(null);
+
         List<Media> affectedMedia = resolveAffectedMediaForBusiness(business);
         int bundleCount = (int) bundleSubscriptionRepository
                 .findAllByAdvertiserBusinessIdAndStatusIn(businessId, BundleSubscriptionStatus.LIVE)
@@ -408,10 +442,19 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
         summary.setAds(adResponseMapper.entitiesToResponseModelList(new ArrayList<>(campaign.getAds())));
         summary.setSubscribedBundleCount(bundleCount);
         summary.setSubscribedScreenCount(affectedMedia.size());
-        summary.setLastSwapAt(lastSwapAt);
-        summary.setSwapAvailableAt(swapAvailableAt);
+        summary.setLastSwapAt(withOffset(lastSwapAt));
+        summary.setSwapAvailableAt(withOffset(swapAvailableAt));
+        summary.setLastAutoNotifiedAt(withOffset(lastAutoNotifiedAt));
         summary.setHasUnnotifiedCreativeChanges(hasUnnotifiedCreativeChanges(campaign));
         return summary;
+    }
+
+    /**
+     * Event times are written zone-less in this JVM's zone (Hibernate's creation timestamp), so
+     * that zone is the only correct one to attach before they leave the server.
+     */
+    private static OffsetDateTime withOffset(LocalDateTime time) {
+        return time == null ? null : time.atZone(ZoneId.systemDefault()).toOffsetDateTime();
     }
 
     /**
@@ -420,9 +463,6 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
      * event set both differ from the debounce above — that asks "did this business notify anyone
      * recently", this asks "is this campaign's current content still what owners were sent",
      * which the automatic sweep also answers and therefore counts toward.
-     *
-     * <p>Only the stamping half is missing until M2b, so this reads false everywhere today; it is
-     * wired now so the dashboard contract does not change under M3 later.
      */
     private boolean hasUnnotifiedCreativeChanges(AdCampaign campaign) {
         LocalDateTime creativesUpdatedAt = campaign.getCreativesUpdatedAt();

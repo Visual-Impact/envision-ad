@@ -1059,7 +1059,9 @@
       "deleteAd": "Supprimer l’annonce {name}",
       "venueTags": "Types de lieux",
       "allVenues": "Tous les types de lieux",
-      "editTags": "Modifier les types de lieux de {name}"
+      "editTags": "Modifier les types de lieux de {name}",
+      "activeBadge": "Active",
+      "activeCampaignDeleteHint": "Cette campagne est actuellement diffusée. Changez de campagne avant de la supprimer."
     },
     "notifications": {
       "loadFailed": {
@@ -1083,6 +1085,7 @@
         },
         "error": {
           "title": "Erreur",
+          "lastActiveCreativeMessage": "Vous ne pouvez pas retirer la dernière publicité de la campagne actuellement diffusée tant que vous avez un abonnement actif. Ajoutez-en une autre d'abord, ou changez de campagne.",
           "genericMessage": "Échec de la suppression de l’annonce"
         }
       },
@@ -1093,7 +1096,7 @@
         },
         "error": {
           "title": "Erreur",
-          "tiedReservationMessage": "Échec de la suppression de la campagne car elle a encore un abonnement en cours. Veuillez attendre que l’abonnement pour cette campagne soit terminé avant de supprimer.",
+          "isActiveCampaignMessage": "Échec de la suppression : cette campagne est actuellement votre campagne active. Changez d'abord de campagne.",
           "genericMessage": "Échec de la suppression de la campagne"
         }
       },
@@ -1120,6 +1123,66 @@
       "delete": {
         "cancel": "Annuler",
         "confirm": "Supprimer"
+      }
+    }
+  },
+  "activeCampaignSlot": {
+    "badge": "Actuellement diffusée",
+    "stats": "{bundles, plural, one {# forfait} other {# forfaits}} · {screens, plural, one {# écran} other {# écrans}}",
+    "swapButton": "Changer de campagne",
+    "notifyButton": "Aviser les propriétaires d'écrans",
+    "moreThumbnails": "+{count} de plus",
+    "pendingBanner": "Des modifications apportées aux publicités de cette campagne n'ont pas encore été communiquées aux propriétaires d'écrans.",
+    "autoNotifiedNotice": "Les propriétaires d'écrans ont été avisés automatiquement le {date}.",
+    "cooldown": "Vous pourrez changer de campagne ou aviser les propriétaires à nouveau dans {minutes} min {seconds} s.",
+    "errorState": {
+      "title": "Aucune campagne active",
+      "message": "Une erreur s'est produite — votre compte a un abonnement actif mais aucune campagne active. Veuillez contacter le support.",
+      "contactSupport": "Contacter le support"
+    },
+    "prompt": {
+      "message": "Les propriétaires d'écrans n'ont pas encore été avisés de ce changement.",
+      "notifyNow": "Aviser maintenant",
+      "later": "Plus tard"
+    },
+    "swapModal": {
+      "title": "Changer la campagne active",
+      "noEligibleCampaigns": "Les campagnes doivent contenir au moins une publicité avant de pouvoir être diffusées — ajoutez-en une depuis la liste des campagnes.",
+      "createCampaignShortcut": "Créer une campagne",
+      "adsCount": "{count, plural, one {# publicité} other {# publicités}}",
+      "loadFailed": "Impossible de charger vos campagnes. Veuillez réessayer.",
+      "buttons": {
+        "cancel": "Annuler",
+        "confirm": "Confirmer le changement"
+      }
+    },
+    "notifications": {
+      "swap": {
+        "success": {
+          "title": "Campagne changée",
+          "message": "{campaignName} est maintenant diffusée, et les propriétaires d'écrans concernés ont été avisés par courriel."
+        },
+        "error": {
+          "title": "Erreur",
+          "debounceMessage": "Veuillez patienter avant de changer de campagne à nouveau.",
+          "noAdsMessage": "Cette campagne ne contient aucune publicité — ajoutez-en une avant de l'activer.",
+          "genericMessage": "Échec du changement de campagne active"
+        }
+      },
+      "notify": {
+        "success": {
+          "title": "Propriétaires d'écrans avisés",
+          "message": "{notified, plural, one {# propriétaire d'écrans avisé} other {# propriétaires d'écrans avisés}} avec vos publicités actuelles."
+        },
+        "partial": {
+          "title": "Certains propriétaires n'ont pas été joints",
+          "message": "{notified, plural, one {# propriétaire avisé} other {# propriétaires avisés}}, mais {failed, plural, one {# n'a pas pu être joint} other {# n'ont pas pu être joints}}."
+        },
+        "error": {
+          "title": "Erreur",
+          "debounceMessage": "Veuillez patienter avant d'aviser les propriétaires d'écrans à nouveau.",
+          "genericMessage": "Échec de l'avis aux propriétaires d'écrans"
+        }
       }
     }
   },
@@ -1901,6 +1964,10 @@
       "campaignLabel": "Campagne active",
       "campaignHelp": "La campagne dont les publicités seront diffusées sur ces écrans.",
       "campaignPlaceholder": "Sélectionnez une campagne",
+      "onScreenCampaignLabel": "Campagne diffusée",
+      "onScreenCampaign": "{name} sera diffusée sur ces écrans — c'est la campagne actuellement diffusée pour votre entreprise.",
+      "manageCampaigns": "La changer depuis Mes campagnes",
+      "emptyOnScreenCampaign": "La campagne que vous diffusiez ne contient plus de publicités : choisissez la campagne à diffuser sur ces écrans.",
       "noCampaigns": "Vous devez avoir une campagne avec au moins une publicité avant de vous abonner.",
       "createCampaign": "Créer une campagne",
       "noScreens": "Ce forfait n'a aucun écran disponible pour le moment; l'abonnement est impossible.",

@@ -1,1 +1,1 @@
-export type { AdCampaign, AdCampaignRequestDTO } from './model/adCampaign';
+export type { AdCampaign, AdCampaignRequestDTO, ActiveCampaignSummary, NotificationResult } from './model/adCampaign';

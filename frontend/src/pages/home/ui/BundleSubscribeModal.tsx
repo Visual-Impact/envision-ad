@@ -29,7 +29,7 @@ import { Bundle, BundlePriceQuote } from "@/entities/bundle";
 import { AdCampaign } from "@/entities/ad-campaign";
 import { CouponValidateError } from "@/entities/coupon";
 import { getBundleQuote } from "@/features/bundle-management";
-import { getAllAdCampaigns } from "@/features/ad-campaign-management";
+import { getActiveCampaign, getAllAdCampaigns } from "@/features/ad-campaign-management";
 import { createBundleSubscription } from "@/features/bundle-subscription";
 import { validateCoupon } from "@/features/payment";
 import { Link } from "@/shared/lib/i18n";
@@ -59,10 +59,7 @@ interface BundleSubscribeModalProps {
  * Stripe checkout → confirmation. The EmbeddedCheckout wiring was modeled on the reservation
  * PaymentModal, which was removed with the rest of that flow in M6.
  *
- * <p>Lives in `widgets` rather than under `pages/dashboard/advertiser` (where the brief
- * originally placed it): its caller is now the home page's bundles section, so a
- * pages→pages import would break FSD, and it composes three different feature slices —
- * which only the widgets layer is allowed to do.
+ * <p>Lives in the home page's slice because the bundles section is its only caller.
  */
 export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: BundleSubscribeModalProps) {
     const t = useTranslations("bundles.subscribe");
@@ -73,6 +70,12 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
     const [quote, setQuote] = useState<BundlePriceQuote | null>(null);
     const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
     const [campaignId, setCampaignId] = useState<string | null>(null);
+    // The campaign already on screen, when it can stay there. Checkout keeps it regardless of
+    // what is picked (the pointer is sticky), so the modal names it instead of offering a
+    // picker whose choice would be silently ignored. Null when nothing is set or it has no ads
+    // left — then the pick really does decide what goes on screen.
+    const [onScreenCampaign, setOnScreenCampaign] = useState<{ campaignId: string; name: string } | null>(null);
+    const [onScreenCampaignEmpty, setOnScreenCampaignEmpty] = useState(false);
     const [loadState, setLoadState] = useState<"loading" | "error" | "notAdvertiser" | "ready">("loading");
     const [submitting, setSubmitting] = useState(false);
 
@@ -100,6 +103,8 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
             setQuote(null);
             setCampaigns([]);
             setCampaignId(null);
+            setOnScreenCampaign(null);
+            setOnScreenCampaignEmpty(false);
             setLoadState("loading");
             setSubmitting(false);
             setCouponInput("");
@@ -124,9 +129,10 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
             // allSettled rather than Promise.all: a media-owner-only business gets a
             // structured NOT_ADVERTISER rejection from one or both calls, and that needs
             // to win over a generic failure regardless of which promise rejects first.
-            const [quoteResult, campaignResult] = await Promise.allSettled([
+            const [quoteResult, campaignResult, activeResult] = await Promise.allSettled([
                 getBundleQuote(bundleId, businessId),
                 getAllAdCampaigns(businessId),
+                getActiveCampaign(businessId),
             ]);
             if (cancelled) return;
 
@@ -135,12 +141,15 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                 axios.isAxiosError(result.reason) &&
                 result.reason.response?.data?.code === "NOT_ADVERTISER";
 
-            if (isNotAdvertiser(quoteResult) || isNotAdvertiser(campaignResult)) {
+            if (isNotAdvertiser(quoteResult) || isNotAdvertiser(campaignResult) || isNotAdvertiser(activeResult)) {
                 setLoadState("notAdvertiser");
                 return;
             }
 
-            if (quoteResult.status === "rejected" || campaignResult.status === "rejected") {
+            // Without the active campaign the modal can't tell whether a pick would count, and
+            // guessing would bring back the picker that looks like it matters but doesn't.
+            if (quoteResult.status === "rejected" || campaignResult.status === "rejected"
+                || activeResult.status === "rejected") {
                 setLoadState("error");
                 return;
             }
@@ -148,9 +157,15 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
             // A campaign with no ads has nothing to display, so the backend rejects it;
             // filtering here keeps the picker from offering a guaranteed failure.
             const usable = campaignResult.value.filter((c) => (c.ads?.length ?? 0) > 0);
+            const active = activeResult.value;
+            const activeIsUsable = active !== null && active.ads.length > 0;
             setQuote(quoteResult.value);
             setCampaigns(usable);
-            setCampaignId(usable.length === 1 ? usable[0].campaignId : null);
+            setOnScreenCampaign(activeIsUsable ? { campaignId: active.campaignId, name: active.name } : null);
+            setOnScreenCampaignEmpty(active !== null && !activeIsUsable);
+            setCampaignId(activeIsUsable
+                ? active.campaignId
+                : usable.length === 1 ? usable[0].campaignId : null);
             setLoadState("ready");
         })();
 
@@ -361,7 +376,22 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                                     </Alert>
                                 )}
 
-                                {campaigns.length === 0 ? (
+                                {onScreenCampaign ? (
+                                    <Alert color="teal" variant="light" icon={<IconInfoCircle size={18} />}
+                                           title={t("onScreenCampaignLabel")}>
+                                        <Stack gap="xs" align="flex-start">
+                                            <Text size="sm">{t("onScreenCampaign", { name: onScreenCampaign.name })}</Text>
+                                            <Button
+                                                component={Link}
+                                                href="/dashboard/advertiser/campaigns"
+                                                size="xs"
+                                                variant="subtle"
+                                            >
+                                                {t("manageCampaigns")}
+                                            </Button>
+                                        </Stack>
+                                    </Alert>
+                                ) : campaigns.length === 0 ? (
                                     <Alert color="blue" icon={<IconInfoCircle size={18} />}>
                                         <Stack gap="xs" align="flex-start">
                                             <Text size="sm">{t("noCampaigns")}</Text>
@@ -376,6 +406,12 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                                         </Stack>
                                     </Alert>
                                 ) : (
+                                    <Stack gap="xs">
+                                    {onScreenCampaignEmpty && (
+                                        <Alert color="yellow" variant="light" icon={<IconInfoCircle size={18} />}>
+                                            {t("emptyOnScreenCampaign")}
+                                        </Alert>
+                                    )}
                                     <Select
                                         label={t("campaignLabel")}
                                         description={t("campaignHelp")}
@@ -385,6 +421,7 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                                         onChange={setCampaignId}
                                         allowDeselect={false}
                                     />
+                                    </Stack>
                                 )}
 
                                 <Text size="xs" c="dimmed" ta="center">

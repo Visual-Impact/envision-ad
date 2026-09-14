@@ -243,11 +243,13 @@ class BundleSubscriptionServiceUnitTest {
     }
 
     /**
-     * The pointer is "sticky" (FR-6.3): an advertiser who already has an active campaign keeps
-     * it, and the checkout picker's choice does not override it.
+     * The pointer is "sticky" (FR-6.3): an advertiser who already has an active campaign keeps it
+     * while it still has creatives. Checkout hands the picked campaign to
+     * replaceActiveCampaignIfEmpty, which only moves the pointer off a campaign that was emptied
+     * during a gap between subscriptions.
      */
     @Test
-    void createSubscriptionCheckout_leavesAnExistingActiveCampaignPointerUntouched() throws Exception {
+    void createSubscriptionCheckout_withAnExistingPointer_onlyAsksToReplaceItIfEmpty() throws Exception {
         when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID))
                 .thenReturn(givenBusinessWithActiveCampaign("Acme Coffee", "already-picked"));
         givenValidBundleAndCampaign();
@@ -264,6 +266,7 @@ class BundleSubscriptionServiceUnitTest {
         // selectInitialActiveCampaign refuses outright once a pointer exists, so calling it
         // unconditionally would turn every resubscribe into a 409.
         verify(activeCampaignService, never()).selectInitialActiveCampaign(anyString(), anyString());
+        verify(activeCampaignService).replaceActiveCampaignIfEmpty(BUSINESS_ID, CAMPAIGN_ID);
         verify(businessRepository, never()).save(any());
     }
 

@@ -103,6 +103,26 @@ public class ActiveCampaignIntegrationTest extends BaseIntegrationTest {
                 .expectStatus().isNoContent();
     }
 
+    /**
+     * Checked on the wire, not just on the model: what matters is that the browser receives an
+     * offset, and only real Jackson serialization proves that.
+     */
+    @Test
+    void getActiveCampaign_reportsTheLastAutomaticNotificationWithAnOffset() {
+        AdCampaign campaign = givenCampaignWithAds("Summer Sale", 1);
+        givenActiveCampaign(campaign);
+        givenRecentEvent(CampaignSwapEventType.AUTO_NOTIFY, LocalDateTime.now().minusHours(2));
+
+        webTestClient.get().uri(BASE, BUSINESS_ID)
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.lastAutoNotifiedAt")
+                .value(org.hamcrest.Matchers.matchesPattern(".*(Z|[+-]\\d{2}:\\d{2})$"))
+                .jsonPath("$.lastSwapAt").doesNotExist();
+    }
+
     @Test
     void selectThenGet_returnsTheCampaignWithRealSubscriptionCounts() {
         AdCampaign campaign = givenCampaignWithAds("Summer Sale", 2);
