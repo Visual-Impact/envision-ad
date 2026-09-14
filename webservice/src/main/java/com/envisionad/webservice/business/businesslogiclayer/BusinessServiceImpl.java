@@ -129,6 +129,16 @@ public class BusinessServiceImpl implements BusinessService {
         // update:business can't flip their own MEDIA_OWNER/ADVERTISER flags, which used to
         // be possible here with no dependent-data checks and no Auth0 role resync.
         newBusiness.setRoles(existingBusiness.getRoles());
+        // Same rule for every other field this full-replace would reset to the entity default.
+        // The org-details form sends none of them, so each rename used to wipe them all:
+        // verification and activation are admin decisions (P5 D5), the active campaign is P6's
+        // pointer (changed only via /active-campaign), and the business type drives competitive
+        // exclusion — an owner who could clear it could get their creatives onto rival screens.
+        newBusiness.setVerified(existingBusiness.isVerified());
+        newBusiness.setActive(existingBusiness.isActive());
+        newBusiness.setActiveCampaignId(existingBusiness.getActiveCampaignId());
+        newBusiness.setBusinessTypeVenueId(existingBusiness.getBusinessTypeVenueId());
+        newBusiness.setDateCreated(existingBusiness.getDateCreated());
 
         return businessMapper.toResponse(businessRepository.save(newBusiness));
     }
