@@ -37,5 +37,23 @@ class ExceptionsTest {
         assertNotNull(rs, "@ResponseStatus should be present on AdNotFoundException");
         assertEquals(HttpStatus.NOT_FOUND, rs.code());
     }
-}
 
+    @Test
+    void campaignIsArchivedException_messageContainsCampaignId_andHasResponseStatusConflict() {
+        var ex = new CampaignIsArchivedException("camp-9");
+        assertTrue(ex.getMessage().contains("camp-9"));
+        assertTrue(ex.getMessage().contains("Unarchive"));
+
+        ResponseStatus rs = ex.getClass().getAnnotation(ResponseStatus.class);
+        assertNotNull(rs, "@ResponseStatus should be present on CampaignIsArchivedException");
+        assertEquals(HttpStatus.CONFLICT, rs.code());
+    }
+
+    /** Thrown by both delete and archive now, so the message can't name only one of them. */
+    @Test
+    void campaignIsActiveCampaignException_messageCoversDeleteAndArchive() {
+        var ex = new CampaignIsActiveCampaignException("camp-1");
+        assertTrue(ex.getMessage().contains("camp-1"));
+        assertTrue(ex.getMessage().contains("deleted") && ex.getMessage().contains("archived"));
+    }
+}

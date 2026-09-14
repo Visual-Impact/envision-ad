@@ -18,12 +18,14 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class AdCampaignIntegrationTest extends BaseIntegrationTest {
@@ -790,5 +792,110 @@ public class AdCampaignIntegrationTest extends BaseIntegrationTest {
         adCampaignRepository.save(campaign);
 
         return ad.getAdIdentifier().getAdIdentifier();
+    }
+
+    // ---------------- P6 FR-3b: archive / unarchive ----------------
+
+    @Test
+    void getAllBusinessCampaigns_hidesArchivedCampaignsUnlessAskedFor() {
+        persistCampaignNamed("Winter Sale", null);
+        persistCampaignNamed("Old Promo", LocalDateTime.now());
+
+        webTestClient.get()
+                .uri(BASE_URI_AD_CAMPAIGNS, BUSINESS_ID)
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].name").isEqualTo("Winter Sale")
+                .jsonPath("$[0].archivedAt").isEmpty();
+
+        webTestClient.get()
+                .uri(uriBuilder -> uriBuilder.path(BASE_URI_AD_CAMPAIGNS)
+                        .queryParam("includeArchived", true)
+                        .build(BUSINESS_ID))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(2)
+                // An offset on the wire, so the browser never reads a UTC time as local (P6 D23).
+                .jsonPath("$[?(@.name == 'Old Promo')].archivedAt").value(values ->
+                        assertTrue(values.toString().matches(".*([+-]\\d{2}:\\d{2}|Z).*"),
+                                "expected a zone offset, got " + values));
+    }
+
+    @Test
+    void archiveCampaign_returns204AndIsIdempotent() {
+        String campaignId = persistCampaignNamed("Old Promo", null);
+
+        expectArchiveStatus("archive", campaignId, 204);
+        LocalDateTime archivedAt = adCampaignRepository.findByCampaignId_CampaignId(campaignId).getArchivedAt();
+        assertNotNull(archivedAt);
+
+        expectArchiveStatus("archive", campaignId, 204);
+        assertEquals(archivedAt, adCampaignRepository.findByCampaignId_CampaignId(campaignId).getArchivedAt(),
+                "a repeat archive must not move the timestamp");
+    }
+
+    @Test
+    void archiveCampaign_whenActive_returnsConflictAndStaysListed() {
+        String campaignId = persistCampaignNamed("Summer Sale", null);
+        Business business = businessRepository.findByBusinessId_BusinessId(BUSINESS_ID);
+        business.setActiveCampaignId(campaignId);
+        businessRepository.save(business);
+
+        expectArchiveStatus("archive", campaignId, 409);
+
+        assertNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId).getArchivedAt());
+    }
+
+    @Test
+    void unarchiveCampaign_returns204AndIsIdempotent() {
+        String campaignId = persistCampaignNamed("Old Promo", LocalDateTime.now());
+
+        expectArchiveStatus("unarchive", campaignId, 204);
+        assertNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId).getArchivedAt());
+
+        expectArchiveStatus("unarchive", campaignId, 204);
+        assertNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId).getArchivedAt());
+    }
+
+    @Test
+    void archiveCampaign_withoutUpdateCampaignPermission_isForbidden() {
+        String campaignId = persistCampaignNamed("Old Promo", null);
+
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder.path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/archive")
+                        .build(BUSINESS_ID, campaignId))
+                .headers(headers -> headers.setBearerAuth("media-token"))
+                .exchange()
+                .expectStatus().isForbidden();
+
+        assertNull(adCampaignRepository.findByCampaignId_CampaignId(campaignId).getArchivedAt());
+    }
+
+    @Test
+    void archiveCampaign_whenCampaignDoesNotExist_returnsNotFound() {
+        expectArchiveStatus("archive", UUID.randomUUID().toString(), 404);
+    }
+
+    private String persistCampaignNamed(String name, LocalDateTime archivedAt) {
+        AdCampaign campaign = new AdCampaign();
+        campaign.setName(name);
+        campaign.setCampaignId(new AdCampaignIdentifier());
+        campaign.setBusinessId(businessId);
+        campaign.setArchivedAt(archivedAt);
+        return adCampaignRepository.save(campaign).getCampaignId().getCampaignId();
+    }
+
+    private void expectArchiveStatus(String action, String campaignId, int expectedStatus) {
+        webTestClient.post()
+                .uri(uriBuilder -> uriBuilder.path(BASE_URI_AD_CAMPAIGNS + "/{campaignId}/" + action)
+                        .build(BUSINESS_ID, campaignId))
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isEqualTo(expectedStatus);
     }
 }

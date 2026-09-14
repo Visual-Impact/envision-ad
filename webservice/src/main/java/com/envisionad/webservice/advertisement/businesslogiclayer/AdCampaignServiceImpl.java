@@ -63,8 +63,12 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     }
 
     @Override
-    public List<AdCampaignResponseModel> getAllAdCampaignsByBusinessId(String businessId) {
-        List<AdCampaign> adCampaigns = adCampaignRepository.findAllByBusinessId_BusinessId(businessId);
+    public List<AdCampaignResponseModel> getAllAdCampaignsByBusinessId(String businessId, boolean includeArchived) {
+        // Hidden by default: archiving exists to tidy the list, and the flag is what lets the
+        // advertiser find a campaign again to unarchive it (P6 FR-3b.4).
+        List<AdCampaign> adCampaigns = includeArchived
+                ? adCampaignRepository.findAllByBusinessId_BusinessId(businessId)
+                : adCampaignRepository.findAllByBusinessId_BusinessIdAndArchivedAtIsNull(businessId);
         return adCampaignResponseMapper.entitiesToResponseModelList(adCampaigns);
     }
 
@@ -399,5 +403,55 @@ public class AdCampaignServiceImpl implements AdCampaignService {
     private boolean hasLiveSubscription(String businessId) {
         return bundleSubscriptionRepository.countByAdvertiserBusinessIdAndStatusIn(
                 businessId, BundleSubscriptionStatus.LIVE) > 0;
+    }
+
+    @Override
+    public void archiveAdCampaign(Jwt jwt, String businessId, String campaignId) {
+        AdCampaign adCampaign = requireCampaignOwnedBy(jwt, businessId, campaignId);
+        Business business = requireBusiness(businessId);
+
+        // The one guard (P6 FR-3b.3, D20): archiving what is on screen would hide the campaign
+        // the advertiser most needs to see. A live subscription only ever implies the active
+        // campaign, so this also covers "still running".
+        if (campaignId.equals(business.getActiveCampaignId())) {
+            throw new CampaignIsActiveCampaignException(campaignId);
+        }
+
+        // Idempotent: a repeat call keeps the original timestamp rather than moving it.
+        if (adCampaign.getArchivedAt() != null) {
+            return;
+        }
+        adCampaign.setArchivedAt(LocalDateTime.now());
+        adCampaignRepository.save(adCampaign);
+    }
+
+    @Override
+    public void unarchiveAdCampaign(Jwt jwt, String businessId, String campaignId) {
+        AdCampaign adCampaign = requireCampaignOwnedBy(jwt, businessId, campaignId);
+
+        // No guards: bringing a campaign back into the list is always safe.
+        if (adCampaign.getArchivedAt() == null) {
+            return;
+        }
+        adCampaign.setArchivedAt(null);
+        adCampaignRepository.save(adCampaign);
+    }
+
+    private Business requireBusiness(String businessId) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null) {
+            throw new BusinessNotFoundException(businessId);
+        }
+        return business;
+    }
+
+    private AdCampaign requireCampaignOwnedBy(Jwt jwt, String businessId, String campaignId) {
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+        AdCampaign adCampaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
+        if (adCampaign == null) {
+            throw new AdCampaignNotFoundException(campaignId);
+        }
+        jwtUtils.validateBusinessOwnsCampaign(businessId, adCampaign);
+        return adCampaign;
     }
 }

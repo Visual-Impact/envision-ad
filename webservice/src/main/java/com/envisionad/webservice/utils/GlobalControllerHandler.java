@@ -309,6 +309,12 @@ public class GlobalControllerHandler {
     }
 
     @ResponseStatus(CONFLICT)
+    @ExceptionHandler(CampaignIsArchivedException.class)
+    public HttpErrorInfo handleCampaignIsArchivedException(CampaignIsArchivedException ex) {
+        return createHttpErrorInfo(CONFLICT, ex);
+    }
+
+    @ResponseStatus(CONFLICT)
     @ExceptionHandler(LastActiveCampaignCreativeCannotBeDeletedException.class)
     public HttpErrorInfo handleLastActiveCampaignCreativeCannotBeDeletedException(
             LastActiveCampaignCreativeCannotBeDeletedException ex) {

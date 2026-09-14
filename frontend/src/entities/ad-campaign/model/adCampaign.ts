@@ -8,6 +8,8 @@ export interface AdCampaign {
     startDate: string; // or Date
     endDate: string;   // or Date
     ads: Ad[];
+    /** Set once the advertiser archives the campaign; null while it is in their list. */
+    archivedAt: string | null;
 }
 
 export interface AdCampaignRequestDTO {

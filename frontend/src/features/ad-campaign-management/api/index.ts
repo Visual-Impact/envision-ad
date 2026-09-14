@@ -9,3 +9,5 @@ export { getActiveCampaign } from './getActiveCampaign';
 export { swapActiveCampaign } from './swapActiveCampaign';
 export { notifyMediaOwners } from './notifyMediaOwners';
 export { getEligibleSwapCampaigns } from './getEligibleSwapCampaigns';
+export { archiveCampaign } from './archiveCampaign';
+export { unarchiveCampaign } from './unarchiveCampaign';

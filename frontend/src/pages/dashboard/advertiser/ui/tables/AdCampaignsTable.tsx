@@ -1,6 +1,6 @@
 import React from "react";
 import { Accordion, ActionIcon, Alert, Button, Group, ScrollArea, Table, Text, Badge, Box, Flex, Tooltip } from "@mantine/core";
-import { IconTrash, IconPlus, IconPhoto, IconMovie, IconTags, IconBell } from "@tabler/icons-react";
+import { IconTrash, IconPlus, IconPhoto, IconMovie, IconTags, IconBell, IconArchive, IconArchiveOff } from "@tabler/icons-react";
 import { Ad } from "@/entities/ad";
 import { AdCampaign } from "@/entities/ad-campaign";
 import { Venue } from "@/entities/venue";
@@ -11,7 +11,7 @@ interface AdCampaignsTableProps {
     campaigns: AdCampaign[];
     /** Full venue list, used to resolve an ad's venueIds to names and colors. */
     venues: Venue[];
-    /** The business's active campaign: badged, and never deletable (FR-3.1). */
+    /** The business's active campaign: badged, and never deletable or archivable (FR-3.1, FR-3b.3). */
     activeCampaignId: string | null;
     /** The campaign whose "notify owners now?" prompt is showing, if any (FR-8.3). */
     promptCampaignId: string | null;
@@ -21,6 +21,8 @@ interface AdCampaignsTableProps {
     onDismissPrompt: () => void;
     onDeleteAd: (campaignId: string, adId: string) => void;
     onDeleteAdCampaign: (campaignId: string) => void;
+    onArchiveAdCampaign: (campaignId: string) => void;
+    onUnarchiveAdCampaign: (campaignId: string) => void;
     onOpenAddAd: (campaignId: string) => void;
     onEditAdTags: (campaignId: string, ad: Ad) => void;
 }
@@ -36,11 +38,14 @@ export function AdCampaignsTable({
     onDismissPrompt,
     onDeleteAd,
     onDeleteAdCampaign,
+    onArchiveAdCampaign,
+    onUnarchiveAdCampaign,
     onOpenAddAd,
     onEditAdTags
 }: AdCampaignsTableProps) {
     const t = useTranslations("adCampaigns.table");
     const tPrompt = useTranslations("activeCampaignSlot.prompt");
+    const tArchive = useTranslations("adCampaigns.archive");
     const locale = useLocale();
     const getIcon = (type: string) => type === "VIDEO" ? <IconMovie size={16} /> : <IconPhoto size={16} />;
 
@@ -81,17 +86,19 @@ export function AdCampaignsTable({
         <Accordion variant="separated" multiple>
             {campaigns.map((campaign) => {
                 const isActive = campaign.campaignId === activeCampaignId;
+                const isArchived = campaign.archivedAt !== null;
                 return (
                 <Accordion.Item key={campaign.campaignId} value={campaign.campaignId}>
                     {/* FLEX container handles layout: Text/Control on left, Button on right */}
                     <Flex align="center" justify="space-between">
                         
                         {/* 1. The Accordion Trigger (Takes up remaining space) */}
-                        <Accordion.Control style={{ flex: 1 }}>
+                        <Accordion.Control style={{ flex: 1, opacity: isArchived ? 0.6 : undefined }}>
                             <Group gap="xs" wrap="nowrap">
                                 <Text fw={500}>{campaign.name}</Text>
                                 {/* It is also in the slot above; the badge says that is on purpose (FR-1.5). */}
                                 {isActive && <Badge color="teal" variant="light" size="sm">{t("activeBadge")}</Badge>}
+                                {isArchived && <Badge color="gray" variant="light" size="sm">{tArchive("badge")}</Badge>}
                             </Group>
                         </Accordion.Control>
 
@@ -105,9 +112,32 @@ export function AdCampaignsTable({
                             >
                                 {t('newAd')}
                             </Button>
-                            {/* Offering a delete that is guaranteed to fail is worse than explaining why
-                                it isn't available. data-disabled keeps the tooltip working. */}
-                            <Tooltip label={t("activeCampaignDeleteHint")} disabled={!isActive} multiline w={260}>
+                            {/* The active campaign can be neither archived nor deleted (D20). Offering an
+                                action that is guaranteed to fail is worse than explaining why it isn't
+                                available. data-disabled keeps the tooltip working. */}
+                            <Tooltip
+                                label={isActive
+                                    ? t("activeCampaignActionsHint")
+                                    : tArchive(isArchived ? "unarchiveAction" : "action")}
+                                multiline
+                                w={isActive ? 260 : undefined}
+                            >
+                                <ActionIcon
+                                    variant="subtle"
+                                    color="gray"
+                                    aria-label={tArchive(isArchived ? "unarchiveAction" : "action")}
+                                    data-disabled={isActive || undefined}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isActive) return;
+                                        if (isArchived) onUnarchiveAdCampaign(campaign.campaignId);
+                                        else onArchiveAdCampaign(campaign.campaignId);
+                                    }}
+                                >
+                                    {isArchived ? <IconArchiveOff size={16} /> : <IconArchive size={16} />}
+                                </ActionIcon>
+                            </Tooltip>
+                            <Tooltip label={t("activeCampaignActionsHint")} disabled={!isActive} multiline w={260}>
                                 <ActionIcon
                                     variant="subtle"
                                     color="red"

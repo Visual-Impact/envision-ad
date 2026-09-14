@@ -295,6 +295,45 @@ public class ActiveCampaignIntegrationTest extends BaseIntegrationTest {
                 .jsonPath("$[0].campaignId").isEqualTo(alternative.getCampaignId().getCampaignId());
     }
 
+    @Test
+    void eligibleForSwap_omitsArchivedCampaigns() {
+        AdCampaign active = givenCampaignWithAds("Summer Sale", 1);
+        givenCampaignWithAds("Winter Sale", 1);
+        AdCampaign archived = givenCampaignWithAds("Spring Sale", 1);
+        archived.setArchivedAt(LocalDateTime.now());
+        adCampaignRepository.save(archived);
+        givenActiveCampaign(active);
+
+        webTestClient.get().uri("/api/v1/businesses/{businessId}/campaigns/eligible-for-swap", BUSINESS_ID)
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].name").isEqualTo("Winter Sale");
+    }
+
+    /** The UI never offers it; the endpoint still has to refuse it (FR-3b.4). */
+    @Test
+    void swap_toAnArchivedCampaign_is409AndLeavesThePointer() {
+        AdCampaign first = givenCampaignWithAds("Summer Sale", 1);
+        AdCampaign archived = givenCampaignWithAds("Winter Sale", 1);
+        archived.setArchivedAt(LocalDateTime.now());
+        adCampaignRepository.save(archived);
+        givenActiveCampaign(first);
+
+        webTestClient.put().uri(BASE, BUSINESS_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("advertiser-token"))
+                .bodyValue(Map.of("campaignId", archived.getCampaignId().getCampaignId()))
+                .exchange()
+                .expectStatus().isEqualTo(409);
+
+        assertEquals(first.getCampaignId().getCampaignId(),
+                businessRepository.findByBusinessId_BusinessId(BUSINESS_ID).getActiveCampaignId());
+        assertTrue(campaignSwapEventRepository.findAll().isEmpty());
+    }
+
     // ---------- helpers ----------
 
     private AdCampaign givenCampaignWithAds(String name, int adCount) {
