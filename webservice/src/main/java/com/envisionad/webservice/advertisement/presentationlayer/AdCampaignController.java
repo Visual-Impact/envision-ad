@@ -27,8 +27,10 @@ public class AdCampaignController {
 
     @GetMapping("businesses/{businessId}/campaigns")
     @PreAuthorize("hasAuthority('readAll:campaign')")
-    public ResponseEntity<List<AdCampaignResponseModel>> getAllBusinessCampaigns(@PathVariable String businessId) {
-        return ResponseEntity.ok(adCampaignService.getAllAdCampaignsByBusinessId(businessId));
+    public ResponseEntity<List<AdCampaignResponseModel>> getAllBusinessCampaigns(
+            @PathVariable String businessId,
+            @RequestParam(defaultValue = "false") boolean includeArchived) {
+        return ResponseEntity.ok(adCampaignService.getAllAdCampaignsByBusinessId(businessId, includeArchived));
     }
 
     @GetMapping("campaigns/{campaignId}")
@@ -103,5 +105,25 @@ public class AdCampaignController {
             @PathVariable String businessId,
             @PathVariable String campaignId) {
         return ResponseEntity.ok(adCampaignService.deleteAdCampaign(jwt, businessId, campaignId));
+    }
+
+    @PostMapping("businesses/{businessId}/campaigns/{campaignId}/archive")
+    @PreAuthorize("hasAuthority('update:campaign')")
+    public ResponseEntity<Void> archiveCampaign(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String businessId,
+            @PathVariable String campaignId) {
+        adCampaignService.archiveAdCampaign(jwt, businessId, campaignId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("businesses/{businessId}/campaigns/{campaignId}/unarchive")
+    @PreAuthorize("hasAuthority('update:campaign')")
+    public ResponseEntity<Void> unarchiveCampaign(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable String businessId,
+            @PathVariable String campaignId) {
+        adCampaignService.unarchiveAdCampaign(jwt, businessId, campaignId);
+        return ResponseEntity.noContent().build();
     }
 }

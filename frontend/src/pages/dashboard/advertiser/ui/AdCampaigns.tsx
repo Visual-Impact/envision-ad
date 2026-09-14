@@ -2,7 +2,7 @@
 
 import React, {useCallback, useEffect, useState} from "react";
 import axios from "axios";
-import {Button, Group, SimpleGrid, Stack, Title} from "@mantine/core";
+import {Button, Group, SimpleGrid, Stack, Switch, Title} from "@mantine/core";
 import {IconAd, IconMovie, IconPhoto, IconSpeakerphone} from "@tabler/icons-react";
 import {notifications} from "@mantine/notifications";
 import {useLocale, useTranslations} from 'next-intl';
@@ -12,11 +12,13 @@ import {ActiveCampaignSummary, AdCampaign, AdCampaignRequestDTO} from "@/entitie
 import {Venue} from "@/entities/venue";
 import {
     addAdToCampaign,
+    archiveCampaign,
     createAdCampaign, deleteAdCampaign,
     deleteAdFromCampaign,
     getActiveCampaign,
     getAllAdCampaigns,
     notifyMediaOwners,
+    unarchiveCampaign,
     updateAdVenueTags
 } from "@/features/ad-campaign-management";
 import {getBundleSubscriptions} from "@/features/bundle-subscription";
@@ -52,6 +54,7 @@ export default function AdCampaigns() {
     const t = useTranslations('adCampaigns');
     const tSlot = useTranslations('activeCampaignSlot');
     const tEditTags = useTranslations('editAdVenueTags');
+    const tArchive = useTranslations('adCampaigns.archive');
     const locale = useLocale();
 
     const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
@@ -81,6 +84,10 @@ export default function AdCampaigns() {
     const [adToDelete, setAdToDelete] = useState<{ campaignId: string; adId: string } | null>(null);
     const [campaignIdToDelete, setCampaignIdToDelete] = useState<string | null>(null);
 
+    /** Off by default: archiving exists to tidy the list (FR-3b.4). */
+    const [showArchived, setShowArchived] = useState(false);
+    const [campaignToArchive, setCampaignToArchive] = useState<AdCampaign | null>(null);
+
     const refreshCampaigns = useCallback(() => {
         setRefreshCount(c => c + 1);
     }, []);
@@ -94,7 +101,7 @@ export default function AdCampaigns() {
 
         const fetchCampaigns = async () => {
             try {
-                const data = await getAllAdCampaigns(businessId);
+                const data = await getAllAdCampaigns(businessId, showArchived);
                 if (!ignored) setCampaigns(data);
             } catch (error) {
                 if (!ignored) {
@@ -111,7 +118,7 @@ export default function AdCampaigns() {
         void fetchCampaigns();
 
         return () => { ignored = true; };
-    }, [businessId, t, refreshCount]);
+    }, [businessId, t, refreshCount, showArchived]);
 
     useEffect(() => {
         if (!businessId) return;
@@ -361,6 +368,57 @@ export default function AdCampaigns() {
         }
     };
 
+    const handleArchiveAdCampaign = (campaignId: string) => {
+        setCampaignToArchive(campaigns.find((c) => c.campaignId === campaignId) ?? null);
+    };
+
+    const confirmArchiveCampaign = async () => {
+        if (!campaignToArchive || !organization) return;
+
+        try {
+            await archiveCampaign(organization.businessId, campaignToArchive.campaignId);
+            notifications.show({
+                title: tArchive('successTitle'),
+                message: tArchive('success', { name: campaignToArchive.name }),
+                color: 'green'
+            });
+            setCampaignToArchive(null);
+            refreshCampaigns();
+        } catch (error) {
+            console.error('Failed to archive campaign', error);
+            // The only conflict: it became the active campaign after this page loaded.
+            const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+            notifications.show({
+                title: tArchive('errorTitle'),
+                message: tArchive(status === 409 ? 'errorActiveCampaign' : 'errorGeneric'),
+                color: 'red'
+            });
+        }
+    };
+
+    // No confirmation: restoring a campaign to the list is always safe and changes nothing else.
+    const handleUnarchiveAdCampaign = async (campaignId: string) => {
+        if (!organization) return;
+        const name = campaigns.find((c) => c.campaignId === campaignId)?.name ?? '';
+
+        try {
+            await unarchiveCampaign(organization.businessId, campaignId);
+            notifications.show({
+                title: tArchive('unarchiveSuccessTitle'),
+                message: tArchive('unarchiveSuccess', { name }),
+                color: 'green'
+            });
+            refreshCampaigns();
+        } catch (error) {
+            console.error('Failed to unarchive campaign', error);
+            notifications.show({
+                title: tArchive('errorTitle'),
+                message: tArchive('unarchiveErrorGeneric'),
+                color: 'red'
+            });
+        }
+    };
+
     const handleCreateCampaign = async (payload: AdCampaignRequestDTO) => {
         if (!organization) return;
 
@@ -383,12 +441,14 @@ export default function AdCampaigns() {
         }
     };
 
-    const allAds = campaigns.flatMap((c) => c.ads);
+    // The stats describe the campaigns in use, so they don't change when archived ones are shown.
+    const listedCampaigns = campaigns.filter((c) => c.archivedAt === null);
+    const allAds = listedCampaigns.flatMap((c) => c.ads);
     const imageAdsCount = allAds.filter((ad) => ad.adType === "IMAGE").length;
     const videoAdsCount = allAds.filter((ad) => ad.adType === "VIDEO").length;
 
     const stats = [
-        { title: t('stats.totalCampaigns'), value: campaigns.length.toString(), icon: IconSpeakerphone, color: "blue" },
+        { title: t('stats.totalCampaigns'), value: listedCampaigns.length.toString(), icon: IconSpeakerphone, color: "blue" },
         { title: t('stats.totalAds'), value: allAds.length.toString(), icon: IconAd, color: "orange" },
         { title: t('stats.imageAds'), value: imageAdsCount.toString(), icon: IconPhoto, color: "teal" },
         { title: t('stats.videoAds'), value: videoAdsCount.toString(), icon: IconMovie, color: "grape" },
@@ -398,9 +458,16 @@ export default function AdCampaigns() {
         <Stack gap="md" p="md">
             <Group justify="space-between">
                 <Title order={1}>{t('page.title')}</Title>
-                <Button variant="gradient" onClick={() => setIsCreateCampaignOpen(true)}>
-                    {t('page.createButton')}
-                </Button>
+                <Group gap="md">
+                    <Switch
+                        label={tArchive('showArchivedToggle')}
+                        checked={showArchived}
+                        onChange={(event) => setShowArchived(event.currentTarget.checked)}
+                    />
+                    <Button variant="gradient" onClick={() => setIsCreateCampaignOpen(true)}>
+                        {t('page.createButton')}
+                    </Button>
+                </Group>
             </Group>
 
             <ActiveCampaignSlot
@@ -435,6 +502,8 @@ export default function AdCampaigns() {
                 onDismissPrompt={() => setPromptCampaignId(null)}
                 onDeleteAd={handleDeleteAd}
                 onDeleteAdCampaign={handleDeleteAdCampaign}
+                onArchiveAdCampaign={handleArchiveAdCampaign}
+                onUnarchiveAdCampaign={handleUnarchiveAdCampaign}
                 onOpenAddAd={handleOpenAddAd}
                 onEditAdTags={handleOpenEditAdTags}
             />
@@ -488,6 +557,16 @@ export default function AdCampaigns() {
                 confirmColor="red"
                 onConfirm={confirmDeleteCampaign}
                 onCancel={() => setConfirmDeleteCampaignOpen(false)}
+            />
+            <ConfirmationModal
+                opened={campaignToArchive !== null}
+                title={tArchive('confirmTitle')}
+                message={tArchive('confirmBody', { name: campaignToArchive?.name ?? '' })}
+                confirmLabel={tArchive('confirmAction')}
+                cancelLabel={t('confirmations.delete.cancel')}
+                confirmColor="blue"
+                onConfirm={confirmArchiveCampaign}
+                onCancel={() => setCampaignToArchive(null)}
             />
         </Stack>
     );

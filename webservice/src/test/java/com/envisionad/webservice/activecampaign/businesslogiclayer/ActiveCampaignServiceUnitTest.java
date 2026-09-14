@@ -132,6 +132,20 @@ class ActiveCampaignServiceUnitTest {
                 () -> service.selectInitialActiveCampaign(BUSINESS_ID, CAMPAIGN_A));
     }
 
+    /** FR-3b.4: an archived campaign has to be unarchived before it can go on screen. */
+    @Test
+    void select_anArchivedCampaign_isRejected() {
+        givenBusiness(null);
+        AdCampaign archived = campaign(CAMPAIGN_A, 1);
+        archived.setArchivedAt(LocalDateTime.now());
+        when(adCampaignRepository.findByCampaignIdWithAds(CAMPAIGN_A)).thenReturn(archived);
+
+        assertThrows(com.envisionad.webservice.advertisement.exceptions.CampaignIsArchivedException.class,
+                () -> service.selectInitialActiveCampaign(BUSINESS_ID, CAMPAIGN_A));
+        verify(businessRepository, never()).save(any());
+        verifyNoInteractions(campaignSwapEventRepository);
+    }
+
     // ---------- replacing an emptied sticky campaign at checkout ----------
 
     @Test

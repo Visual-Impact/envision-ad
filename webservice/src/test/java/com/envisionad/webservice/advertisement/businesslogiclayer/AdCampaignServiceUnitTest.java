@@ -889,6 +889,134 @@ class AdCampaignServiceUnitTest {
         verify(adCampaignRepository, never()).save(any());
     }
 
+    // ---------- P6 FR-3b: archive / unarchive ----------
+
+    @Test
+    void getAllAdCampaigns_byDefault_leavesArchivedCampaignsOut() {
+        when(adCampaignRepository.findAllByBusinessId_BusinessIdAndArchivedAtIsNull(TEST_BUSINESS_ID))
+                .thenReturn(List.of());
+
+        service.getAllAdCampaignsByBusinessId(TEST_BUSINESS_ID, false);
+
+        verify(adCampaignRepository, never()).findAllByBusinessId_BusinessId(anyString());
+    }
+
+    @Test
+    void getAllAdCampaigns_withIncludeArchived_returnsEveryCampaign() {
+        when(adCampaignRepository.findAllByBusinessId_BusinessId(TEST_BUSINESS_ID)).thenReturn(List.of());
+
+        service.getAllAdCampaignsByBusinessId(TEST_BUSINESS_ID, true);
+
+        verify(adCampaignRepository, never()).findAllByBusinessId_BusinessIdAndArchivedAtIsNull(anyString());
+    }
+
+    @Test
+    void archiveAdCampaign_stampsArchivedAtAndLeavesTheAdsAlone() {
+        CampaignAndAdId data = campaignWithSingleAd("camp-archive", null);
+        data.campaign.setBusinessId(new BusinessIdentifier(TEST_BUSINESS_ID));
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-archive")).thenReturn(data.campaign);
+        when(businessRepository.findByBusinessId_BusinessId(TEST_BUSINESS_ID))
+                .thenReturn(businessWithActiveCampaign(TEST_BUSINESS_ID, "some-other-campaign"));
+
+        service.archiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-archive");
+
+        assertNotNull(data.campaign.getArchivedAt());
+        assertEquals(1, data.campaign.getAds().size());
+        verify(adCampaignRepository).save(data.campaign);
+        verify(adCampaignRepository, never()).delete(any());
+    }
+
+    /** A repeat call is a 204, not an error, and must not move the original timestamp. */
+    @Test
+    void archiveAdCampaign_whenAlreadyArchived_isANoOp() {
+        AdCampaign campaign = campaignWithoutAds("camp-archived", TEST_BUSINESS_ID);
+        LocalDateTime archivedAt = LocalDateTime.of(2026, 9, 1, 12, 0);
+        campaign.setArchivedAt(archivedAt);
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-archived")).thenReturn(campaign);
+
+        service.archiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-archived");
+
+        assertEquals(archivedAt, campaign.getArchivedAt());
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    /** FR-3b.3: what is on screen can't be filed away. Swap first. */
+    @Test
+    void archiveAdCampaign_whenCampaignIsActive_throwsAndChangesNothing() {
+        AdCampaign campaign = campaignWithoutAds("camp-active", TEST_BUSINESS_ID);
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-active")).thenReturn(campaign);
+        when(businessRepository.findByBusinessId_BusinessId(TEST_BUSINESS_ID))
+                .thenReturn(businessWithActiveCampaign(TEST_BUSINESS_ID, "camp-active"));
+
+        assertThrows(CampaignIsActiveCampaignException.class,
+                () -> service.archiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-active"));
+
+        assertNull(campaign.getArchivedAt());
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void archiveAdCampaign_whenCampaignDoesNotExist_throwsNotFound() {
+        when(adCampaignRepository.findByCampaignId_CampaignId("missing")).thenReturn(null);
+
+        assertThrows(AdCampaignNotFoundException.class,
+                () -> service.archiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "missing"));
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void archiveAdCampaign_whenTheBusinessDoesNotExist_throwsNotFound() {
+        AdCampaign campaign = campaignWithoutAds("camp-orphan", TEST_BUSINESS_ID);
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-orphan")).thenReturn(campaign);
+        when(businessRepository.findByBusinessId_BusinessId(TEST_BUSINESS_ID)).thenReturn(null);
+
+        assertThrows(com.envisionad.webservice.business.exceptions.BusinessNotFoundException.class,
+                () -> service.archiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-orphan"));
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void archiveAdCampaign_forACampaignOfAnotherBusiness_isRefusedBeforeAnyWrite() {
+        AdCampaign campaign = campaignWithoutAds("camp-foreign", "someone-else");
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-foreign")).thenReturn(campaign);
+        doThrow(new AccessDeniedException("not yours"))
+                .when(jwtUtils).validateBusinessOwnsCampaign(TEST_BUSINESS_ID, campaign);
+
+        assertThrows(AccessDeniedException.class,
+                () -> service.archiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-foreign"));
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void unarchiveAdCampaign_clearsArchivedAt() {
+        AdCampaign campaign = campaignWithoutAds("camp-restore", TEST_BUSINESS_ID);
+        campaign.setArchivedAt(LocalDateTime.now());
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-restore")).thenReturn(campaign);
+
+        service.unarchiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-restore");
+
+        assertNull(campaign.getArchivedAt());
+        verify(adCampaignRepository).save(campaign);
+    }
+
+    @Test
+    void unarchiveAdCampaign_whenNotArchived_isANoOp() {
+        AdCampaign campaign = campaignWithoutAds("camp-listed", TEST_BUSINESS_ID);
+        when(adCampaignRepository.findByCampaignId_CampaignId("camp-listed")).thenReturn(campaign);
+
+        service.unarchiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "camp-listed");
+
+        verify(adCampaignRepository, never()).save(any());
+    }
+
+    @Test
+    void unarchiveAdCampaign_whenCampaignDoesNotExist_throwsNotFound() {
+        when(adCampaignRepository.findByCampaignId_CampaignId("missing")).thenReturn(null);
+
+        assertThrows(AdCampaignNotFoundException.class,
+                () -> service.unarchiveAdCampaign(advertiserToken, TEST_BUSINESS_ID, "missing"));
+    }
+
     private static AdCampaign campaignWithoutAds(String campaignId, String businessId) {
         AdCampaign campaign = new AdCampaign();
         campaign.setCampaignId(new AdCampaignIdentifier(campaignId));

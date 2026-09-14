@@ -1061,7 +1061,7 @@
       "allVenues": "Tous les types de lieux",
       "editTags": "Modifier les types de lieux de {name}",
       "activeBadge": "Active",
-      "activeCampaignDeleteHint": "Cette campagne est actuellement diffusée. Changez de campagne avant de la supprimer."
+      "activeCampaignActionsHint": "Cette campagne est actuellement diffusée. Changez de campagne avant de la supprimer ou de l’archiver."
     },
     "notifications": {
       "loadFailed": {
@@ -1124,6 +1124,23 @@
         "cancel": "Annuler",
         "confirm": "Supprimer"
       }
+    },
+    "archive": {
+      "action": "Archiver la campagne",
+      "unarchiveAction": "Désarchiver la campagne",
+      "badge": "Archivée",
+      "showArchivedToggle": "Afficher les archivées",
+      "confirmTitle": "Archiver la campagne ?",
+      "confirmBody": "« {name} » sera masquée de votre liste de campagnes. Ses publicités et son historique d’abonnements sont conservés, et vous pouvez la désarchiver à tout moment avec « Afficher les archivées ».",
+      "confirmAction": "Archiver",
+      "successTitle": "Archivée",
+      "success": "« {name} » a été déplacée dans vos campagnes archivées.",
+      "unarchiveSuccessTitle": "Restaurée",
+      "unarchiveSuccess": "« {name} » est de retour dans votre liste de campagnes.",
+      "errorTitle": "Erreur",
+      "errorActiveCampaign": "Cette campagne est actuellement diffusée. Changez de campagne avant de l’archiver.",
+      "errorGeneric": "Échec de l’archivage de la campagne",
+      "unarchiveErrorGeneric": "Échec du désarchivage de la campagne"
     }
   },
   "activeCampaignSlot": {

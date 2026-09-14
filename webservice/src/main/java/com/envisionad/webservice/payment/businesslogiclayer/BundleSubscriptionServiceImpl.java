@@ -6,6 +6,7 @@ import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaign;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdCampaignRepository;
 import com.envisionad.webservice.advertisement.exceptions.AdCampaignNotFoundException;
 import com.envisionad.webservice.advertisement.exceptions.CampaignHasNoAdsException;
+import com.envisionad.webservice.advertisement.exceptions.CampaignIsArchivedException;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePriceQuote;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundlePricingService;
 import com.envisionad.webservice.bundle.businesslogiclayer.BundleService;
@@ -304,6 +305,12 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         // The ads collection is LAZY; this runs inside the transaction so it initializes.
         if (campaign.getAds() == null || campaign.getAds().isEmpty()) {
             throw new CampaignHasNoAdsException(campaignId);
+        }
+        // Checked here as well as when the pointer is written: a sticky campaign that still has
+        // creatives is kept whatever is picked, and an archived pick should still be refused
+        // before a Stripe session exists rather than silently ignored.
+        if (campaign.getArchivedAt() != null) {
+            throw new CampaignIsArchivedException(campaignId);
         }
         return campaign;
     }

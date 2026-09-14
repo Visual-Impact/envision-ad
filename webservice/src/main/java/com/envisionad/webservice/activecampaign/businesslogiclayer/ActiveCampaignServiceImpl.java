@@ -14,6 +14,7 @@ import com.envisionad.webservice.advertisement.datamapperlayer.AdCampaignRespons
 import com.envisionad.webservice.advertisement.datamapperlayer.AdResponseMapper;
 import com.envisionad.webservice.advertisement.exceptions.AdCampaignNotFoundException;
 import com.envisionad.webservice.advertisement.exceptions.CampaignHasNoAdsException;
+import com.envisionad.webservice.advertisement.exceptions.CampaignIsArchivedException;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampaignResponseModel;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
@@ -253,6 +254,7 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
 
         List<AdCampaign> eligible = adCampaignRepository.findAllByBusinessId_BusinessId(businessId).stream()
                 .filter(campaign -> campaign.getAds() != null && !campaign.getAds().isEmpty())
+                .filter(campaign -> campaign.getArchivedAt() == null)
                 .filter(campaign -> !campaign.getCampaignId().getCampaignId().equals(activeCampaignId))
                 .toList();
         return adCampaignResponseMapper.entitiesToResponseModelList(eligible);
@@ -389,6 +391,11 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
         }
         if (campaign.getAds() == null || campaign.getAds().isEmpty()) {
             throw new CampaignHasNoAdsException(campaignId);
+        }
+        if (campaign.getArchivedAt() != null) {
+            // Unarchive first (FR-3b.4). Archive refuses the active campaign, so this is what
+            // keeps the pointer from ever landing on an archived one from the other direction.
+            throw new CampaignIsArchivedException(campaignId);
         }
         return campaign;
     }

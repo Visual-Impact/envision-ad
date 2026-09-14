@@ -270,6 +270,21 @@ class BundleSubscriptionServiceUnitTest {
         verify(businessRepository, never()).save(any());
     }
 
+    /** FR-3b.4: an archived pick is refused before a Stripe session exists, not silently kept. */
+    @Test
+    void createSubscriptionCheckout_withAnArchivedCampaign_isRejectedBeforeAnyStripeCall() {
+        givenValidPreconditions();
+        adCampaignRepository.findByCampaignId_CampaignId(CAMPAIGN_ID).setArchivedAt(java.time.LocalDateTime.now());
+
+        try (MockedStatic<Session> sessions = mockStatic(Session.class)) {
+            assertThrows(com.envisionad.webservice.advertisement.exceptions.CampaignIsArchivedException.class,
+                    () -> service.createSubscriptionCheckout(jwt, BUNDLE_ID, CAMPAIGN_ID, BUSINESS_ID));
+            sessions.verifyNoInteractions();
+        }
+        verifyNoInteractions(activeCampaignService);
+        verify(bundleSubscriptionRepository, never()).save(any());
+    }
+
     // ---------- organization verification ----------
 
     /**

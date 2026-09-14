@@ -1020,7 +1020,7 @@
       "allVenues": "All venues",
       "editTags": "Edit venue tags for {name}",
       "activeBadge": "Active",
-      "activeCampaignDeleteHint": "This campaign is on screen. Swap to another campaign before deleting it."
+      "activeCampaignActionsHint": "This campaign is on screen. Swap to another campaign before deleting or archiving it."
     },
     "notifications": {
       "loadFailed": {
@@ -1083,6 +1083,23 @@
         "cancel": "Cancel",
         "confirm": "Delete"
       }
+    },
+    "archive": {
+      "action": "Archive campaign",
+      "unarchiveAction": "Unarchive campaign",
+      "badge": "Archived",
+      "showArchivedToggle": "Show archived",
+      "confirmTitle": "Archive campaign?",
+      "confirmBody": "“{name}” will be hidden from your campaigns list. Its ads and subscription history are kept, and you can unarchive it at any time from “Show archived”.",
+      "confirmAction": "Archive",
+      "successTitle": "Archived",
+      "success": "“{name}” was moved to your archived campaigns.",
+      "unarchiveSuccessTitle": "Restored",
+      "unarchiveSuccess": "“{name}” is back in your campaigns list.",
+      "errorTitle": "Error",
+      "errorActiveCampaign": "This campaign is currently on screen. Swap to a different campaign before archiving it.",
+      "errorGeneric": "Failed to archive campaign",
+      "unarchiveErrorGeneric": "Failed to unarchive campaign"
     }
   },
   "activeCampaignSlot": {

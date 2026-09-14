@@ -18,7 +18,7 @@ public interface AdCampaignService {
     AdResponseModel updateAdVenueTags(Jwt jwt, String businessId, String campaignId, String adId,
                                       List<String> venueIds);
 
-    List<AdCampaignResponseModel> getAllAdCampaignsByBusinessId(String businessId);
+    List<AdCampaignResponseModel> getAllAdCampaignsByBusinessId(String businessId, boolean includeArchived);
 
     AdCampaignResponseModel getAdCampaignByCampaignId(String campaignId);
 
@@ -29,4 +29,8 @@ public interface AdCampaignService {
     Integer getActiveCampaignCreativeCount(String businessId);
 
     AdCampaignResponseModel deleteAdCampaign(Jwt jwt, String businessId, String campaignId);
+
+    void archiveAdCampaign(Jwt jwt, String businessId, String campaignId);
+
+    void unarchiveAdCampaign(Jwt jwt, String businessId, String campaignId);
 }
