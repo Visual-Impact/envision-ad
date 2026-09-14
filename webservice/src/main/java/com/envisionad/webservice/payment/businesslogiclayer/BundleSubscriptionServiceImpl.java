@@ -225,11 +225,15 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         // set with no live subscription — a legitimate sticky state, since every reader that
         // matters is gated on a live subscription.
         //
-        // Known gap, owned by P1's checkout UI and not fixed here: because of that stickiness, a
-        // returning advertiser's picker selection has no effect. Making the picker honest is a
-        // frontend change, shipping with the rest of the P6 dashboard in M3.
+        // A sticky campaign is kept only while it still has creatives (FR-6.3). One emptied during a
+        // gap between subscriptions can't go back on screen, so the campaign picked here replaces
+        // it. The checkout modal only offers a picker in those two cases — nothing set, or set but
+        // empty — and otherwise names the campaign that will stay on screen.
         if (business.getActiveCampaignId() == null) {
             activeCampaignService.selectInitialActiveCampaign(
+                    businessId, campaign.getCampaignId().getCampaignId());
+        } else {
+            activeCampaignService.replaceActiveCampaignIfEmpty(
                     businessId, campaign.getCampaignId().getCampaignId());
         }
 

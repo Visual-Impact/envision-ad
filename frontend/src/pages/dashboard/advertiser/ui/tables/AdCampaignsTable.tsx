@@ -1,15 +1,24 @@
 import React from "react";
-import { Accordion, ActionIcon, Button, Group, ScrollArea, Table, Text, Badge, Image, Box, Flex } from "@mantine/core";
-import { IconTrash, IconPlus, IconPhoto, IconMovie, IconTags } from "@tabler/icons-react";
+import { Accordion, ActionIcon, Alert, Button, Group, ScrollArea, Table, Text, Badge, Box, Flex, Tooltip } from "@mantine/core";
+import { IconTrash, IconPlus, IconPhoto, IconMovie, IconTags, IconBell } from "@tabler/icons-react";
 import { Ad } from "@/entities/ad";
 import { AdCampaign } from "@/entities/ad-campaign";
 import { Venue } from "@/entities/venue";
 import {useLocale, useTranslations} from "next-intl";
+import { AdThumbnail } from "../AdThumbnail";
 
 interface AdCampaignsTableProps {
     campaigns: AdCampaign[];
     /** Full venue list, used to resolve an ad's venueIds to names and colors. */
     venues: Venue[];
+    /** The business's active campaign: badged, and never deletable (FR-3.1). */
+    activeCampaignId: string | null;
+    /** The campaign whose "notify owners now?" prompt is showing, if any (FR-8.3). */
+    promptCampaignId: string | null;
+    notifying: boolean;
+    notifyDisabled: boolean;
+    onNotifyNow: () => void;
+    onDismissPrompt: () => void;
     onDeleteAd: (campaignId: string, adId: string) => void;
     onDeleteAdCampaign: (campaignId: string) => void;
     onOpenAddAd: (campaignId: string) => void;
@@ -19,12 +28,19 @@ interface AdCampaignsTableProps {
 export function AdCampaignsTable({
     campaigns,
     venues,
+    activeCampaignId,
+    promptCampaignId,
+    notifying,
+    notifyDisabled,
+    onNotifyNow,
+    onDismissPrompt,
     onDeleteAd,
     onDeleteAdCampaign,
     onOpenAddAd,
     onEditAdTags
 }: AdCampaignsTableProps) {
     const t = useTranslations("adCampaigns.table");
+    const tPrompt = useTranslations("activeCampaignSlot.prompt");
     const locale = useLocale();
     const getIcon = (type: string) => type === "VIDEO" ? <IconMovie size={16} /> : <IconPhoto size={16} />;
 
@@ -63,14 +79,20 @@ export function AdCampaignsTable({
 
     return (
         <Accordion variant="separated" multiple>
-            {campaigns.map((campaign) => (
+            {campaigns.map((campaign) => {
+                const isActive = campaign.campaignId === activeCampaignId;
+                return (
                 <Accordion.Item key={campaign.campaignId} value={campaign.campaignId}>
                     {/* FLEX container handles layout: Text/Control on left, Button on right */}
                     <Flex align="center" justify="space-between">
                         
                         {/* 1. The Accordion Trigger (Takes up remaining space) */}
                         <Accordion.Control style={{ flex: 1 }}>
-                            <Text fw={500}>{campaign.name}</Text>
+                            <Group gap="xs" wrap="nowrap">
+                                <Text fw={500}>{campaign.name}</Text>
+                                {/* It is also in the slot above; the badge says that is on purpose (FR-1.5). */}
+                                {isActive && <Badge color="teal" variant="light" size="sm">{t("activeBadge")}</Badge>}
+                            </Group>
                         </Accordion.Control>
 
                         {/* 2. The Create Button (Rendered OUTSIDE the control) */}
@@ -83,20 +105,42 @@ export function AdCampaignsTable({
                             >
                                 {t('newAd')}
                             </Button>
-                            <ActionIcon
-                                variant="subtle"
-                                color="red"
-                                aria-label={t('deleteCampaign')}
-                                title={t('deleteCampaign')}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDeleteAdCampaign(campaign.campaignId);
-                                }}
-                            >
-                                <IconTrash size={16} />
-                            </ActionIcon>
+                            {/* Offering a delete that is guaranteed to fail is worse than explaining why
+                                it isn't available. data-disabled keeps the tooltip working. */}
+                            <Tooltip label={t("activeCampaignDeleteHint")} disabled={!isActive} multiline w={260}>
+                                <ActionIcon
+                                    variant="subtle"
+                                    color="red"
+                                    aria-label={t('deleteCampaign')}
+                                    data-disabled={isActive || undefined}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!isActive) onDeleteAdCampaign(campaign.campaignId);
+                                    }}
+                                >
+                                    <IconTrash size={16} />
+                                </ActionIcon>
+                            </Tooltip>
                         </Group>
                     </Flex>
+
+                    {promptCampaignId === campaign.campaignId && (
+                        // Inline and dismissible, never a modal: an advertiser adding several
+                        // creatives in a row must be able to carry on (FR-8.1).
+                        <Alert mx="md" mb="sm" color="orange" variant="light" icon={<IconBell size={16} />}>
+                            <Group justify="space-between" gap="sm" wrap="wrap">
+                                <Text size="sm">{tPrompt("message")}</Text>
+                                <Group gap="xs">
+                                    <Button size="xs" color="orange" onClick={onNotifyNow} loading={notifying} disabled={notifyDisabled}>
+                                        {tPrompt("notifyNow")}
+                                    </Button>
+                                    <Button size="xs" variant="subtle" color="gray" onClick={onDismissPrompt}>
+                                        {tPrompt("later")}
+                                    </Button>
+                                </Group>
+                            </Group>
+                        </Alert>
+                    )}
 
                     <Accordion.Panel>
                         <ScrollArea>
@@ -115,34 +159,7 @@ export function AdCampaignsTable({
                                         campaign.ads.map((ad) => (
                                             <Table.Tr key={ad.adId}>
                                                 <Table.Td width={150}>
-                                                    <Box
-                                                        w={120}
-                                                        h={68}
-                                                        style={{
-                                                            overflow: 'hidden',
-                                                            borderRadius: '8px',
-                                                            border: '1px solid var(--mantine-color-gray-3)',
-                                                            backgroundColor: 'var(--mantine-color-gray-1)'
-                                                        }}
-                                                    >
-                                                        {ad.adType === 'VIDEO' ? (
-                                                            <video
-                                                                src={ad.adUrl}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                                                muted
-                                                                playsInline
-                                                            />
-                                                        ) : (
-                                                            <Image
-                                                                src={ad.adUrl}
-                                                                w="100%"
-                                                                h="100%"
-                                                                fit="cover"
-                                                                alt={ad.name}
-                                                                fallbackSrc="https://placehold.co/120x68?text=No+Image"
-                                                            />
-                                                        )}
-                                                    </Box>
+                                                    <AdThumbnail ad={ad} />
                                                 </Table.Td>
                                                 <Table.Td style={{ verticalAlign: 'middle' }}>
                                                     <Text fw={500} size="sm">{ad.name}</Text>
@@ -192,7 +209,8 @@ export function AdCampaignsTable({
                         </ScrollArea>
                     </Accordion.Panel>
                 </Accordion.Item>
-            ))}
+                );
+            })}
         </Accordion>
     );
 }

@@ -5,3 +5,7 @@ export { deleteAdFromCampaign } from './deleteAdFromCampaign';
 export { getAdCampaignById } from './getAdCampaignById';
 export { deleteAdCampaign } from './deleteAdCampaign';
 export { updateAdVenueTags } from './updateAdVenueTags';
+export { getActiveCampaign } from './getActiveCampaign';
+export { swapActiveCampaign } from './swapActiveCampaign';
+export { notifyMediaOwners } from './notifyMediaOwners';
+export { getEligibleSwapCampaigns } from './getEligibleSwapCampaigns';

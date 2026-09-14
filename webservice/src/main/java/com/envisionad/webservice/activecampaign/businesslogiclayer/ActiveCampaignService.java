@@ -31,6 +31,20 @@ public interface ActiveCampaignService {
     ActiveCampaignSummaryModel selectInitialActiveCampaign(String businessId, String campaignId);
 
     /**
+     * Checkout's other case (FR-6.3): a returning advertiser whose sticky campaign has no creatives
+     * left cannot put it back on screen, so the campaign picked at checkout takes its place — as a
+     * first pick would: no email, no cooldown, logged as an initial selection. A sticky campaign
+     * that still has creatives stands, and the picked campaign is ignored.
+     *
+     * <p>Reachable because removing the last creative is only blocked while a subscription is
+     * live, so an advertiser can empty their campaign during a gap between subscriptions.
+     *
+     * @return true if the pointer moved; false when nothing is set (that is
+     *         {@link #selectInitialActiveCampaign}'s job) or the current campaign is still usable
+     */
+    boolean replaceActiveCampaignIfEmpty(String businessId, String campaignId);
+
+    /**
      * Changes what is displayed and tells every affected media owner what to put up instead.
      * Selecting the campaign that is already active is a no-op: no email, no event row, no
      * cooldown consumed.
