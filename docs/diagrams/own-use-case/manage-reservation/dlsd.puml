@@ -1,0 +1,246 @@
+@startuml
+
+title <u>Design Level Sequence Diagram</u>\nApprove/Deny Reservation
+
+actor MediaOwner
+participant "<<UI>>\nReservation Details Page" as ReservationDetailsPage
+participant "<<UI>>\nConfirmation Modal" as ConfirmationModal
+participant "<<UI>>\nDeny Reservation Modal" as DenyModal
+participant "<<control>>\n__:ReservationController__" as Controller
+participant "<<control>>\n__:ReservationService__" as Service
+participant "<<utility>>\n__:JwtUtils__" as JwtUtils
+participant "<<repository>>\n__:MediaRepository__" as MediaRepo
+participant "<<entity>>\nmedia__:Media__" as Media
+participant "<<repository>>\n__:ReservationRepository__" as ReservationRepo
+participant "<<entity>>\nreservation__:Reservation__" as Reservation
+participant "<<entity>>\ndenialDetails__:DenialDetails__" as DenialDetails
+participant "<<mapper>>\n__:ReservationResponseMapper__" as ResponseMapper
+database "<<database>>\n:Database" as DB
+
+ref over MediaOwner, ReservationDetailsPage: View Reservation
+
+alt Media Owner chooses to approve
+    MediaOwner -> ReservationDetailsPage: Accept Reservation
+    activate ReservationDetailsPage
+
+    ReservationDetailsPage -> ConfirmationModal: ConfirmMedia()
+    activate ConfirmationModal
+
+    ConfirmationModal -> Controller: PATCH /api/v1/media/{mediaId}/reservations/{reservationId}/approve
+    activate Controller
+
+    Controller -> Service: approveReservation(jwt, mediaId, reservationId)
+    activate Service
+
+    Service -> MediaRepo: findById(mediaId)
+    activate MediaRepo
+    MediaRepo -> DB: SELECT * FROM media WHERE id = ?
+    activate DB
+    DB --> MediaRepo: media data
+    deactivate DB
+    MediaRepo --> Service: media
+    deactivate MediaRepo
+
+    alt media not found
+        Service --> Controller: throw MediaNotFoundException
+        Controller --> ConfirmationModal: 404 Not Found
+        ConfirmationModal --> ReservationDetailsPage: Error
+    else media found
+        Service -> Media: getBusinessId()
+        activate Media
+        Media --> Service: businessId
+        deactivate Media
+
+        Service -> JwtUtils: validateUserIsEmployeeOfBusiness(jwt, businessId)
+        activate JwtUtils
+        deactivate JwtUtils
+
+        alt user not employee of business
+            Service --> Controller: throw UnauthorizedException
+            Controller --> ConfirmationModal: 403 Forbidden
+            ConfirmationModal --> ReservationDetailsPage: Error
+        else user is employee of business
+            Service -> ReservationRepo: findByReservationId(reservationId)
+            activate ReservationRepo
+            ReservationRepo -> DB: SELECT * FROM reservations WHERE reservation_id = ?
+            activate DB
+            DB --> ReservationRepo: reservation
+            deactivate DB
+            ReservationRepo --> Service: reservation
+            deactivate ReservationRepo
+
+            alt reservation not found
+                Service --> Controller: throw ReservationNotFoundException
+                Controller --> ConfirmationModal: 404 Not Found
+                ConfirmationModal --> ReservationDetailsPage: Error
+            else reservation found
+                Service -> Reservation: getStatus()
+                activate Reservation
+                Reservation --> Service: status
+                deactivate Reservation
+
+                alt status != PENDING
+                    Service --> Controller: throw ReservationAlreadyProcessedException
+                    Controller --> ConfirmationModal: 409 Conflict
+                    ConfirmationModal --> ReservationDetailsPage: Error
+                else status == PENDING
+                    Service -> Reservation: setStatus(APPROVED)
+                    activate Reservation
+                    deactivate Reservation
+
+                    Service -> ReservationRepo: save(reservation)
+                    activate ReservationRepo
+                    ReservationRepo -> DB: UPDATE reservations SET status = ? WHERE id = ?
+                    activate DB
+                    DB --> ReservationRepo: reservation
+                    deactivate DB
+                    ReservationRepo --> Service: reservation
+                    deactivate ReservationRepo
+
+                    Service -> ResponseMapper: entityToResponseModel(reservation)
+                    activate ResponseMapper
+                    ResponseMapper --> Service: ReservationResponseModel
+                    deactivate ResponseMapper
+
+                    Service --> Controller: ReservationResponseModel
+                    deactivate Service
+
+                    Controller --> ConfirmationModal: 200 OK + ReservationResponseModel
+                    deactivate Controller
+
+                    ConfirmationModal --> ReservationDetailsPage: Success
+                    deactivate ConfirmationModal
+                    deactivate ReservationDetailsPage
+                end
+            end
+        end
+    end
+
+else Media Owner chooses to deny
+    MediaOwner -> ReservationDetailsPage: Deny Reservation
+    activate ReservationDetailsPage
+
+    ReservationDetailsPage -> DenyModal: Open Deny Modal
+    activate DenyModal
+
+    MediaOwner -> DenyModal: Select Reason and Enters Description
+    DenyModal -> Controller: PATCH /api/v1/media/{mediaId}/reservations/{reservationId}/deny
+    activate Controller
+
+    Controller -> Service: denyReservation(jwt, mediaId, reservationId, denialDetailsRequestModel)
+    activate Service
+
+    Service -> MediaRepo: findById(mediaId)
+    activate MediaRepo
+    MediaRepo -> DB: SELECT * FROM media WHERE id = ?
+    activate DB
+    DB --> MediaRepo: media data
+    deactivate DB
+    MediaRepo --> Service: media
+    deactivate MediaRepo
+
+    alt media not found
+        Service --> Controller: throw MediaNotFoundException
+        Controller --> DenyModal: 404 Not Found
+        DenyModal --> ReservationDetailsPage: Error
+    else media found
+        Service -> Media: getBusinessId()
+        activate Media
+        Media --> Service: businessId
+        deactivate Media
+
+        Service -> JwtUtils: validateUserIsEmployeeOfBusiness(jwt, businessId)
+        activate JwtUtils
+        deactivate JwtUtils
+
+        alt user not employee of business
+            Service --> Controller: throw UnauthorizedException
+            Controller --> DenyModal: 403 Forbidden
+            DenyModal --> ReservationDetailsPage: Error
+        else user is employee of business
+            Service -> ReservationRepo: findByReservationId(reservationId)
+            activate ReservationRepo
+            ReservationRepo -> DB: SELECT * FROM reservations WHERE reservation_id = ?
+            activate DB
+            DB --> ReservationRepo: reservation
+            deactivate DB
+            ReservationRepo --> Service: reservation
+            deactivate ReservationRepo
+
+            alt reservation not found
+                Service --> Controller: throw ReservationNotFoundException
+                Controller --> DenyModal: 404 Not Found
+                DenyModal --> ReservationDetailsPage: Error
+            else reservation found
+                Service -> Reservation: getStatus()
+                activate Reservation
+                Reservation --> Service: status
+                deactivate Reservation
+
+                alt status != PENDING
+                    Service --> Controller: throw ReservationAlreadyProcessedException
+                    Controller --> DenyModal: 409 Conflict
+                    DenyModal --> ReservationDetailsPage: Error
+                else status == PENDING
+                    alt denialDetailsRequestModel == null OR reason == null
+                        Service --> Controller: throw BadReservationRequestException
+                        Controller --> DenyModal: 400 Bad Request
+                        DenyModal --> ReservationDetailsPage: Error
+                    else denialDetailsRequestModel valid
+                        alt reason == OTHER AND (description == null OR description is blank)
+                            Service --> Controller: throw BadReservationRequestException
+                            Controller --> DenyModal: 400 Bad Request
+                            DenyModal --> ReservationDetailsPage: Error
+                        else valid denial details
+                            Service -> DenialDetails: create new DenialDetails()
+                            activate DenialDetails
+                            deactivate DenialDetails
+
+                            Service -> DenialDetails: setReason(reason)
+                            activate DenialDetails
+                            deactivate DenialDetails
+
+                            Service -> DenialDetails: setDescription(description)
+                            activate DenialDetails
+                            deactivate DenialDetails
+
+                            Service -> Reservation: setStatus(DENIED)
+                            activate Reservation
+                            deactivate Reservation
+
+                            Service -> Reservation: setDenialDetails(details)
+                            activate Reservation
+                            deactivate Reservation
+
+                            Service -> ReservationRepo: save(reservation)
+                            activate ReservationRepo
+                            ReservationRepo -> DB: UPDATE reservations SET status = ?, denial_details = ? WHERE id = ?
+                            activate DB
+                            DB --> ReservationRepo: reservation
+                            deactivate DB
+                            ReservationRepo --> Service: reservation
+                            deactivate ReservationRepo
+
+                            Service -> ResponseMapper: entityToResponseModel(reservation)
+                            activate ResponseMapper
+                            ResponseMapper --> Service: ReservationResponseModel
+                            deactivate ResponseMapper
+
+                            Service --> Controller: ReservationResponseModel
+                            deactivate Service
+
+                            Controller --> DenyModal: 200 OK + ReservationResponseModel
+                            deactivate Controller
+
+                            DenyModal --> ReservationDetailsPage: Success
+                            deactivate DenyModal
+                            deactivate ReservationDetailsPage
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+@enduml

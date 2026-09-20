@@ -1,0 +1,249 @@
+@startuml
+
+package "Reservation_Subdomain"{
+    package "presentationlayer" {
+        class "<<controller>>\nReservationController" as reservationController {
+            - reservationService: ReservationService
+            + ReservationController(reservationService: ReservationService)
+            + getAllMediaReservations(jwt: Jwt, mediaId: String): ResponseEntity<List<ReservationResponseModel>>
+            + getMediaReservationById(jwt: Jwt, reservationId: String): ResponseEntity<ReservationResponseModel>
+            + createReservation(jwt: Jwt, mediaId: String, requestModel: ReservationRequestModel): ResponseEntity<ReservationResponseModel>
+            + approveReservation(jwt: Jwt, mediaId: String, reservationId: String): ResponseEntity<ReservationResponseModel>
+            + denyReservation(jwt: Jwt, mediaId: String, reservationId: String, denialDetailsRequestModel: DenialDetailsRequestModel): ResponseEntity<ReservationResponseModel>
+            + getAllReservationByMediaOwnerBusinessId(jwt: Jwt, businessId: String): ResponseEntity<List<ReservationResponseModel>>
+            + getAllReservationByAdvertiserBusinessId(jwt: Jwt, businessId: String): ResponseEntity<List<ReservationResponseModel>>
+        }
+
+        class "ReservationResponseModel" as reservationResponseModel{
+            + reservationId: String
+            + mediaId: String
+            + mediaTitle: String
+            + mediaCity: String
+            + campaignId: String
+            + campaignName: String
+            + advertiserBusinessId: String
+            + advertiserBusinessName: String
+            + status: String
+            + denialDetails: DenialDetails
+            + totalPrice: Double
+            + startDate: LocalDateTime
+            + endDate: LocalDateTime
+        }
+
+        class "ReservationRequestModel" as reservationRequestModel{
+            + campaignId: String
+            + startDate: LocalDateTime
+            + endDate: LocalDateTime
+            + paymentIntentId: String
+        }
+
+        class "DenialDetailsRequestModel" as denialDetailsRequestModel{
+            + reason: DenialReason
+            + description: String
+        }
+    }
+
+    package "businesslogiclayer" {
+        interface "ReservationService" as reservationService{
+            + getAllReservationsByMediaId(jwt: Jwt, mediaId: String): List<ReservationResponseModel>
+            + getReservationByReservationId(jwt: Jwt, reservationId: String): ReservationResponseModel
+            + createReservation(jwt: Jwt, mediaId: String, requestModel: ReservationRequestModel): ReservationResponseModel
+            + approveReservation(jwt: Jwt, mediaId: String, reservationId: String): ReservationResponseModel
+            + denyReservation(jwt: Jwt, mediaId: String, reservationId: String, denialDetailsRequestModel: DenialDetailsRequestModel): ReservationResponseModel
+            + getAllReservationByMediaOwnerBusinessId(jwt: Jwt, businessId: String): List<ReservationResponseModel>
+            + getAllReservationByAdvertiserBusinessId(jwt: Jwt, businessId: String): List<ReservationResponseModel>
+        }
+
+        class "<<service>>\nReservationServiceImpl" as reservationServiceImpl{
+            - reservationRepository: ReservationRepository
+            - mediaRepository: MediaRepository
+            - adCampaignRepository: AdCampaignRepository
+            - reservationRequestMapper: ReservationRequestMapper
+            - reservationResponseMapper: ReservationResponseMapper
+            - jwtUtils: JwtUtils
+            - paymentIntentRepository: PaymentIntentRepository
+            - businessRepository: BusinessRepository
+            ---
+            + getAllReservationsByMediaId(jwt: Jwt, mediaId: String): List<ReservationResponseModel>
+            + getReservationByReservationId(jwt: Jwt, reservationId: String): ReservationResponseModel
+            + createReservation(jwt: Jwt, mediaId: String, requestModel: ReservationRequestModel): ReservationResponseModel
+            + approveReservation(jwt: Jwt, mediaId: String, reservationId: String): ReservationResponseModel
+            + denyReservation(jwt: Jwt, mediaId: String, reservationId: String, denialDetailsRequestModel: DenialDetailsRequestModel): ReservationResponseModel
+            + getAllReservationByMediaOwnerBusinessId(jwt: Jwt, businessId: String): List<ReservationResponseModel>
+            + getAllReservationByAdvertiserBusinessId(jwt: Jwt, businessId: String): List<ReservationResponseModel>
+            - loadAndValidateMedia(mediaId: String): Media
+            - loadAndValidateCampaign(campaignId: String): AdCampaign
+            - validateMediaHasLoopDurationLeft(media: Media, requestModel: ReservationRequestModel): void
+            - calculateTotalPrice(media: Media, requestModel: ReservationRequestModel): BigDecimal
+            - handlePaidReservation(paymentIntentId: String, requestModel: ReservationRequestModel, media: Media, userId: String, totalPrice: BigDecimal): Reservation
+            - createPendingReservation(requestModel: ReservationRequestModel, media: Media, userId: String, totalPrice: BigDecimal): Reservation
+        }
+
+        class reservationServiceImpl implements reservationService
+    }
+
+    package "dataaccesslayer" {
+        interface "<<repository>>\nReservationRepository" as reservationRepository{
+            + existsConfirmedReservationForMediaAndCampaign(mediaId: UUID, campaignId: String): boolean
+            + findAllReservationsByMediaId(mediaId: UUID): List<Reservation>
+            + findAllActiveReservationsByMediaIdAndDateRange(mediaId: UUID, startDate: LocalDateTime, endDate: LocalDateTime): List<Reservation>
+            + findByReservationId(reservationId: String): Optional<Reservation>
+            + countActiveCampaignsByAdvertiserId(advertiserId: String, now: LocalDateTime): int
+            + findConfirmedReservationsByAdvertiserIdAndDateRange(advertiserId: String, startDate: LocalDateTime, endDate: LocalDateTime): List<Reservation>
+            + existsByCampaignIdAndStatus(campaignId: String, status: ReservationStatus, now: LocalDateTime): boolean
+        }
+
+        class "Reservation" as reservation{
+            - id: Integer
+            - reservationId: String
+            - startDate: LocalDateTime
+            - endDate: LocalDateTime
+            - status: ReservationStatus
+            - denialDetails: DenialDetails
+            - totalPrice: BigDecimal
+            - advertiserId: String
+            - campaignId: String
+            - mediaId: UUID
+            + Reservation()
+        }
+
+        enum ReservationStatus {
+            PENDING,
+            APPROVED,
+            DENIED,
+            CONFIRMED,
+            CANCELLED
+        }
+
+        class "DenialDetails" as denialDetails{
+            - reason: DenialReason
+            - description: String
+            + DenialDetails()
+        }
+
+        enum DenialReason {
+            CONTENT_POLICY,
+            CREATIVE_TECHNICAL,
+            LEGAL_COMPLIANCE,
+            MEDIA_OWNER_RULES,
+            LOCAL_VENUE,
+            OTHER
+        }
+
+        interface reservationRepository extends JpaRepository
+    }
+
+    package "datamapperlayer" {
+        interface "<<Mapper>>\nReservationRequestMapper" as reservationRequestMapper{
+            + requestModelToEntity(reservationRequestModel: ReservationRequestModel): Reservation
+        }
+
+        interface "<<Mapper>>\nReservationResponseMapper" as reservationResponseMapper{
+            + entityToResponseModel(reservation: Reservation): ReservationResponseModel
+            + entitiesToResponseModelList(reservations: List<Reservation>): List<ReservationResponseModel>
+        }
+    }
+
+    package "utils" {
+        class "ReservationValidator" as reservationValidator{
+            + {static} validateReservation(requestModel: ReservationRequestModel, mediaId: String): void
+            + {static} validateStartDate(requestModel: ReservationRequestModel): boolean
+            + {static} validateEndDate(requestModel: ReservationRequestModel): boolean
+            + {static} validateMediaId(mediaId: String): boolean
+            + {static} validateCampaignId(requestModel: ReservationRequestModel): boolean
+        }
+    }
+
+    package "exceptions" {
+        class "BadReservationRequestException" as badReservationRequestException{
+            + BadReservationRequestException()
+        }
+
+        class "InsufficientLoopDurationException" as insufficientLoopDurationException{
+            + InsufficientLoopDurationException()
+        }
+
+        class "PaymentVerificationException" as paymentVerificationException{
+            + PaymentVerificationException(message: String)
+            + PaymentVerificationException(message: String, cause: Throwable)
+        }
+
+        class "ReservationAlreadyProcessedException" as reservationAlreadyProcessedException{
+            + ReservationAlreadyProcessedException(reservationId: String)
+        }
+
+        class "ReservationNotFoundException" as reservationNotFoundException{
+            + ReservationNotFoundException(reservationId: String)
+        }
+    }
+}
+
+' External dependencies
+package "Media_Subdomain" {
+    interface "MediaRepository" as mediaRepository
+    class "Media" as media
+}
+
+package "AdCampaign_Subdomain" {
+    interface "AdCampaignRepository" as adCampaignRepository
+    class "AdCampaign" as adCampaign
+}
+
+package "Payment_Subdomain" {
+    interface "PaymentIntentRepository" as paymentIntentRepository
+    class "PaymentIntent" as paymentIntent
+}
+
+package "Business_Subdomain" {
+    interface "BusinessRepository" as businessRepository
+    class "Business" as business
+}
+
+package "Utils" {
+    class "JwtUtils" as jwtUtils
+}
+
+' Relationships within Reservation_Subdomain
+reservationController -> reservationService
+reservationServiceImpl -> reservationRepository
+reservationServiceImpl -> reservationRequestMapper
+reservationServiceImpl -> reservationResponseMapper
+reservationServiceImpl -> reservationValidator
+
+reservationRequestMapper ..> reservationRequestModel
+reservationResponseMapper ..> reservationResponseModel
+
+reservationRepository -> reservation
+reservation *--> denialDetails
+reservation -> ReservationStatus
+denialDetails -> DenialReason
+
+reservationResponseModel -> denialDetails
+reservationResponseModel -> ReservationStatus
+
+reservationController -> denialDetailsRequestModel
+
+reservationServiceImpl -> denialDetailsRequestModel
+
+' External dependencies
+reservationServiceImpl -> mediaRepository
+reservationServiceImpl -> adCampaignRepository
+reservationServiceImpl -> paymentIntentRepository
+reservationServiceImpl -> businessRepository
+reservationServiceImpl -> jwtUtils
+
+mediaRepository -> media
+adCampaignRepository -> adCampaign
+paymentIntentRepository -> paymentIntent
+businessRepository -> business
+
+' Exception relationships
+reservationServiceImpl ..> badReservationRequestException
+reservationServiceImpl ..> insufficientLoopDurationException
+reservationServiceImpl ..> paymentVerificationException
+reservationServiceImpl ..> reservationAlreadyProcessedException
+reservationServiceImpl ..> reservationNotFoundException
+
+reservationValidator ..> badReservationRequestException
+
+@enduml
