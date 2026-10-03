@@ -14,11 +14,11 @@ public class BusinessRequestModel {
     private Address address;
     private Roles roles;
 
-    // P4 hook (brief FR 2.2) — settable at creation via the admin form. Deliberately no
-    // `active` field here: BusinessRequestModel is also used by updateBusinessById
-    // (PUT /businesses/{id}, gated on the existing-employee `update:business` permission,
-    // not `manage:accounts`), and that full-replace path would let a business owner
-    // self-toggle `active` and silently defeat the admin-only deactivate gate (FR 5.5).
-    // `active` is only ever set via AdminAccountService, never through this DTO.
+    // Business type — honoured only by the admin create-account flow. This DTO is also the
+    // body of the self-service PUT /businesses/{id} (`update:business`, any employee), and
+    // updateBusinessById ignores the field there: it drives competitive exclusion, so an owner
+    // must not change it.
+    // Deliberately no `active` field at all — that is only ever set via AdminAccountService
+    // (P5 D5).
     private String businessTypeVenueId;
 }

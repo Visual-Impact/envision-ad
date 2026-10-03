@@ -370,6 +370,44 @@ class BusinessControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void updateBusinessById_preservesFieldsTheSelfServicePayloadMustNotControl() {
+        // PUT /businesses/{id} rebuilds the entity from the request body. The org-details form
+        // never sends these fields, and an owner must not be able to set them — so a plain
+        // rename used to unverify the business, undo an admin deactivation, drop the P6 active
+        // campaign and clear (or swap) the business type that drives competitive exclusion.
+        String businessId = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22";
+        Business seeded = businessRepository.findByBusinessId_BusinessId(businessId);
+        seeded.setVerified(true);
+        seeded.setActive(false);
+        seeded.setActiveCampaignId("campaign-on-screen");
+        seeded.setBusinessTypeVenueId("venue-gym");
+        businessRepository.save(seeded);
+
+        BusinessRequestModel requestModel = new BusinessRequestModel();
+        requestModel.setName("Renamed Business");
+        requestModel.setOrganizationSize(OrganizationSize.SMALL);
+        requestModel.setAddress(new Address("1 New St", "Montreal", "QC", "H1H 1H1", "Canada"));
+        requestModel.setRoles(seeded.getRoles());
+        // An owner trying to escape competitive exclusion by picking a different type.
+        requestModel.setBusinessTypeVenueId("venue-cafe");
+
+        webTestClient.put()
+                .uri(BASE_URI_BUSINESSES + "/{businessId}", businessId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .headers(headers -> headers.setBearerAuth("media-token"))
+                .body(BodyInserters.fromValue(requestModel))
+                .exchange()
+                .expectStatus().isOk();
+
+        Business reloaded = businessRepository.findByBusinessId_BusinessId(businessId);
+        assertEquals("Renamed Business", reloaded.getName());
+        assertTrue(reloaded.isVerified(), "verified");
+        assertFalse(reloaded.isActive(), "active");
+        assertEquals("campaign-on-screen", reloaded.getActiveCampaignId(), "activeCampaignId");
+        assertEquals("venue-gym", reloaded.getBusinessTypeVenueId(), "businessTypeVenueId");
+    }
+
+    @Test
     void approveBusinessVerificationByBusinessIdAndVerificationId_ShouldReturnVerification() {
         String businessId = "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22";
         String verificationId = "cf4dc890-d86c-48c4-9a8b-7705e0420da3";
