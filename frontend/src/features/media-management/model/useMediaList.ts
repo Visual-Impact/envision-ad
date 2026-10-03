@@ -1,8 +1,9 @@
 "use client";
 
 import { UseMediaListProps } from "@/entities/media";
-import { MediaCardProps } from "@/entities/media";
-import { useEffect, useState } from "react";
+import { MediaCardProps, isExcludedForBusinessType } from "@/entities/media";
+import { useOrganization } from "@/entities/organization";
+import { useEffect, useMemo, useState } from "react";
 import { getAllFilteredActiveMedia, SpecialSort } from "../api";
 
 
@@ -67,6 +68,20 @@ export function useMediaList({
         };
     },[filteredMediaProps, loadingLocation, setMediaStatus]);
 
-    return { medias, totalPages };
+    // P4: flag screens in the signed-in advertiser's own business type, which no bundle they buy
+    // will include. Derived on top of the fetch so a change of organization doesn't refetch.
+    const { organization } = useOrganization();
+    const businessTypeVenueId = organization?.roles?.advertiser ? organization.businessTypeVenueId ?? null : null;
+    const flaggedMedias = useMemo(
+        () => businessTypeVenueId
+            ? medias.map((m) => ({
+                ...m,
+                unavailableForBusinessType: isExcludedForBusinessType(m.venue?.venueId, businessTypeVenueId),
+            }))
+            : medias,
+        [medias, businessTypeVenueId],
+    );
+
+    return { medias: flaggedMedias, totalPages };
 
 }

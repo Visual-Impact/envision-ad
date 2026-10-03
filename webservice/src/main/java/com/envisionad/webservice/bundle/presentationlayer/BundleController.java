@@ -60,7 +60,7 @@ public class BundleController {
 
     /**
      * Public listing. Prices here are computed with no advertiser context, i.e. what
-     * an anonymous browser sees; the buyer-specific quote endpoint arrives with M3.
+     * an anonymous browser sees; {@code /quotes} gives a signed-in advertiser theirs.
      */
     @GetMapping
     public ResponseEntity<List<BundleResponseModel>> getAllBundles(
@@ -92,12 +92,34 @@ public class BundleController {
         requireAdvertiser(businessId);
         // Resolves the bundle first, so an unknown id yields 404 rather than an empty quote.
         Bundle bundle = bundleService.getBundleByBundleId(bundleId);
+        return ResponseEntity.ok(toQuoteResponseModel(bundle, businessId));
+    }
+
+    /**
+     * The buyer quote for every active bundle at once, so the home page's bundle cards can show
+     * the price this advertiser would actually pay without one request per card. Same bundle set
+     * and same checks as {@link #getAllBundles} and {@link #getBundleQuote}.
+     */
+    @GetMapping("/quotes")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<BundlePriceQuoteResponseModel>> getBundleQuotes(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam String businessId) {
+        jwtUtils.validateUserIsEmployeeOfBusiness(jwt, businessId);
+        requireAdvertiser(businessId);
+        List<BundlePriceQuoteResponseModel> response = bundleService.getAllBundles(null, true).stream()
+                .map(bundle -> toQuoteResponseModel(bundle, businessId))
+                .toList();
+        return ResponseEntity.ok(response);
+    }
+
+    private BundlePriceQuoteResponseModel toQuoteResponseModel(Bundle bundle, String businessId) {
         BundlePriceQuote quote = pricingService.quote(bundle, businessId);
-        // Quoted again with no buyer, exactly as the public listing does, so the modal can say
-        // how many of the screens on the card this buyer won't get. Buyer-independent filters
+        // Quoted again with no buyer, exactly as the public listing does, so the UI can say how
+        // many of the screens on the card this buyer won't get. Buyer-independent filters
         // (inactive, manual exclusion, P8's sold-out) apply to both, so only P4 shows up here.
         BundlePriceQuote publicQuote = pricingService.quote(bundle, null);
-        return ResponseEntity.ok(responseMapper.quoteToResponseModel(quote, publicQuote));
+        return responseMapper.quoteToResponseModel(bundle.getBundleId(), quote, publicQuote);
     }
 
     /** Bundles are advertiser inventory; a media-owner-only business can browse but not buy. */

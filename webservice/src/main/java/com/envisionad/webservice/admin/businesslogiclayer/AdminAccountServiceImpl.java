@@ -4,6 +4,7 @@ import com.envisionad.webservice.admin.exceptions.DuplicateAccountException;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountListItemModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.BusinessTypeChangeImpactResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.UpdateRolesResponseModel;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
@@ -261,6 +262,23 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         RoleRemovalEligibilityResponseModel response = new RoleRemovalEligibilityResponseModel();
         response.setMediaOwnerRemovable(mediaOwnerRemovable);
         response.setAdvertiserRemovable(advertiserRemovable);
+        return response;
+    }
+
+    @Override
+    public BusinessTypeChangeImpactResponseModel getBusinessTypeChangeImpact(String businessId,
+            String businessTypeVenueId) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null)
+            throw new BusinessNotFoundException(businessId);
+
+        BusinessTypeChangeImpactResponseModel response = new BusinessTypeChangeImpactResponseModel();
+        // Clearing the type (blank, same rule as updateBusinessType) excludes nothing.
+        if (businessTypeVenueId != null && !businessTypeVenueId.isBlank()) {
+            response.setLiveSubscriptionScreenCount(
+                    bundleSubscriptionItemRepository.countDistinctMediaInVenueForAdvertiser(
+                            businessId, businessTypeVenueId.trim(), BundleSubscriptionStatus.LIVE));
+        }
         return response;
     }
 

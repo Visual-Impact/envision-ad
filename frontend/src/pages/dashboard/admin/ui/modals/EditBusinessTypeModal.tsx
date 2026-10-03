@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
+import { useEffect, useState } from "react";
+import { Alert, Button, Group, Modal, Select, Stack, Text } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { AccountListItem } from "../../model/account";
 import { Venue } from "@/entities/venue";
+import { getBusinessTypeChangeImpact } from "../../api";
 
 interface EditBusinessTypeModalProps {
     opened: boolean;
@@ -37,6 +39,37 @@ export function EditBusinessTypeModal({ opened, onClose, onSave, account, venues
     }));
 
     const unchanged = businessTypeVenueId === (account?.businessTypeVenueId ?? null);
+
+    // Setting a type never touches existing subscriptions: the advertiser keeps paying for screens
+    // of that venue they already bought, but their creatives stop being sent there. Warn before
+    // saving, never block. Keyed by venue so a slow response for a previous pick is ignored.
+    const businessId = account?.businessId ?? null;
+    const [impact, setImpact] = useState<{ venueId: string; screenCount: number } | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            if (!opened || !businessId || !businessTypeVenueId || unchanged) {
+                if (!cancelled) setImpact(null);
+                return;
+            }
+            try {
+                const result = await getBusinessTypeChangeImpact(businessId, businessTypeVenueId);
+                if (!cancelled) {
+                    setImpact({ venueId: businessTypeVenueId, screenCount: result.liveSubscriptionScreenCount });
+                }
+            } catch {
+                // The warning is advisory; failing to load it must not block the edit.
+                if (!cancelled) setImpact(null);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [opened, businessId, businessTypeVenueId, unchanged]);
+    const affectedScreenCount =
+        impact && impact.venueId === businessTypeVenueId && !unchanged ? impact.screenCount : 0;
 
     const handleSave = async () => {
         setSaving(true);
@@ -71,6 +104,12 @@ export function EditBusinessTypeModal({ opened, onClose, onSave, account, venues
                     clearable
                     searchable
                 />
+
+                {affectedScreenCount > 0 && (
+                    <Alert color="yellow" variant="light" icon={<IconAlertTriangle size={18} />}>
+                        {t("liveSubscriptionWarning", { count: affectedScreenCount })}
+                    </Alert>
+                )}
 
                 <Group justify="flex-end" mt="md">
                     <Button variant="default" onClick={onClose} disabled={saving}>

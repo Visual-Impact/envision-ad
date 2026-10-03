@@ -4,7 +4,8 @@ import { Badge, Box, Button, Divider, Group, List, Paper, Stack, Text, ThemeIcon
 import { IconCheck } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { Bundle } from "../model/bundle";
+import { Bundle, BundlePriceQuote } from "../model/bundle";
+import { BuyerQuoteNote, isUnavailableForBuyer } from "./BuyerQuoteNote";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 import { Link } from "@/shared/lib/i18n";
 
@@ -22,12 +23,17 @@ export interface BundleCardProps {
      * subscriptions page instead of letting the advertiser hit the 409 (D46).
      */
     alreadySubscribed?: boolean;
+    /**
+     * The signed-in advertiser's own quote for this bundle, when their business type
+     * removes screens from it (P4). The card keeps the public numbers and adds a note.
+     */
+    buyerQuote?: BundlePriceQuote | null;
 }
 
 // How many static feature bullets each rule type shows (bundles.features.<TYPE>.<0..n>).
 const FEATURE_COUNT = 3;
 
-export function BundleCard({ bundle, onSubscribe, alreadySubscribed }: BundleCardProps) {
+export function BundleCard({ bundle, onSubscribe, alreadySubscribed, buyerQuote }: BundleCardProps) {
     const t = useTranslations("bundles");
     const locale = useLocale();
     const { user } = useUser();
@@ -41,7 +47,8 @@ export function BundleCard({ bundle, onSubscribe, alreadySubscribed }: BundleCar
     // with no organization — there's no businessId to subscribe under. Without this
     // check the button rendered enabled and silently did nothing on click.
     const noOrganization = !!user && !onSubscribe;
-    const disabled = !hasScreens || noOrganization;
+    const unavailableForBuyer = isUnavailableForBuyer(buyerQuote);
+    const disabled = !hasScreens || noOrganization || unavailableForBuyer;
     const isDiscounted = bundle.discountPercent > 0;
 
     // With a discount the subline compares per-screen before/after; otherwise it
@@ -70,7 +77,9 @@ export function BundleCard({ bundle, onSubscribe, alreadySubscribed }: BundleCar
           ? t("card.noScreens")
           : noOrganization
             ? t("card.noOrganization")
-            : null;
+            : unavailableForBuyer
+              ? t("card.notAvailableForBusinessType")
+              : null;
 
     const subscribeButton = alreadySubscribed ? (
         <Button fullWidth variant="light" component={Link} href="/dashboard/advertiser/subscriptions">
@@ -128,6 +137,7 @@ export function BundleCard({ bundle, onSubscribe, alreadySubscribed }: BundleCar
                     <Text size="sm" c="dimmed">
                         {subline}
                     </Text>
+                    <BuyerQuoteNote buyerQuote={buyerQuote} />
                 </Box>
 
                 {description && <Text size="sm">{description}</Text>}

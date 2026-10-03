@@ -4,8 +4,8 @@ import { Box, Container, Grid, GridCol, Loader, Stack, Tabs, Text, Title } from 
 import { notifications } from "@mantine/notifications";
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { Bundle, BundleRuleType } from "@/entities/bundle";
-import { getAllBundles } from "@/features/bundle-management";
+import { Bundle, BundlePriceQuote, BundleRuleType } from "@/entities/bundle";
+import { getAllBundles, getBundleQuotes } from "@/features/bundle-management";
 import { getBundleSubscriptions } from "@/features/bundle-subscription";
 import { BundleSubscribeModal } from "./BundleSubscribeModal";
 import { useOrganization } from "@/entities/organization";
@@ -43,6 +43,7 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
     const [activeTab, setActiveTab] = useState<TabValue>("FULL_NETWORK");
     const [subscribingTo, setSubscribingTo] = useState<Bundle | null>(null);
     const [subscribedBundleIds, setSubscribedBundleIds] = useState<Set<string>>(new Set());
+    const [buyerQuotes, setBuyerQuotes] = useState<Map<string, BundlePriceQuote>>(new Map());
 
     // Load once and filter tabs client-side — the active bundle set is small, so a
     // refetch per tab would be wasteful. Inlined async IIFE with a cancelled guard
@@ -109,6 +110,47 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
         };
     }, [organization]);
 
+    // P4: an advertiser with a business type doesn't get the screens in that venue, so the
+    // public card overstates what they'd receive and pay. Fetch their own quote for every
+    // bundle in one call; the cards keep the public numbers and add a note. Only advertisers
+    // with a type can differ from the public listing, so everyone else skips the request.
+    const businessTypeVenueId = organization?.roles?.advertiser ? organization.businessTypeVenueId ?? null : null;
+    const businessId = organization?.businessId ?? null;
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            if (!businessId || !businessTypeVenueId) {
+                if (!cancelled) {
+                    setBuyerQuotes(new Map());
+                }
+                return;
+            }
+
+            try {
+                const quotes = await getBundleQuotes(businessId);
+                if (!cancelled) {
+                    setBuyerQuotes(new Map(quotes.map((q) => [q.bundleId, q])));
+                }
+            } catch {
+                // Non-blocking: without it the cards show the public numbers and the
+                // subscribe modal still shows this buyer's own quote.
+                if (!cancelled) {
+                    setBuyerQuotes(new Map());
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [businessId, businessTypeVenueId]);
+
+    // A bundle the business already holds keeps the price it was bought at; the buyer quote
+    // describes a new purchase, so showing it there would contradict what they actually pay.
+    const quoteFor = (bundleId: string) =>
+        subscribedBundleIds.has(bundleId) ? null : buyerQuotes.get(bundleId);
+
     const visibleBundles = useMemo(
         () => bundles.filter((b) => b.ruleType === activeTab),
         [bundles, activeTab],
@@ -165,6 +207,7 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
                                             stats={stats}
                                             onSubscribe={onSubscribe}
                                             alreadySubscribed={subscribedBundleIds.has(bundle.bundleId)}
+                                            buyerQuote={quoteFor(bundle.bundleId)}
                                         />
                                     </GridCol>
                                 ) : (
@@ -173,6 +216,7 @@ export function BundlesSection({ stats }: BundlesSectionProps) {
                                             bundle={bundle}
                                             onSubscribe={onSubscribe}
                                             alreadySubscribed={subscribedBundleIds.has(bundle.bundleId)}
+                                            buyerQuote={quoteFor(bundle.bundleId)}
                                         />
                                     </GridCol>
                                 ),

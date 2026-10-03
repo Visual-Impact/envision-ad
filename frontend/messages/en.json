@@ -374,9 +374,12 @@
       "denyFailed": "Media deny has failed"
     },
     "browseBundlesButton": "Browse bundles",
+    "unavailableForBusinessType": "This screen is in the same type of venue as your business, so it won't be included in any bundle you subscribe to, and you won't be billed for it.",
     "browseBundlesNote": "Screens are sold as part of a monthly bundle subscription."
   },
   "mediacard": {
+    "unavailableForBusinessType": "Not available for your business type",
+    "unavailableForBusinessTypeHint": "This screen is in the same type of venue as your business, so it is left out of any bundle you subscribe to and never billed to you.",
     "perWeek": "{price} per month",
     "weeklyImpressions": "~{weeklyImpressions} impressions per week",
     "typeOfDisplay": {
@@ -1715,7 +1718,8 @@
       "label": "Business Type",
       "placeholder": "No business type (no exclusions)",
       "cancel": "Cancel",
-      "save": "Save Business Type"
+      "save": "Save Business Type",
+      "liveSubscriptionWarning": "This advertiser already pays for {count, plural, one {# screen} other {# screens}} of this type through live subscriptions. They will keep paying for {count, plural, one {it} other {them}}, but their ads will no longer be sent there."
     },
     "form": {
       "createTitle": "Create Client Account",
@@ -1944,6 +1948,8 @@
       "subscribe": "Subscribe",
       "noScreens": "This bundle has no available screens right now.",
       "noOrganization": "Join or create an organization to subscribe to a bundle.",
+      "buyerQuote": "{count, plural, one {# screen} other {# screens}} excluded for your business type · your price: {price}/month",
+      "notAvailableForBusinessType": "Not available for your business type: all of its screens are in the same type of venue as your business.",
       "alreadySubscribed": "Subscribed",
       "manageSubscription": "Manage subscription",
       "eyebrow": "Complete coverage",

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Alert,
   Button,
   Container,
   Stack,
@@ -11,7 +12,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { getMediaById, SpecialSort } from "@/features/media-management";
 import { useLocale, useTranslations } from "next-intl";
-import { Media } from "@/entities/media";
+import { Media, isExcludedForBusinessType } from "@/entities/media";
+import { useOrganization } from "@/entities/organization";
+import { IconInfoCircle } from "@tabler/icons-react";
 import { MediaCardCarouselLoader, MediaCardStackLoader } from "@/widgets/media-carousel";
 import { FilteredActiveMediaProps } from "@/entities/media";
 import type { LatLngLiteral } from "leaflet";
@@ -29,6 +32,11 @@ export default function MediaDetailsPage() {
   const [media, setMedia] = useState<Media | null>(null); //The media displayed on the page
   const [loading, setLoading] = useState(true); //Whether the media for the current page is loading or not
   const [error, setError] = useState<string | null>(null); //The error message
+
+  // P4: no bundle the signed-in advertiser buys will include a screen in their own business type.
+  const { organization } = useOrganization();
+  const businessTypeVenueId = organization?.roles?.advertiser ? organization.businessTypeVenueId ?? null : null;
+  const unavailableForBusinessType = isExcludedForBusinessType(media?.venue?.venueId, businessTypeVenueId);
 
   useEffect(() => {
     if (!id) return;
@@ -82,6 +90,11 @@ export default function MediaDetailsPage() {
               and its modal are gone. The purchase path is a bundle subscription, so this points
               at the home page's bundle section instead of leaving the page with no next step.
             */}
+            {unavailableForBusinessType && (
+              <Alert color="orange" variant="light" icon={<IconInfoCircle size={18} />} w="100%">
+                {t("unavailableForBusinessType")}
+              </Alert>
+            )}
             <Box w="100%">
               {/*
                 A plain anchor rather than the typed next-intl Link: the typed href object has no

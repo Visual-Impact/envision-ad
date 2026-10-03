@@ -13,6 +13,7 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 public class BundlePriceQuoteResponseModel {
+    private String bundleId;
     private int screenCount;
     private BigDecimal finalPrice;
     /** Shared per-screen price, or null when mixed/empty/partially-priceless. */

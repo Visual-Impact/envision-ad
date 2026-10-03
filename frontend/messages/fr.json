@@ -375,9 +375,12 @@
       "denyFailed": "Le refus du média a échoué"
     },
     "browseBundlesButton": "Voir les forfaits",
+    "unavailableForBusinessType": "Cet écran est dans le même type de lieu que votre entreprise : il ne fera partie d'aucun forfait auquel vous vous abonnez et ne vous sera pas facturé.",
     "browseBundlesNote": "Les écrans sont vendus dans le cadre d'un abonnement mensuel à un forfait."
   },
   "mediacard": {
+    "unavailableForBusinessType": "Non disponible pour votre type d'entreprise",
+    "unavailableForBusinessTypeHint": "Cet écran est dans le même type de lieu que votre entreprise : il est exclu de tout forfait auquel vous vous abonnez et ne vous est jamais facturé.",
     "perWeek": "{price} par mois",
     "weeklyImpressions": "~{weeklyImpressions} impressions par semaine",
     "typeOfDisplay": {
@@ -1716,7 +1719,8 @@
       "label": "Type d'entreprise",
       "placeholder": "Aucun type d'entreprise (aucune exclusion)",
       "cancel": "Annuler",
-      "save": "Enregistrer le type d'entreprise"
+      "save": "Enregistrer le type d'entreprise",
+      "liveSubscriptionWarning": "Cet annonceur paie déjà pour {count, plural, one {# écran} other {# écrans}} de ce type par des abonnements actifs. Il continuera de {count, plural, one {le} other {les}} payer, mais ses publicités n'y seront plus envoyées."
     },
     "form": {
       "createTitle": "Créer un compte client",
@@ -1945,6 +1949,8 @@
       "subscribe": "S'abonner",
       "noScreens": "Ce forfait n'a aucun écran disponible pour le moment.",
       "noOrganization": "Rejoignez ou créez une organisation pour vous abonner à un forfait.",
+      "buyerQuote": "{count, plural, one {# écran exclu} other {# écrans exclus}} pour votre type d'entreprise · votre prix : {price}/mois",
+      "notAvailableForBusinessType": "Non disponible pour votre type d'entreprise : tous ses écrans sont dans le même type de lieu que votre entreprise.",
       "alreadySubscribed": "Abonné",
       "manageSubscription": "Gérer l'abonnement",
       "eyebrow": "Couverture complète",

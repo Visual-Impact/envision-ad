@@ -4,6 +4,7 @@ import com.envisionad.webservice.admin.businesslogiclayer.AdminAccountService;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountListItemModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.BusinessTypeChangeImpactResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.SetActiveRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.UpdateBusinessTypeRequestModel;
@@ -66,6 +67,14 @@ public class AdminAccountController {
     public ResponseEntity<BusinessResponseModel> updateBusinessType(@PathVariable String businessId,
             @RequestBody UpdateBusinessTypeRequestModel request) {
         return ResponseEntity.ok(adminAccountService.updateBusinessType(businessId, request.getBusinessTypeVenueId()));
+    }
+
+    @GetMapping("/{businessId}/business-type/impact")
+    @PreAuthorize("hasAuthority('manage:accounts')")
+    public ResponseEntity<BusinessTypeChangeImpactResponseModel> getBusinessTypeChangeImpact(
+            @PathVariable String businessId,
+            @RequestParam(required = false) String businessTypeVenueId) {
+        return ResponseEntity.ok(adminAccountService.getBusinessTypeChangeImpact(businessId, businessTypeVenueId));
     }
 
     @GetMapping("/{businessId}/roles/removal-eligibility")
