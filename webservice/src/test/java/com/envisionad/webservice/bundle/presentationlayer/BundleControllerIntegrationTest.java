@@ -874,6 +874,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                     assertEquals(1, body.getScreenCount());
                     assertEquals(0, new BigDecimal("4.00").compareTo(body.getFinalPrice()));
                     assertEquals(0, new BigDecimal("4.00").compareTo(body.getPerScreenPrice()));
+                    assertEquals(0, body.getExcludedScreenCount());
                 });
     }
 
@@ -898,6 +899,8 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .value(body -> {
                     assertEquals(0, body.getScreenCount());
                     assertEquals(0, BigDecimal.ZERO.compareTo(body.getFinalPrice()));
+                    // P4 PR 2: the modal's "N screens excluded" / "not available" copy reads this.
+                    assertEquals(1, body.getExcludedScreenCount());
                 });
 
         webTestClient.get()

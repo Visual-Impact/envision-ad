@@ -20,6 +20,8 @@ export interface OrganizationResponseDTO {
     address: Address;
     roles: Roles;
     verified: boolean;
+    /** Venue id of the business type (competitive exclusion); set by an admin only. */
+    businessTypeVenueId?: string | null;
     dateCreated: string;
 }
 

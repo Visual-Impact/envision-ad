@@ -78,9 +78,9 @@ public class BundleController {
     }
 
     /**
-     * Buyer-specific price preview, called by the subscribe flow (M4). In v1 no filter
-     * is buyer-specific so the number matches the public price, but the requesting
-     * advertiser's business is threaded through now so P4/P8 become backend-only later.
+     * Buyer-specific price preview, called by the subscribe flow (M4). It differs from the
+     * public price when the buyer has a business type (P4): screens in that venue are
+     * dropped, and {@code excludedScreenCount} says how many.
      */
     @GetMapping("/{bundleId}/quote")
     @PreAuthorize("isAuthenticated()")
@@ -93,7 +93,11 @@ public class BundleController {
         // Resolves the bundle first, so an unknown id yields 404 rather than an empty quote.
         Bundle bundle = bundleService.getBundleByBundleId(bundleId);
         BundlePriceQuote quote = pricingService.quote(bundle, businessId);
-        return ResponseEntity.ok(responseMapper.quoteToResponseModel(quote));
+        // Quoted again with no buyer, exactly as the public listing does, so the modal can say
+        // how many of the screens on the card this buyer won't get. Buyer-independent filters
+        // (inactive, manual exclusion, P8's sold-out) apply to both, so only P4 shows up here.
+        BundlePriceQuote publicQuote = pricingService.quote(bundle, null);
+        return ResponseEntity.ok(responseMapper.quoteToResponseModel(quote, publicQuote));
     }
 
     /** Bundles are advertiser inventory; a media-owner-only business can browse but not buy. */

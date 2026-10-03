@@ -261,6 +261,8 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
     if (!bundle) return null;
 
     const hasScreens = (quote?.screenCount ?? 0) > 0;
+    // Screens on the public card that this buyer isn't quoted for: their own business type (P4).
+    const excludedScreenCount = quote?.excludedScreenCount ?? 0;
     const canSubscribe = loadState === "ready" && hasScreens && !!campaignId;
 
     return (
@@ -307,6 +309,11 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
                                         <Text c="dimmed">{t("screens")}</Text>
                                         <Text fw={500}>{quote?.screenCount ?? 0}</Text>
                                     </Group>
+                                    {excludedScreenCount > 0 && hasScreens && (
+                                        <Text size="sm" c="dimmed" mt={4}>
+                                            {t("excludedScreens", { count: excludedScreenCount })}
+                                        </Text>
+                                    )}
                                     <Divider my="sm" />
                                     <Group justify="space-between">
                                         <Text size="lg" fw={700}>
@@ -372,7 +379,7 @@ export function BundleSubscribeModal({ opened, onClose, bundle, businessId }: Bu
 
                                 {!hasScreens && (
                                     <Alert color="yellow" icon={<IconInfoCircle size={18} />}>
-                                        {t("noScreens")}
+                                        {excludedScreenCount > 0 ? t("notAvailableForBusinessType") : t("noScreens")}
                                     </Alert>
                                 )}
 

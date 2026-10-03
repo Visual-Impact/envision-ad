@@ -436,6 +436,7 @@
       "address": "Ville",
       "dateCreated": "Date de création",
       "roles": "Rôles",
+      "businessType": "Type d'entreprise",
       "actions": "Actions",
       "edit": "Modifier"
     },
@@ -1999,6 +2000,8 @@
       "noCampaigns": "Vous devez avoir une campagne avec au moins une publicité avant de vous abonner.",
       "createCampaign": "Créer une campagne",
       "noScreens": "Ce forfait n'a aucun écran disponible pour le moment; l'abonnement est impossible.",
+      "excludedScreens": "{count, plural, one {# écran} other {# écrans}} de votre propre type d'entreprise exclus : ni comptés, ni facturés.",
+      "notAvailableForBusinessType": "Non disponible pour votre type d'entreprise : tous les écrans de ce forfait sont dans le même type de lieu que votre entreprise; l'abonnement est impossible.",
       "recurringNote": "Facturé mensuellement. Annulez à tout moment — sans frais.",
       "cancel": "Annuler",
       "proceed": "Passer au paiement",

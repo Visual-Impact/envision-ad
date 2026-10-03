@@ -435,6 +435,7 @@
       "address": "Address",
       "dateCreated": "Date Created",
       "roles": "Roles",
+      "businessType": "Business Type",
       "actions": "Actions",
       "edit": "Edit"
     },
@@ -1998,6 +1999,8 @@
       "noCampaigns": "You need a campaign with at least one ad before you can subscribe.",
       "createCampaign": "Create a campaign",
       "noScreens": "This bundle has no available screens right now, so it cannot be subscribed to.",
+      "excludedScreens": "{count, plural, one {# screen} other {# screens}} in your own business type left out: not counted, not billed.",
+      "notAvailableForBusinessType": "Not available for your business type: every screen in this bundle is in the same type of venue as your business, so it cannot be subscribed to.",
       "recurringNote": "Billed monthly. Cancel anytime — no fees.",
       "cancel": "Cancel",
       "proceed": "Continue to payment",

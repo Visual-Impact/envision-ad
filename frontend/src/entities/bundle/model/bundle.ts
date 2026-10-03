@@ -45,6 +45,8 @@ export interface BundlePriceQuote {
     screenCount: number;
     finalPrice: number;
     perScreenPrice?: number | null;
+    /** Screens on the public card this buyer isn't quoted for (their own business type). */
+    excludedScreenCount: number;
 }
 
 export interface BundleRequestDTO {
