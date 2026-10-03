@@ -9,11 +9,12 @@ import axios from "axios";
 import { AccountListItem, CreateAccountRequestDTO } from "../model/account";
 import { Roles } from "@/entities/organization";
 import { Venue } from "@/entities/venue";
-import { createAccount, getAllAccounts, resendCredentials, setAccountActive, updateAccountRoles } from "../api";
+import { createAccount, getAllAccounts, resendCredentials, setAccountActive, updateAccountBusinessType, updateAccountRoles } from "../api";
 import { getAllVenues } from "@/features/venue-management";
 import { AccountsTable } from "@/pages/dashboard/admin/ui/tables/AccountsTable";
 import { CreateAccountModal } from "@/pages/dashboard/admin/ui/modals/CreateAccountModal";
 import { EditRolesModal } from "@/pages/dashboard/admin/ui/modals/EditRolesModal";
+import { EditBusinessTypeModal } from "@/pages/dashboard/admin/ui/modals/EditBusinessTypeModal";
 
 const PAGE_SIZE = 20;
 
@@ -25,6 +26,7 @@ export default function AccountsManagementPage() {
     const [loading, setLoading] = useState(true);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [editRolesAccount, setEditRolesAccount] = useState<AccountListItem | null>(null);
+    const [editBusinessTypeAccount, setEditBusinessTypeAccount] = useState<AccountListItem | null>(null);
     const [pendingBusinessId, setPendingBusinessId] = useState<string | null>(null);
     // 1-indexed for Mantine's Pagination, converted to 0-indexed on the request —
     // same convention BrowsePage.tsx uses for /media/active.
@@ -148,6 +150,18 @@ export default function AccountsManagementPage() {
         }
     };
 
+    const handleUpdateBusinessType = async (businessTypeVenueId: string | null) => {
+        if (!editBusinessTypeAccount) return;
+        try {
+            await updateAccountBusinessType(editBusinessTypeAccount.businessId, businessTypeVenueId);
+            notifications.show({ title: t("notifications.businessTypeUpdated"), message: "", color: "green" });
+            setEditBusinessTypeAccount(null);
+            await refresh();
+        } catch {
+            notifications.show({ title: t("notifications.businessTypeUpdateFailed"), message: "", color: "red" });
+        }
+    };
+
     return (
         <Stack component="main" gap="md" p="md" style={{ flex: 1, minWidth: 0 }}>
             <Group justify="space-between" align="center">
@@ -167,6 +181,7 @@ export default function AccountsManagementPage() {
                         onResend={handleResend}
                         onToggleActive={handleToggleActive}
                         onEditRoles={setEditRolesAccount}
+                        onEditBusinessType={setEditBusinessTypeAccount}
                         pendingBusinessId={pendingBusinessId}
                     />
                     {totalPages > 1 && (
@@ -189,6 +204,14 @@ export default function AccountsManagementPage() {
                 onClose={() => setEditRolesAccount(null)}
                 onSave={handleUpdateRoles}
                 account={editRolesAccount}
+            />
+
+            <EditBusinessTypeModal
+                opened={editBusinessTypeAccount !== null}
+                onClose={() => setEditBusinessTypeAccount(null)}
+                onSave={handleUpdateBusinessType}
+                account={editBusinessTypeAccount}
+                venues={venues}
             />
         </Stack>
     );

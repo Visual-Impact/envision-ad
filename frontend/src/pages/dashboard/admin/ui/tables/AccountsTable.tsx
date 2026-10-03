@@ -1,7 +1,7 @@
 "use client";
 
 import { ActionIcon, Badge, Group, Paper, ScrollArea, Table, Text, Tooltip } from "@mantine/core";
-import { IconMailForward, IconPlayerPause, IconPlayerPlay, IconUserCog } from "@tabler/icons-react";
+import { IconBuildingStore, IconMailForward, IconPlayerPause, IconPlayerPlay, IconUserCog } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { AccountListItem } from "../../model/account";
 import { Venue } from "@/entities/venue";
@@ -12,10 +12,11 @@ interface AccountsTableProps {
     onResend: (account: AccountListItem) => void;
     onToggleActive: (account: AccountListItem) => void;
     onEditRoles: (account: AccountListItem) => void;
+    onEditBusinessType: (account: AccountListItem) => void;
     pendingBusinessId: string | null;
 }
 
-export function AccountsTable({ accounts, venues, onResend, onToggleActive, onEditRoles, pendingBusinessId }: AccountsTableProps) {
+export function AccountsTable({ accounts, venues, onResend, onToggleActive, onEditRoles, onEditBusinessType, pendingBusinessId }: AccountsTableProps) {
     const t = useTranslations("accountManagement");
     // Reuses the existing organization.roles.* keys rather than duplicating "Advertiser"/
     // "Media Owner" strings under a new namespace.
@@ -109,6 +110,16 @@ export function AccountsTable({ accounts, venues, onResend, onToggleActive, onEd
                                                         onClick={() => onEditRoles(account)}
                                                     >
                                                         <IconUserCog size={18} stroke={1.5} />
+                                                    </ActionIcon>
+                                                </Tooltip>
+                                                <Tooltip label={t("actions.editBusinessType")}>
+                                                    <ActionIcon
+                                                        variant="subtle"
+                                                        color="teal"
+                                                        loading={isPending}
+                                                        onClick={() => onEditBusinessType(account)}
+                                                    >
+                                                        <IconBuildingStore size={18} stroke={1.5} />
                                                     </ActionIcon>
                                                 </Tooltip>
                                                 <Tooltip label={t("actions.resend")}>
