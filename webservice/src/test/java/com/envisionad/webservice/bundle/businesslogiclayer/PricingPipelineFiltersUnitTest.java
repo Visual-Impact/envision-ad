@@ -1,5 +1,7 @@
 package com.envisionad.webservice.bundle.businesslogiclayer;
 
+import com.envisionad.webservice.business.dataaccesslayer.Business;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleExcludedMedia;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleExcludedMediaRepository;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
@@ -109,6 +111,92 @@ class PricingPipelineFiltersUnitTest {
             assertTrue(filter.filter(List.of(), CONTEXT).isEmpty());
 
             verifyNoInteractions(excludedMediaRepository);
+        }
+    }
+
+    @Nested
+    class BusinessTypeExclusion {
+
+        @Mock
+        private BusinessRepository businessRepository;
+
+        @InjectMocks
+        private BusinessTypeExclusionFilter filter;
+
+        private Media inVenue(String venueId) {
+            Media media = media(UUID.randomUUID(), Status.ACTIVE);
+            media.setVenueId(venueId);
+            return media;
+        }
+
+        private void givenBuyerOfType(String businessTypeVenueId) {
+            Business buyer = new Business();
+            buyer.setBusinessTypeVenueId(businessTypeVenueId);
+            when(businessRepository.findByBusinessId_BusinessId("business-1")).thenReturn(buyer);
+        }
+
+        @Test
+        void dropsMediaInTheBuyersOwnBusinessType() {
+            Media rivalGym = inVenue("venue-gym");
+            Media cafe = inVenue("venue-cafe");
+            givenBuyerOfType("venue-gym");
+
+            assertEquals(List.of(cafe), filter.filter(List.of(rivalGym, cafe), CONTEXT));
+        }
+
+        @Test
+        void buyerWithNoBusinessTypeExcludesNothing() {
+            List<Media> input = List.of(inVenue("venue-gym"), inVenue(null));
+            givenBuyerOfType(null);
+
+            assertEquals(input, filter.filter(input, CONTEXT));
+        }
+
+        @Test
+        void blankBusinessTypeExcludesNothing() {
+            List<Media> input = List.of(inVenue("venue-gym"));
+            givenBuyerOfType("  ");
+
+            assertEquals(input, filter.filter(input, CONTEXT));
+        }
+
+        @Test
+        void mediaWithNoVenueIsNeverExcluded() {
+            Media untagged = inVenue(null);
+            givenBuyerOfType("venue-gym");
+
+            assertEquals(List.of(untagged), filter.filter(List.of(untagged), CONTEXT));
+        }
+
+        @Test
+        void unknownBuyerExcludesNothing() {
+            List<Media> input = List.of(inVenue("venue-gym"));
+            when(businessRepository.findByBusinessId_BusinessId("business-1")).thenReturn(null);
+
+            assertEquals(input, filter.filter(input, CONTEXT));
+        }
+
+        @Test
+        void anonymousBrowsingSkipsTheRepositoryEntirely() {
+            List<Media> input = List.of(inVenue("venue-gym"));
+
+            assertEquals(input, filter.filter(input, new PricingContext("bundle-1", null)));
+            verifyNoInteractions(businessRepository);
+        }
+
+        @Test
+        void emptyCandidateSetSkipsTheRepositoryEntirely() {
+            assertTrue(filter.filter(List.of(), CONTEXT).isEmpty());
+
+            verifyNoInteractions(businessRepository);
+        }
+
+        @Test
+        void sharesBusinessType_nullOnEitherSideNeverMatches() {
+            assertFalse(BusinessTypeExclusionFilter.sharesBusinessType(null, inVenue(null)));
+            assertFalse(BusinessTypeExclusionFilter.sharesBusinessType(null, inVenue("venue-gym")));
+            assertFalse(BusinessTypeExclusionFilter.sharesBusinessType("venue-gym", inVenue(null)));
+            assertTrue(BusinessTypeExclusionFilter.sharesBusinessType("venue-gym", inVenue("venue-gym")));
         }
     }
 

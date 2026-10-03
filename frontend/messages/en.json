@@ -1696,7 +1696,8 @@
       "resend": "Resend Credentials",
       "deactivate": "Deactivate",
       "reactivate": "Reactivate",
-      "editRoles": "Edit Roles"
+      "editRoles": "Edit Roles",
+      "editBusinessType": "Edit Business Type"
     },
     "rolesModal": {
       "title": "Edit Roles — {business}",
@@ -1706,6 +1707,14 @@
       "errors": {
         "roleRequired": "A business must hold at least one role."
       }
+    },
+    "businessTypeModal": {
+      "title": "Business Type — {business}",
+      "description": "Screens in this venue are excluded from this business's bundles: never counted in its price and never billed. Changes apply to new subscriptions only.",
+      "label": "Business Type",
+      "placeholder": "No business type (no exclusions)",
+      "cancel": "Cancel",
+      "save": "Save Business Type"
     },
     "form": {
       "createTitle": "Create Client Account",
@@ -1737,7 +1746,9 @@
       "rolesUpdated": "Roles updated.",
       "rolesUpdatedWithWarnings": "Roles updated, but syncing one or more employees' permissions may have failed. Reopen and save again to retry.",
       "rolesUpdateBlocked": "Can't remove that role — the business still has a live subscription tied to it. Cancel it first.",
-      "rolesUpdateFailed": "Failed to update roles."
+      "rolesUpdateFailed": "Failed to update roles.",
+      "businessTypeUpdated": "Business type updated. New subscriptions use it; current ones keep their screens.",
+      "businessTypeUpdateFailed": "Failed to update business type."
     }
   },
   "bundleManagement": {

@@ -20,8 +20,8 @@ public class BundlePricingServiceImpl implements BundlePricingService {
      *
      * <p>Deliberately an explicit list rather than an injected
      * {@code List<MediaEligibilityFilter>}: ordering must never depend on bean
-     * discovery order. P4 (competitive exclusion) and P8 (sold-out) each add one
-     * line here and change nothing else.
+     * discovery order. P8 (sold-out) adds one line here and changes nothing else,
+     * the way P4 (competitive exclusion) did.
      */
     private final List<MediaEligibilityFilter> eligibilityFilters;
 
@@ -34,12 +34,14 @@ public class BundlePricingServiceImpl implements BundlePricingService {
     public BundlePricingServiceImpl(BundleService bundleService,
             ActiveStatusExclusionFilter activeStatusExclusionFilter,
             ManualExclusionFilter manualExclusionFilter,
+            BusinessTypeExclusionFilter businessTypeExclusionFilter,
             NoOpDiscountModifier noOpDiscountModifier,
             BundleDiscountModifier bundleDiscountModifier) {
         this.bundleService = bundleService;
         this.eligibilityFilters = List.of(
                 activeStatusExclusionFilter,
-                manualExclusionFilter);
+                manualExclusionFilter,
+                businessTypeExclusionFilter);
         this.pricingModifiers = List.of(
                 noOpDiscountModifier,
                 bundleDiscountModifier);

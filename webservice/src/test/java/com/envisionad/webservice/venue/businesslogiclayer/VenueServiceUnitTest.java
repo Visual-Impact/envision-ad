@@ -2,6 +2,7 @@ package com.envisionad.webservice.venue.businesslogiclayer;
 
 import com.envisionad.webservice.advertisement.dataaccesslayer.Ad;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdRepository;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
@@ -37,6 +38,9 @@ class VenueServiceUnitTest {
 
     @Mock
     private AdRepository adRepository;
+
+    @Mock
+    private BusinessRepository businessRepository;
 
     private Venue testVenue;
 
@@ -165,6 +169,17 @@ class VenueServiceUnitTest {
         venueService.deleteVenue("test-venue-id");
 
         verify(venueRepository).delete(testVenue);
+    }
+
+    @Test
+    void deleteVenue_clearsBusinessTypesBeforeDeletingTheVenue() {
+        when(venueRepository.findByVenueId("test-venue-id")).thenReturn(Optional.of(testVenue));
+
+        venueService.deleteVenue("test-venue-id");
+
+        InOrder inOrder = inOrder(businessRepository, venueRepository);
+        inOrder.verify(businessRepository).clearBusinessTypeVenueId("test-venue-id");
+        inOrder.verify(venueRepository).delete(testVenue);
     }
 
     @Test

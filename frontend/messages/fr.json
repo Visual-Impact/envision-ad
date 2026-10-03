@@ -1697,7 +1697,8 @@
       "resend": "Renvoyer les identifiants",
       "deactivate": "Désactiver",
       "reactivate": "Réactiver",
-      "editRoles": "Modifier les rôles"
+      "editRoles": "Modifier les rôles",
+      "editBusinessType": "Modifier le type d'entreprise"
     },
     "rolesModal": {
       "title": "Modifier les rôles — {business}",
@@ -1707,6 +1708,14 @@
       "errors": {
         "roleRequired": "Une entreprise doit détenir au moins un rôle."
       }
+    },
+    "businessTypeModal": {
+      "title": "Type d'entreprise — {business}",
+      "description": "Les écrans de ce type de lieu sont exclus des forfaits de cette entreprise : jamais comptés dans son prix ni facturés. Les changements s'appliquent aux nouveaux abonnements seulement.",
+      "label": "Type d'entreprise",
+      "placeholder": "Aucun type d'entreprise (aucune exclusion)",
+      "cancel": "Annuler",
+      "save": "Enregistrer le type d'entreprise"
     },
     "form": {
       "createTitle": "Créer un compte client",
@@ -1738,7 +1747,9 @@
       "rolesUpdated": "Rôles mis à jour.",
       "rolesUpdatedWithWarnings": "Rôles mis à jour, mais la synchronisation des permissions d'un ou plusieurs employés a peut-être échoué. Rouvrez et enregistrez de nouveau pour réessayer.",
       "rolesUpdateBlocked": "Impossible de retirer ce rôle — l'entreprise a encore un abonnement actif qui y est lié. Annulez-le d'abord.",
-      "rolesUpdateFailed": "Échec de la mise à jour des rôles."
+      "rolesUpdateFailed": "Échec de la mise à jour des rôles.",
+      "businessTypeUpdated": "Type d'entreprise mis à jour. Les nouveaux abonnements l'utilisent; ceux en cours conservent leurs écrans.",
+      "businessTypeUpdateFailed": "Échec de la mise à jour du type d'entreprise."
     }
   },
   "bundleManagement": {

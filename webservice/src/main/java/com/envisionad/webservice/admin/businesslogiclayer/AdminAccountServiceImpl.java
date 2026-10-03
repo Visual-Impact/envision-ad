@@ -27,6 +27,8 @@ import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemR
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
+import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -62,11 +64,13 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     private final BusinessMapper businessMapper;
     private final Auth0Service auth0Service;
     private final EmailService emailService;
+    private final VenueRepository venueRepository;
 
     public AdminAccountServiceImpl(BusinessRepository businessRepository, EmployeeRepository employeeRepository,
             BundleSubscriptionRepository bundleSubscriptionRepository,
             BundleSubscriptionItemRepository bundleSubscriptionItemRepository,
-            BusinessMapper businessMapper, Auth0Service auth0Service, EmailService emailService) {
+            BusinessMapper businessMapper, Auth0Service auth0Service, EmailService emailService,
+            VenueRepository venueRepository) {
         this.businessRepository = businessRepository;
         this.employeeRepository = employeeRepository;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
@@ -74,12 +78,17 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         this.businessMapper = businessMapper;
         this.auth0Service = auth0Service;
         this.emailService = emailService;
+        this.venueRepository = venueRepository;
     }
 
     @Override
     @Transactional
     public AdminAccountResponseModel createAccount(AdminAccountRequestModel request) {
         Validator.validateBusiness(request.getBusiness());
+        // Before any Auth0 call: an unknown venue id used to surface as an FK violation only after
+        // the Auth0 user existed, forcing the compensating delete for what is a bad request.
+        request.getBusiness().setBusinessTypeVenueId(
+                resolveBusinessTypeVenueId(request.getBusiness().getBusinessTypeVenueId()));
 
         // FR 4.2.a — Auth0 is the only source of truth for email; the local schema has
         // no email column to check against (P5-PROGRESS.md ground truth item 2).
@@ -158,6 +167,23 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         // is idempotent, so retrying this same call is the recovery path.
         auth0Service.setUserBlocked(business.getOwnerId(), !active);
 
+        return businessMapper.toResponse(business);
+    }
+
+    /**
+     * PATCH /api/v1/admin/accounts/{businessId}/business-type (P4). The only way a business type
+     * changes after creation — the self-service PUT /businesses/{businessId} ignores the field.
+     * Null clears it. Affects future quotes and checkouts only: live subscriptions keep the
+     * screen set they were bought with (brief 04 FR-6).
+     */
+    @Override
+    public BusinessResponseModel updateBusinessType(String businessId, String businessTypeVenueId) {
+        Business business = businessRepository.findByBusinessId_BusinessId(businessId);
+        if (business == null)
+            throw new BusinessNotFoundException(businessId);
+
+        business.setBusinessTypeVenueId(resolveBusinessTypeVenueId(businessTypeVenueId));
+        businessRepository.save(business);
         return businessMapper.toResponse(business);
     }
 
@@ -301,6 +327,15 @@ public class AdminAccountServiceImpl implements AdminAccountService {
             item.setDateCreated(business.getDateCreated());
             return item;
         });
+    }
+
+    // Blank means "no business type", same as null; anything else must name a real venue.
+    private String resolveBusinessTypeVenueId(String businessTypeVenueId) {
+        if (businessTypeVenueId == null || businessTypeVenueId.isBlank())
+            return null;
+        if (venueRepository.findByVenueId(businessTypeVenueId).isEmpty())
+            throw new VenueNotFoundException(businessTypeVenueId);
+        return businessTypeVenueId;
     }
 
     // One failed batch lookup shouldn't 500 the whole page — degrade every row's owner

@@ -1,7 +1,10 @@
 package com.envisionad.webservice.venue.presentationlayer;
 
 import com.envisionad.webservice.advertisement.dataaccesslayer.*;
+import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessIdentifier;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
+import com.envisionad.webservice.business.dataaccesslayer.Roles;
 import com.envisionad.webservice.config.BaseIntegrationTest;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
@@ -33,6 +36,9 @@ class VenueControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private AdRepository adRepository;
+
+    @Autowired
+    private BusinessRepository businessRepository;
 
     private Venue savedVenue;
 
@@ -250,6 +256,36 @@ class VenueControllerIntegrationTest extends BaseIntegrationTest {
                 .header("Authorization", "Bearer no-perms-token")
                 .exchange()
                 .expectStatus().isForbidden();
+    }
+
+    @Test
+    void deleteVenue_usedAsABusinessType_clearsTheTypeAndReturns204() {
+        // P4. In production the FK's ON DELETE SET NULL (V20260914_001) also covers this, but the
+        // entity-generated test schema has no FK on business_type_venue_id — so this only passes
+        // because deleteVenue() clears the type in application code.
+        Roles advertiser = new Roles();
+        advertiser.setAdvertiser(true);
+        Business business = new Business();
+        business.setBusinessId(new BusinessIdentifier("p4-venue-delete-business"));
+        business.setName("Gym typed as the deleted venue");
+        business.setOwnerId("auth0|p4venuedelete");
+        business.setRoles(advertiser);
+        business.setBusinessTypeVenueId(savedVenue.getVenueId());
+        businessRepository.save(business);
+
+        try {
+            webTestClient.delete()
+                    .uri(BASE_URI + "/{venueId}", savedVenue.getVenueId())
+                    .header("Authorization", "Bearer mock-token")
+                    .exchange()
+                    .expectStatus().isNoContent();
+
+            Business reloaded = businessRepository.findByBusinessId_BusinessId("p4-venue-delete-business");
+            assertNotNull(reloaded, "the business itself must survive");
+            assertNull(reloaded.getBusinessTypeVenueId());
+        } finally {
+            businessRepository.delete(businessRepository.findByBusinessId_BusinessId("p4-venue-delete-business"));
+        }
     }
 
     @Test

@@ -18,6 +18,8 @@ public interface AdminAccountService {
 
     BusinessResponseModel setActive(String businessId, boolean active);
 
+    BusinessResponseModel updateBusinessType(String businessId, String businessTypeVenueId);
+
     Page<AdminAccountListItemModel> getAllAccounts(Pageable pageable);
 
     UpdateRolesResponseModel updateRoles(String businessId, Roles requestedRoles);

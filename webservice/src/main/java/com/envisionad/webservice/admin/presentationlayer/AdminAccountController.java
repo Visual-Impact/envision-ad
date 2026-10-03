@@ -6,6 +6,7 @@ import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequ
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.SetActiveRequestModel;
+import com.envisionad.webservice.admin.presentationlayer.models.UpdateBusinessTypeRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.UpdateRolesResponseModel;
 import com.envisionad.webservice.business.dataaccesslayer.Roles;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessResponseModel;
@@ -58,6 +59,13 @@ public class AdminAccountController {
     public ResponseEntity<UpdateRolesResponseModel> updateRoles(@PathVariable String businessId,
             @RequestBody Roles requestedRoles) {
         return ResponseEntity.ok(adminAccountService.updateRoles(businessId, requestedRoles));
+    }
+
+    @PatchMapping("/{businessId}/business-type")
+    @PreAuthorize("hasAuthority('manage:accounts')")
+    public ResponseEntity<BusinessResponseModel> updateBusinessType(@PathVariable String businessId,
+            @RequestBody UpdateBusinessTypeRequestModel request) {
+        return ResponseEntity.ok(adminAccountService.updateBusinessType(businessId, request.getBusinessTypeVenueId()));
     }
 
     @GetMapping("/{businessId}/roles/removal-eligibility")

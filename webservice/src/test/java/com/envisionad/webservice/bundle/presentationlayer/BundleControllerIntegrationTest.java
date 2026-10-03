@@ -878,6 +878,39 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
+    void quote_dropsScreensInTheBuyersOwnBusinessType_whileThePublicListingStillCountsThem() {
+        // P4: the Montreal bundle's only active screen is a gym, so a gym buyer is quoted zero
+        // screens at zero — which checkout rejects — while the buyer-less listing still shows it.
+        Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        givenBuyerEmployee();
+        givenBuyerBusiness(true, false);
+        Business buyer = businessRepository.findByBusinessId_BusinessId(BUYER_BUSINESS_ID);
+        buyer.setBusinessTypeVenueId("venue-gym");
+        businessRepository.save(buyer);
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/" + bundle.getBundleId() + "/quote?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BundlePriceQuoteResponseModel.class)
+                .value(body -> {
+                    assertEquals(0, body.getScreenCount());
+                    assertEquals(0, BigDecimal.ZERO.compareTo(body.getFinalPrice()));
+                });
+
+        webTestClient.get()
+                .uri(BASE_URI)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].screenCount").isEqualTo(1);
+    }
+
+    @Test
     void quote_anonymously_isRejected() {
         Bundle bundle = givenBundle(BundleRuleType.CITY, "Montreal", true);
 

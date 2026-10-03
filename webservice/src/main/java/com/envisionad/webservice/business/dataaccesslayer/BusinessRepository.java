@@ -2,6 +2,7 @@ package com.envisionad.webservice.business.dataaccesslayer;
 
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +17,15 @@ public interface BusinessRepository extends JpaRepository<Business, String> {
     List<Business> findAllByBusinessId_BusinessIdIn(List<String> businessIds);
     boolean existsByNameAndBusinessId_BusinessIdNot(String Name, String businessId);
     boolean existsByBusinessId_BusinessId(String businessId);
+
+    /**
+     * Reverts every business typed as this venue to "no business type" (P4). Postgres does the
+     * same through V20260914_001's ON DELETE SET NULL; calling this first keeps venue deletion
+     * identical in tests, whose entity-generated schema has no FK on this plain String column.
+     */
+    @Modifying
+    @Query("UPDATE Business b SET b.businessTypeVenueId = NULL WHERE b.businessTypeVenueId = :venueId")
+    int clearBusinessTypeVenueId(@Param("venueId") String venueId);
 
     /**
      * Candidates for P6's automatic notification sweep (FR-8.5): advertisers whose currently

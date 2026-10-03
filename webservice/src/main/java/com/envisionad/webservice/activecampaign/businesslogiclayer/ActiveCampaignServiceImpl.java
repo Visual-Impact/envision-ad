@@ -16,6 +16,7 @@ import com.envisionad.webservice.advertisement.exceptions.AdCampaignNotFoundExce
 import com.envisionad.webservice.advertisement.exceptions.CampaignHasNoAdsException;
 import com.envisionad.webservice.advertisement.exceptions.CampaignIsArchivedException;
 import com.envisionad.webservice.advertisement.presentationlayer.models.AdCampaignResponseModel;
+import com.envisionad.webservice.bundle.businesslogiclayer.BusinessTypeExclusionFilter;
 import com.envisionad.webservice.business.dataaccesslayer.Business;
 import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.exceptions.BusinessNotFoundException;
@@ -274,16 +275,15 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
 
         List<Media> media = mediaRepository.findAllByIdWithLocation(mediaIds);
 
-        // P4's competitive exclusion, in its FR-4.1 form: an advertiser's creatives never go up
-        // in a venue of the advertiser's own business type — a gym does not advertise on a rival
-        // gym's screen. P4 owns any wider definition of this; the single-field rule is all that
-        // is implemented here.
-        String excludedVenueId = business.getBusinessTypeVenueId();
-        if (excludedVenueId == null || excludedVenueId.isBlank()) {
-            return media;
-        }
+        // P4's competitive exclusion: an advertiser's creatives never go up in a venue of their own
+        // business type — a gym does not advertise on a rival gym's screen. Brief 04 FR-8 says
+        // send time needn't re-check, because checkout already filters. That only holds for
+        // subscriptions bought after P4: earlier ones were priced with no business-type filter,
+        // so their frozen items can still include competitor screens (P4 D3). Same predicate as
+        // the pricing chain, so pricing and recipients can never disagree.
+        String businessTypeVenueId = business.getBusinessTypeVenueId();
         return media.stream()
-                .filter(screen -> !excludedVenueId.equals(screen.getVenueId()))
+                .filter(screen -> !BusinessTypeExclusionFilter.sharesBusinessType(businessTypeVenueId, screen))
                 .toList();
     }
 

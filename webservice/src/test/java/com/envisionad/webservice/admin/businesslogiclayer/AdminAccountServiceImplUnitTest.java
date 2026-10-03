@@ -27,6 +27,9 @@ import com.envisionad.webservice.config.exceptions.Auth0ServiceUnavailableExcept
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.venue.dataaccesslayer.Venue;
+import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
+import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,6 +79,9 @@ class AdminAccountServiceImplUnitTest {
 
     @Mock
     private EmailService emailService;
+
+    @Mock
+    private VenueRepository venueRepository;
 
     private static final String EMAIL = "new-client@example.com";
     private static final String NAME = "Jane Doe";
@@ -299,6 +305,70 @@ class AdminAccountServiceImplUnitTest {
         when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(null);
 
         assertThrows(BusinessNotFoundException.class, () -> adminAccountService.setActive(BUSINESS_ID, true));
+    }
+
+    // =========================================================================
+    // updateBusinessType (P4)
+    // =========================================================================
+
+    @Test
+    void whenUpdateBusinessType_withAKnownVenue_thenPersistsIt() {
+        Business business = new Business();
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(venueRepository.findByVenueId("venue-gym")).thenReturn(Optional.of(new Venue()));
+        when(businessMapper.toResponse(business)).thenReturn(new BusinessResponseModel());
+
+        adminAccountService.updateBusinessType(BUSINESS_ID, "venue-gym");
+
+        assertEquals("venue-gym", business.getBusinessTypeVenueId());
+        verify(businessRepository).save(business);
+    }
+
+    @Test
+    void whenUpdateBusinessType_withBlank_thenClearsItWithoutAVenueLookup() {
+        Business business = new Business();
+        business.setBusinessTypeVenueId("venue-gym");
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(businessMapper.toResponse(business)).thenReturn(new BusinessResponseModel());
+
+        adminAccountService.updateBusinessType(BUSINESS_ID, "  ");
+
+        assertNull(business.getBusinessTypeVenueId());
+        verify(businessRepository).save(business);
+        verifyNoInteractions(venueRepository);
+    }
+
+    @Test
+    void whenUpdateBusinessType_withAnUnknownVenue_thenThrowsAndLeavesTheBusinessUntouched() {
+        Business business = new Business();
+        business.setBusinessTypeVenueId("venue-gym");
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
+        when(venueRepository.findByVenueId("no-such-venue")).thenReturn(Optional.empty());
+
+        assertThrows(VenueNotFoundException.class,
+                () -> adminAccountService.updateBusinessType(BUSINESS_ID, "no-such-venue"));
+
+        assertEquals("venue-gym", business.getBusinessTypeVenueId());
+        verify(businessRepository, never()).save(any());
+    }
+
+    @Test
+    void whenUpdateBusinessType_andBusinessNotFound_thenThrowsBusinessNotFoundException() {
+        when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(null);
+
+        assertThrows(BusinessNotFoundException.class,
+                () -> adminAccountService.updateBusinessType(BUSINESS_ID, "venue-gym"));
+    }
+
+    @Test
+    void whenCreateAccount_withAnUnknownBusinessType_thenRejectsBeforeCreatingTheAuth0User() {
+        AdminAccountRequestModel request = validRequest(true, false);
+        request.getBusiness().setBusinessTypeVenueId("no-such-venue");
+        when(venueRepository.findByVenueId("no-such-venue")).thenReturn(Optional.empty());
+
+        assertThrows(VenueNotFoundException.class, () -> adminAccountService.createAccount(request));
+
+        verify(auth0Service, never()).createUser(anyString(), anyString());
     }
 
     // =========================================================================

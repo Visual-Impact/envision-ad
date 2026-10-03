@@ -1,5 +1,7 @@
 package com.envisionad.webservice.bundle.businesslogiclayer;
 
+import com.envisionad.webservice.business.dataaccesslayer.Business;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.bundle.dataaccesslayer.Bundle;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleExcludedMedia;
 import com.envisionad.webservice.bundle.dataaccesslayer.BundleExcludedMediaRepository;
@@ -48,6 +50,10 @@ class BundlePricingServiceUnitTest {
     @Mock
     private BundleRepository bundleRepository;
 
+    /** Feeds {@link BusinessTypeExclusionFilter}; unstubbed means "buyer has no business type". */
+    @Mock
+    private BusinessRepository businessRepository;
+
     private BundlePricingServiceImpl pricingService;
     private Bundle bundle;
 
@@ -57,6 +63,7 @@ class BundlePricingServiceUnitTest {
                 bundleService,
                 new ActiveStatusExclusionFilter(),
                 new ManualExclusionFilter(excludedMediaRepository),
+                new BusinessTypeExclusionFilter(businessRepository),
                 new NoOpDiscountModifier(),
                 new BundleDiscountModifier(bundleRepository));
 
@@ -220,12 +227,32 @@ class BundlePricingServiceUnitTest {
     }
 
     @Test
+    void sameBusinessTypeMediaIsDroppedFromCountAndPrice() {
+        Media rivalGym = media(UUID.randomUUID(), Status.ACTIVE, "4.00");
+        rivalGym.setVenueId("venue-gym");
+        Media cafe = media(UUID.randomUUID(), Status.ACTIVE, "6.50");
+        cafe.setVenueId("venue-cafe");
+        givenRuleMatched(List.of(rivalGym, cafe));
+        givenNoExclusions();
+
+        Business gymBuyer = new Business();
+        gymBuyer.setBusinessTypeVenueId("venue-gym");
+        when(businessRepository.findByBusinessId_BusinessId("business-1")).thenReturn(gymBuyer);
+
+        BundlePriceQuote quote = pricingService.quote(BUNDLE_ID, "business-1");
+
+        assertEquals(List.of(cafe), quote.eligibleMedias());
+        assertEquals(new BigDecimal("6.50"), quote.basePrice());
+        assertEquals(new BigDecimal("6.50"), quote.finalPrice());
+    }
+
+    @Test
     void advertiserBusinessIdReachesTheFilterContext() {
         // v1 filters ignore it, but P4/P8 depend on it being threaded through — so
         // assert the wiring now rather than discovering it missing two projects later.
         ManualExclusionFilter spyFilter = spy(new ManualExclusionFilter(excludedMediaRepository));
         BundlePricingServiceImpl service = new BundlePricingServiceImpl(
-                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
+                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new BusinessTypeExclusionFilter(businessRepository), new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
 
         givenRuleMatched(List.of(media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
         givenNoExclusions();
@@ -242,7 +269,7 @@ class BundlePricingServiceUnitTest {
     void nullAdvertiserBusinessIdIsThreadedThroughForAnonymousBrowsing() {
         ManualExclusionFilter spyFilter = spy(new ManualExclusionFilter(excludedMediaRepository));
         BundlePricingServiceImpl service = new BundlePricingServiceImpl(
-                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
+                bundleService, new ActiveStatusExclusionFilter(), spyFilter, new BusinessTypeExclusionFilter(businessRepository), new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
 
         givenRuleMatched(List.of(media(UUID.randomUUID(), Status.ACTIVE, "4.00")));
         givenNoExclusions();
@@ -260,7 +287,7 @@ class BundlePricingServiceUnitTest {
         ActiveStatusExclusionFilter statusFilter = spy(new ActiveStatusExclusionFilter());
         ManualExclusionFilter exclusionFilter = spy(new ManualExclusionFilter(excludedMediaRepository));
         BundlePricingServiceImpl service = new BundlePricingServiceImpl(
-                bundleService, statusFilter, exclusionFilter, new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
+                bundleService, statusFilter, exclusionFilter, new BusinessTypeExclusionFilter(businessRepository), new NoOpDiscountModifier(), new BundleDiscountModifier(bundleRepository));
 
         givenRuleMatched(List.of(
                 media(UUID.randomUUID(), Status.ACTIVE, "4.00"),

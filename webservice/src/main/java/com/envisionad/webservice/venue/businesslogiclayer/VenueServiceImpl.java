@@ -2,6 +2,7 @@ package com.envisionad.webservice.venue.businesslogiclayer;
 
 import com.envisionad.webservice.advertisement.dataaccesslayer.Ad;
 import com.envisionad.webservice.advertisement.dataaccesslayer.AdRepository;
+import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
@@ -19,12 +20,14 @@ public class VenueServiceImpl implements VenueService {
     private final VenueRepository venueRepository;
     private final MediaRepository mediaRepository;
     private final AdRepository adRepository;
+    private final BusinessRepository businessRepository;
 
     public VenueServiceImpl(VenueRepository venueRepository, MediaRepository mediaRepository,
-                            AdRepository adRepository) {
+                            AdRepository adRepository, BusinessRepository businessRepository) {
         this.venueRepository = venueRepository;
         this.mediaRepository = mediaRepository;
         this.adRepository = adRepository;
+        this.businessRepository = businessRepository;
     }
 
     @Override
@@ -86,6 +89,11 @@ public class VenueServiceImpl implements VenueService {
             taggedAds.forEach(ad -> ad.getVenues().removeIf(v -> venueId.equals(v.getVenueId())));
             adRepository.saveAll(taggedAds);
         }
+
+        // Businesses typed as this venue revert to "no business type" (P4) — without this, the
+        // production FK rejected the delete outright. See clearBusinessTypeVenueId for why it
+        // runs in application code as well as in the DB.
+        businessRepository.clearBusinessTypeVenueId(venueId);
 
         venueRepository.delete(venue);
     }

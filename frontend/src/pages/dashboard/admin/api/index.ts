@@ -3,6 +3,7 @@ export { getAllAccounts } from './getAllAccounts';
 export { resendCredentials } from './resendCredentials';
 export { setAccountActive } from './setAccountActive';
 export { updateAccountRoles } from './updateAccountRoles';
+export { updateAccountBusinessType } from './updateAccountBusinessType';
 export { getRoleRemovalEligibility } from './getRoleRemovalEligibility';
 export { getAllCoupons } from './getAllCoupons';
 export { createCoupon } from './createCoupon';
