@@ -13,8 +13,14 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 public class BundlePriceQuoteResponseModel {
+    private String bundleId;
     private int screenCount;
     private BigDecimal finalPrice;
     /** Shared per-screen price, or null when mixed/empty/partially-priceless. */
     private BigDecimal perScreenPrice;
+    /**
+     * Screens the public listing counts but this buyer is not quoted for — today only
+     * screens in the buyer's own business type (P4). Never negative.
+     */
+    private int excludedScreenCount;
 }

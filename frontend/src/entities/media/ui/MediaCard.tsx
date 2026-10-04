@@ -11,6 +11,7 @@ import {
     Divider,
     Badge,
     Box,
+    Tooltip,
 } from "@mantine/core";
 import styles from "./MediaCard.module.css";
 import { useLocale, useTranslations } from "next-intl";
@@ -40,6 +41,11 @@ export interface MediaCardProps {
     schedule: MonthlyScheduleModel;
     mobileWidth?: string;
     venue?: Venue | null;
+    /**
+     * P4: the signed-in advertiser's business type is this screen's venue, so no bundle they
+     * subscribe to will include it. Greys the card out and says why; it stays clickable.
+     */
+    unavailableForBusinessType?: boolean;
 }
 
 function MediaCard({
@@ -56,7 +62,8 @@ function MediaCard({
                        schedule,
                        mobileWidth,
                        imageRatio,
-                       venue
+                       venue,
+                       unavailableForBusinessType
                    }: MediaCardProps) {
     const mobileBreakpoint = mobileWidth ?? "575px";
     const isMobile = useMediaQuery(`(max-width: ${mobileBreakpoint})`);
@@ -110,7 +117,10 @@ function MediaCard({
                             fallbackSrc={ImgNotFound(t2("imageNotFound"))}
                             onLoad={() => setImageLoaded(true)}
                             onError={() => setImageLoaded(true)}
-                            style={{ opacity: imageLoaded || !imageUrl ? 1 : 0 }}
+                            style={{
+                                opacity: imageLoaded || !imageUrl ? 1 : 0,
+                                filter: unavailableForBusinessType ? "grayscale(1)" : undefined,
+                            }}
                         />
                     </AspectRatio>
                 </Paper>
@@ -215,6 +225,13 @@ function MediaCard({
                 </Box>
 
                 <Group gap="xs" wrap="wrap">
+                    {unavailableForBusinessType && (
+                        <Tooltip label={t("unavailableForBusinessTypeHint")} multiline w={240} withArrow>
+                            <Badge size="xs" variant="light" color="orange">
+                                {t("unavailableForBusinessType")}
+                            </Badge>
+                        </Tooltip>
+                    )}
                     <Badge size="xs" variant="outline" color="gray">
                         {resolution}
                     </Badge>
@@ -232,7 +249,9 @@ function MediaCard({
             id={"MediaCard" + index}
             c="black"
             underline="never"
-            aria-label={`View Details for ${title}`}
+            aria-label={unavailableForBusinessType
+                ? `View Details for ${title} (${t("unavailableForBusinessType")})`
+                : `View Details for ${title}`}
             style={{ scrollMarginTop: "25vh", display: "block", height: "100%" }}
         >
             <Paper
@@ -240,6 +259,7 @@ function MediaCard({
                 radius="md"
                 className={styles.paper}
                 h="100%"
+                style={unavailableForBusinessType ? { opacity: 0.6 } : undefined}
                 p={isXsMobile ? "12px" : "14px"}
             >
                 {isMobile ? (

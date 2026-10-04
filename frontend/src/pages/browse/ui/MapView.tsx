@@ -43,9 +43,12 @@ function MediaMarker({media, isMobileVertical, open, setMediaList, setAddressNam
   const address = getJoinedAddress([location?.street, location?.city, location?.province] )
 
 
+  // P4: grey the pin only when every screen here is in the advertiser's own business type;
+  // a mixed location stays normal and its popup greys the individual cards.
+  const allUnavailable = sortedMedia.every((m) => m.unavailableForBusinessType);
   const mediaMarkerIcon = L.divIcon({
     className: 'media-marker',
-    html: `<a id='MediaMarker${location?.businessId}'><span>${iconHtml}${mediaCount}</span></a>`,
+    html: `<a id='MediaMarker${location?.businessId}'><span${allUnavailable ? " class='unavailable'" : ""}>${iconHtml}${mediaCount}</span></a>`,
     iconSize: [60, 24]
   });
 
@@ -175,6 +178,7 @@ export default function MapView({center, zoom, setMap, medias, isMobile, isMobil
                         dailyImpressions={m.dailyImpressions}
                         schedule={m.schedule}
                         resolution={m.resolution} 
+                        unavailableForBusinessType={m.unavailableForBusinessType}
                     />
                   ))}
                   </Stack> :

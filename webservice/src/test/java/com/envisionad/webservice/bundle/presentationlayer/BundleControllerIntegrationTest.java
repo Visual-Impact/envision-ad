@@ -874,6 +874,7 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                     assertEquals(1, body.getScreenCount());
                     assertEquals(0, new BigDecimal("4.00").compareTo(body.getFinalPrice()));
                     assertEquals(0, new BigDecimal("4.00").compareTo(body.getPerScreenPrice()));
+                    assertEquals(0, body.getExcludedScreenCount());
                 });
     }
 
@@ -898,6 +899,8 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
                 .value(body -> {
                     assertEquals(0, body.getScreenCount());
                     assertEquals(0, BigDecimal.ZERO.compareTo(body.getFinalPrice()));
+                    // P4 PR 2: the modal's "N screens excluded" / "not available" copy reads this.
+                    assertEquals(1, body.getExcludedScreenCount());
                 });
 
         webTestClient.get()
@@ -932,6 +935,51 @@ class BundleControllerIntegrationTest extends BaseIntegrationTest {
 
         webTestClient.get()
                 .uri(BASE_URI + "/" + bundle.getBundleId() + "/quote?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void quotes_returnTheBuyersQuoteForEveryActiveBundle_withTheirBusinessTypeExcluded() {
+        Bundle montreal = givenBundle(BundleRuleType.CITY, "Montreal", true);
+        Bundle network = givenBundle(BundleRuleType.FULL_NETWORK, null, true);
+        givenBundle(BundleRuleType.CITY, "Laval", false);
+        givenBuyerEmployee();
+        givenBuyerBusiness(true, false);
+        Business buyer = businessRepository.findByBusinessId_BusinessId(BUYER_BUSINESS_ID);
+        buyer.setBusinessTypeVenueId("venue-gym");
+        businessRepository.save(buyer);
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/quotes?businessId=" + BUYER_BUSINESS_ID)
+                .header("Authorization", "Bearer " + BUYER_TOKEN)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBodyList(BundlePriceQuoteResponseModel.class)
+                .value(quotes -> {
+                    // Inactive bundles aren't on the home page, so they aren't quoted either.
+                    assertEquals(2, quotes.size());
+                    BundlePriceQuoteResponseModel montrealQuote = quotes.stream()
+                            .filter(q -> montreal.getBundleId().equals(q.getBundleId())).findFirst().orElseThrow();
+                    assertEquals(0, montrealQuote.getScreenCount());
+                    assertEquals(1, montrealQuote.getExcludedScreenCount());
+                    BundlePriceQuoteResponseModel networkQuote = quotes.stream()
+                            .filter(q -> network.getBundleId().equals(q.getBundleId())).findFirst().orElseThrow();
+                    assertEquals(1, networkQuote.getScreenCount());
+                    assertEquals(1, networkQuote.getExcludedScreenCount());
+                    assertEquals(0, new BigDecimal("6.50").compareTo(networkQuote.getFinalPrice()));
+                });
+    }
+
+    @Test
+    void quotes_forANonEmployeeOfTheBusiness_isForbidden() {
+        givenBundle(BundleRuleType.CITY, "Montreal", true);
+        authAs(BUYER_TOKEN, BUYER_USER_ID, List.of("read:campaign"));
+
+        webTestClient.get()
+                .uri(BASE_URI + "/quotes?businessId=" + BUYER_BUSINESS_ID)
                 .header("Authorization", "Bearer " + BUYER_TOKEN)
                 .exchange()
                 .expectStatus().isForbidden();

@@ -42,9 +42,12 @@ export interface Bundle {
 
 /** Buyer-specific price preview from GET /bundles/{id}/quote. */
 export interface BundlePriceQuote {
+    bundleId: string;
     screenCount: number;
     finalPrice: number;
     perScreenPrice?: number | null;
+    /** Screens on the public card this buyer isn't quoted for (their own business type). */
+    excludedScreenCount: number;
 }
 
 export interface BundleRequestDTO {

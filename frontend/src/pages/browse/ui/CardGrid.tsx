@@ -38,6 +38,7 @@ export function MediaCardGrid({id, medias, size}: MediaCardGridProps) {
                             schedule={media.schedule}
                             resolution={media.resolution}
                             venue={media.venue}
+                            unavailableForBusinessType={media.unavailableForBusinessType}
                         />
                     </GridCol>
               ))}

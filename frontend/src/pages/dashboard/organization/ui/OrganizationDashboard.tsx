@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Center, Group, Loader, Stack, Title } from "@mantine/core";
 import { OrganizationDetail } from "@/pages/dashboard/organization/ui/tables/OrganizationTable";
 import { OrganizationModal } from "@/pages/dashboard/organization/ui/modals/OrganizationModal";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useOrganizationForm } from "@/features/organization-management";
 import { OrganizationSize } from "@/entities/organization";
 import { updateOrganization } from "@/features/organization-management";
 import { notifications } from "@mantine/notifications";
 import { useOrganization } from "@/entities/organization";
+import { Venue } from "@/entities/venue";
+import { getAllVenues } from "@/features/venue-management";
 
 export default function OrganizationDashboard() {
     const { formState, updateField, resetForm, setFormState } = useOrganizationForm();
@@ -17,6 +19,31 @@ export default function OrganizationDashboard() {
     const { organization, refreshOrganization } = useOrganization();
     const [editingId, setEditingId] = useState<string | null>(null);
     const t = useTranslations("organization");
+    const locale = useLocale();
+
+    // The business type is admin-set (P4); the advertiser only sees it. The org response carries
+    // the venue id, so resolve it to a name against the public venue list.
+    const businessTypeVenueId = organization?.businessTypeVenueId ?? null;
+    const [businessType, setBusinessType] = useState<Venue | null>(null);
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            if (!businessTypeVenueId) {
+                setBusinessType(null);
+                return;
+            }
+            try {
+                const venues = await getAllVenues(locale);
+                if (!cancelled) setBusinessType(venues.find((v) => v.venueId === businessTypeVenueId) ?? null);
+            } catch {
+                if (!cancelled) setBusinessType(null);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [businessTypeVenueId, locale]);
+    const businessTypeName = businessType ? (locale === "fr" ? businessType.nameFr : businessType.nameEn) : null;
 
     const handleEdit = () => {
         if (!organization) return;
@@ -70,7 +97,7 @@ export default function OrganizationDashboard() {
                 <Title order={1}>{t("title")}</Title>
             </Group>
 
-            <OrganizationDetail organization={organization} onEdit={handleEdit} />
+            <OrganizationDetail organization={organization} onEdit={handleEdit} businessTypeName={businessTypeName} />
 
             <OrganizationModal
                 opened={isModalOpen}

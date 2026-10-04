@@ -3,6 +3,7 @@ package com.envisionad.webservice.admin.businesslogiclayer;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountListItemModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountRequestModel;
 import com.envisionad.webservice.admin.presentationlayer.models.AdminAccountResponseModel;
+import com.envisionad.webservice.admin.presentationlayer.models.BusinessTypeChangeImpactResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.RoleRemovalEligibilityResponseModel;
 import com.envisionad.webservice.admin.presentationlayer.models.UpdateRolesResponseModel;
 import com.envisionad.webservice.business.dataaccesslayer.Roles;
@@ -25,4 +26,6 @@ public interface AdminAccountService {
     UpdateRolesResponseModel updateRoles(String businessId, Roles requestedRoles);
 
     RoleRemovalEligibilityResponseModel getRoleRemovalEligibility(String businessId);
+
+    BusinessTypeChangeImpactResponseModel getBusinessTypeChangeImpact(String businessId, String businessTypeVenueId);
 }

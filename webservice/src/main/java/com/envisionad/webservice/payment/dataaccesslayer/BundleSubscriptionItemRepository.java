@@ -107,4 +107,24 @@ public interface BundleSubscriptionItemRepository extends JpaRepository<BundleSu
     boolean existsLiveSubscriptionForMediaOwnerBusinessId(
             @Param("businessId") String businessId,
             @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
+
+    /**
+     * How many distinct screens of one venue an advertiser is paying for across their live
+     * subscriptions. Drives the admin warning before a business type is set or changed (P4): those
+     * screens stay in the frozen {@code bundle_subscription_items}, so the advertiser keeps paying
+     * for them, while P6's distribution stops sending their creatives there.
+     */
+    @Query("""
+            SELECT COUNT(DISTINCT i.mediaId)
+            FROM BundleSubscriptionItem i, BundleSubscription s, Media m
+            WHERE i.subscriptionId = s.subscriptionId
+              AND m.id = i.mediaId
+              AND s.advertiserBusinessId = :businessId
+              AND m.venueId = :venueId
+              AND s.status IN :statuses
+            """)
+    long countDistinctMediaInVenueForAdvertiser(
+            @Param("businessId") String businessId,
+            @Param("venueId") String venueId,
+            @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
 }

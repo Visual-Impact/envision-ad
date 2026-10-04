@@ -60,6 +60,7 @@ export function MediaCardCarousel({id, title, medias, slideSize, imageRatio}: Me
                             dailyImpressions={media.dailyImpressions}
                             schedule={media.schedule}
                             resolution={media.resolution}
+                            unavailableForBusinessType={media.unavailableForBusinessType}
                         />
                     </Carousel.Slide>
                 ))}

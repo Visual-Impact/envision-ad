@@ -33,6 +33,11 @@
     }
 }
 
+/* P4: every screen at this location is in the signed-in advertiser's own business type. */
+.media-marker > a > span.unavailable {
+    background: var(--mantine-color-gray-5);
+}
+
 .leaflet-popup-content{
     margin: -1px;
 }

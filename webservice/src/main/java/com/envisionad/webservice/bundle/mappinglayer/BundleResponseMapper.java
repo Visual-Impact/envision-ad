@@ -116,11 +116,19 @@ public class BundleResponseMapper {
         return uniform ? eligible.get(0).getPrice() : null;
     }
 
-    public BundlePriceQuoteResponseModel quoteToResponseModel(BundlePriceQuote quote) {
+    /**
+     * {@code publicQuote} is the same bundle quoted with no buyer, i.e. what the public
+     * listing shows. Its extra screens are the ones filtered out for this buyer alone.
+     */
+    public BundlePriceQuoteResponseModel quoteToResponseModel(String bundleId, BundlePriceQuote quote,
+            BundlePriceQuote publicQuote) {
         BundlePriceQuoteResponseModel response = new BundlePriceQuoteResponseModel();
+        response.setBundleId(bundleId);
         response.setScreenCount(quote.eligibleMedias().size());
         response.setFinalPrice(quote.finalPrice());
         response.setPerScreenPrice(perScreenPrice(quote));
+        response.setExcludedScreenCount(
+                Math.max(0, publicQuote.eligibleMedias().size() - quote.eligibleMedias().size()));
         return response;
     }
 

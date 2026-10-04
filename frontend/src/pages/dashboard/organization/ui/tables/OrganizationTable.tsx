@@ -1,4 +1,4 @@
-import {Button, Card, Group, Stack, Text, Title} from "@mantine/core";
+import {Badge, Button, Card, Group, Stack, Text, Title} from "@mantine/core";
 import {useTranslations} from "next-intl";
 import {OrganizationResponseDTO} from "@/entities/organization";
 import {IconDiscountCheck, IconEdit} from "@tabler/icons-react";
@@ -7,9 +7,11 @@ import {useUser} from "@auth0/nextjs-auth0/client";
 interface OrganizationDetailProps {
     organization: OrganizationResponseDTO;
     onEdit?: (id: string | number) => void;
+    /** Resolved name of the admin-set business type, or null when there is none. */
+    businessTypeName?: string | null;
 }
 
-export function OrganizationDetail({organization, onEdit}: OrganizationDetailProps) {
+export function OrganizationDetail({organization, onEdit, businessTypeName}: OrganizationDetailProps) {
     const t = useTranslations("organization");
     const {user} = useUser();
 
@@ -71,6 +73,18 @@ export function OrganizationDetail({organization, onEdit}: OrganizationDetailPro
                             "-"
                         )}
                     </Text>
+                    {organization.roles?.advertiser && (
+                        <Text>
+                            <strong>{t("table.businessType")}: </strong>
+                            {businessTypeName ? (
+                                <Badge component="span" color="gray" variant="light" size="sm">
+                                    {businessTypeName}
+                                </Badge>
+                            ) : (
+                                "-"
+                            )}
+                        </Text>
+                    )}
                 </Stack>
             </Stack>
         </Card>

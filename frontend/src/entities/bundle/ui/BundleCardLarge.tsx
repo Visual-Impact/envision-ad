@@ -4,7 +4,8 @@ import { Badge, Box, Button, Group, Paper, SimpleGrid, Stack, Text, ThemeIcon, T
 import { IconBuildingStore, IconCheck, IconDeviceTv, IconMapPin, type TablerIcon } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { Bundle } from "../model/bundle";
+import { Bundle, BundlePriceQuote } from "../model/bundle";
+import { BuyerQuoteNote, isUnavailableForBuyer } from "./BuyerQuoteNote";
 import { formatCurrency } from "@/shared/lib/formatCurrency";
 import { Link } from "@/shared/lib/i18n";
 
@@ -21,6 +22,8 @@ export interface BundleCardLargeProps {
     onSubscribe?: (bundle: Bundle) => void;
     /** See BundleCard.tsx — swaps the CTA for a link to the subscriptions page (D46). */
     alreadySubscribed?: boolean;
+    /** See BundleCard.tsx — the advertiser's own quote when their business type removes screens. */
+    buyerQuote?: BundlePriceQuote | null;
 }
 
 const NETWORK_VENUE_TYPE_COUNT = 5;
@@ -33,7 +36,7 @@ const NETWORK_VENUE_TYPE_COUNT = 5;
  * and "most popular"/region tags are omitted (no discount until P2, one badge per
  * bundle in the model). See P1-PROGRESS decision log.
  */
-export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed }: BundleCardLargeProps) {
+export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed, buyerQuote }: BundleCardLargeProps) {
     const t = useTranslations("bundles");
     const locale = useLocale();
     const { user } = useUser();
@@ -45,7 +48,8 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
     // See BundleCard.tsx — onSubscribe is left undefined for a signed-in user with
     // no organization, which used to render the button enabled but inert.
     const noOrganization = !!user && !onSubscribe;
-    const disabled = !hasScreens || noOrganization;
+    const unavailableForBuyer = isUnavailableForBuyer(buyerQuote);
+    const disabled = !hasScreens || noOrganization || unavailableForBuyer;
 
     // Where the screens actually are, not generic feature bullets — mirrors the
     // prototype's venue-type list, ending with the posting-frequency line.
@@ -87,7 +91,9 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
           ? t("card.noScreens")
           : noOrganization
             ? t("card.noOrganization")
-            : null;
+            : unavailableForBuyer
+              ? t("card.notAvailableForBusinessType")
+              : null;
 
     const subscribeButton = alreadySubscribed ? (
         <Button fullWidth variant="light" size="md" component={Link} href="/dashboard/advertiser/subscriptions">
@@ -225,6 +231,8 @@ export function BundleCardLarge({ bundle, stats, onSubscribe, alreadySubscribed 
                                 {perScreenHook}
                             </Text>
                         )}
+
+                        <BuyerQuoteNote buyerQuote={buyerQuote} />
 
                         <Box w="100%" mt="xs">
                             {tooltipLabel ? (

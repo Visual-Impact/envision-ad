@@ -5,5 +5,6 @@ export { updateBundle } from './updateBundle';
 export { deleteBundle } from './deleteBundle';
 export { getCandidateMedias } from './getCandidateMedias';
 export { getBundleQuote } from './getBundleQuote';
+export { getBundleQuotes } from './getBundleQuotes';
 export { addExclusion } from './addExclusion';
 export { removeExclusion } from './removeExclusion';

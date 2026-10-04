@@ -8,3 +8,4 @@ export { default as MediaCard } from './ui/MediaCard';
 export type { MediaCardProps } from './ui/MediaCard';
 export { default as SkeletonMediaCard } from './ui/SkeletonMediaCard';
 export { default as calculateWeeklyImpressions } from './lib/calculateWeeklyImpressions';
+export { isExcludedForBusinessType } from './lib/isExcludedForBusinessType';
