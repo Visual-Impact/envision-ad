@@ -46,11 +46,17 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    # The EC2 host pulls with this run's GITHUB_TOKEN, the same way build-and-push
+    # pushes. A personal access token here expired silently once and left production
+    # on old images for weeks.
+    permissions:
+      contents: read
+      packages: read
     steps:
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v1.0.3
         env:
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
           IMAGE_OWNER: ${{ github.repository_owner }}
           IMAGE_TAG: ${{ github.sha }}
@@ -59,8 +65,13 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: '30m'
-          envs: GHCR_PAT,GHCR_USER,IMAGE_OWNER,IMAGE_TAG
+          envs: GHCR_TOKEN,GHCR_USER,IMAGE_OWNER,IMAGE_TAG
           script: |
+            # Any failed command fails the deploy. Without this, a rejected registry
+            # login skipped `up -d`, kept the old containers running, and still
+            # reported success.
+            set -eu
+
             # Navigate to home directory
             cd ~
 
@@ -76,11 +87,20 @@ jobs:
             # GHCR requires lowercase image paths
             export IMAGE_OWNER=$(echo "$IMAGE_OWNER" | tr '[:upper:]' '[:lower:]')
 
-            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             # --- Pull the images built and pushed by CI, then swap containers in ---
             doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
             doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
             bash -c 'docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d'
+
+            # Prove the swap happened: both app containers must run this commit's image.
+            for container in frontend backend; do
+              running=$(docker inspect --format '{{.Config.Image}}' "$container")
+              case "$running" in
+                *":$IMAGE_TAG") echo "$container is running $running" ;;
+                *) echo "ERROR: $container is running $running, expected tag $IMAGE_TAG"; exit 1 ;;
+              esac
+            done
 
             docker image prune -f
