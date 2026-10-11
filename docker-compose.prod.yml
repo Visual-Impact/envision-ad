@@ -21,6 +21,7 @@ services:
         NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_SQUARE_IMAGES: "${NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET_SQUARE_IMAGES}"
 #       STRIPE
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}"
+        NEXT_PUBLIC_CARTO_API_KEY: "${NEXT_PUBLIC_CARTO_API_KEY}"
       dockerfile: Dockerfile
     #   Here, I am listing the variables that Next.js will potentially need
     #   while it's running (runtime).

@@ -12,6 +12,10 @@ import { useDisclosure } from '@mantine/hooks';
 import { useTranslations } from 'next-intl';
 import { getJoinedAddress } from '@/entities/media';
 
+// CARTO stopped serving raster tiles without a key on 2026-09-25 (keyless requests get an "API KEY REQUIRED" placeholder).
+const CARTO_API_KEY = process.env.NEXT_PUBLIC_CARTO_API_KEY;
+const CARTO_TILE_URL = `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${CARTO_API_KEY ? `?key=${CARTO_API_KEY}` : ""}`;
+
 interface MapViewProps {
   center: LatLngLiteral;
   zoom: number;
@@ -146,7 +150,7 @@ export default function MapView({center, zoom, setMap, medias, isMobile, isMobil
           style={{height: "100%", width: "100%"}}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            url={CARTO_TILE_URL}
           />
           {medias?.map((media: MediaCardProps[]) => (
             <MediaMarker key={media[0].index} media={media} isMobileVertical={isMobileVertical ?? false} setMediaList={setMediaList} open={open} setAddressName={setAddressName}/>
