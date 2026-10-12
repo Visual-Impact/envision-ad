@@ -2074,6 +2074,7 @@
       "label": "Preuve d’affichage",
       "view": "Voir la preuve d’affichage",
       "notSet": "Le propriétaire des écrans n’a pas encore ajouté de lien de preuve d’affichage.",
+      "notSetEnded": "Aucun lien de preuve d’affichage n’a été ajouté pour cet abonnement.",
       "notApplicable": "La preuve d’affichage n’est pas encore disponible pour les forfaits couvrant les écrans de plusieurs propriétaires de médias."
     }
   },

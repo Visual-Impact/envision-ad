@@ -2073,6 +2073,7 @@
       "label": "Proof of display",
       "view": "View proof of display",
       "notSet": "Your media owner hasn't added a proof-of-display link yet.",
+      "notSetEnded": "No proof-of-display link was added for this subscription.",
       "notApplicable": "Proof of display isn't available yet for bundles covering screens from several media owners."
     }
   },

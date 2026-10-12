@@ -176,7 +176,8 @@ export default function BundleSubscriptionsPage() {
     /**
      * P12: the media owner's proof-of-display link, read-only (FR-2). Hidden on INCOMPLETE rows,
      * which never activated, so there is nothing to prove (P12-PROGRESS D7). Still shown on
-     * CANCELED rows so a lapsed advertiser keeps the last proof on file (FR-2.3).
+     * CANCELED rows so a lapsed advertiser keeps the last proof on file (FR-2.3); with no link,
+     * an ended row says so in the past tense rather than implying one is still coming.
      */
     const proofLinkLine = (subscription: BundleSubscription) => {
         if (subscription.status === "INCOMPLETE" || !subscription.proofLink) return null;
@@ -195,7 +196,11 @@ export default function BundleSubscriptionsPage() {
             <Text size="sm" c="dimmed">
                 {t("proofLink.label")}
                 {": "}
-                {status === "NOT_APPLICABLE" ? t("proofLink.notApplicable") : t("proofLink.notSet")}
+                {status === "NOT_APPLICABLE"
+                    ? t("proofLink.notApplicable")
+                    : subscription.status === "CANCELED"
+                      ? t("proofLink.notSetEnded")
+                      : t("proofLink.notSet")}
             </Text>
         );
     };
