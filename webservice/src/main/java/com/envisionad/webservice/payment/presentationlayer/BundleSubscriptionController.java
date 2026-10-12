@@ -5,7 +5,6 @@ import com.envisionad.webservice.payment.businesslogiclayer.SubscriptionCheckout
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionCheckoutResponseModel;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionRequestModel;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
-import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
 import com.stripe.exception.StripeException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,19 +61,6 @@ public class BundleSubscriptionController {
             @RequestParam String businessId) {
 
         return ResponseEntity.ok(bundleSubscriptionService.getSubscriptionsForBusiness(jwt, businessId));
-    }
-
-    /**
-     * Campaigns currently running on one screen, for the media owner's proof-of-display picker
-     * (decision D40). Replaces the old client-side derivation from that screen's reservations.
-     */
-    @GetMapping("/live-campaigns")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<LiveCampaignResponseModel>> getLiveCampaigns(
-            @AuthenticationPrincipal Jwt jwt,
-            @RequestParam String mediaId) {
-
-        return ResponseEntity.ok(bundleSubscriptionService.getLiveCampaignsForMedia(jwt, mediaId));
     }
 
     /**

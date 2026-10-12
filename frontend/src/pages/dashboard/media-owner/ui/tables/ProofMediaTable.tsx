@@ -1,39 +1,40 @@
 "use client";
 
-import type { MediaRowData } from "./MediaRow";
 import {
+    ActionIcon,
+    Badge,
+    Button,
+    Card,
+    Group,
+    Pagination,
     Paper,
     ScrollArea,
+    Stack,
     Table,
     Text,
-    Button,
-    Avatar,
-    Group,
-    Card,
-    Stack,
-    Pagination,
+    Tooltip,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { IconExternalLink } from "@tabler/icons-react";
+import { useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import type { MediaOwnerProofSubscription } from "../../api";
 
 type Props = {
-    rows: MediaRowData[];
-    onAddProof: (row: MediaRowData) => void;
-    activeAdsCounts?: Record<string, number>;
-    onVisibleRowsChange?: (ids: string[]) => void;
+    rows: MediaOwnerProofSubscription[];
+    onEditLink: (row: MediaOwnerProofSubscription) => void;
     pageSize?: number;
 };
 
-export default function ProofMediaTable({
-                                            rows,
-                                            onAddProof,
-                                            activeAdsCounts = {},
-                                            onVisibleRowsChange,
-                                            pageSize = 10,
-                                        }: Props) {
+/**
+ * One row per subscription covering the owner's screens (P12 FR-3.1), identified by advertiser +
+ * bundle (P12-PROGRESS D1). Multi-owner and ended subscriptions stay listed with the action
+ * disabled and a tooltip saying why, so a real campaign never silently vanishes (FR-3.2).
+ */
+export default function ProofMediaTable({ rows, onEditLink, pageSize = 10 }: Props) {
     const isMobile = useMediaQuery("(max-width: 768px)");
     const t = useTranslations("proofOfDisplay");
+    const locale = useLocale();
 
     // keep what the user clicked, but clamp what we actually use
     const [rawPage, setRawPage] = useState(1);
@@ -46,68 +47,162 @@ export default function ProofMediaTable({
         return rows.slice(start, start + pageSize);
     }, [rows, page, pageSize]);
 
-    // notify parent: only fetch counts for what is visible
-    useEffect(() => {
-        if (!onVisibleRowsChange) return;
-        onVisibleRowsChange(pagedRows.map((r) => String(r.id)));
-    }, [pagedRows, onVisibleRowsChange]);
+    const formatDate = (value: string) =>
+        new Date(value).toLocaleDateString(locale === "fr" ? "fr-CA" : "en-CA", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
 
-    const getDisplayedCount = (row: MediaRowData) => {
-        const id = String(row.id);
-        return activeAdsCounts[id] ?? 0;
+    const advertiserName = (row: MediaOwnerProofSubscription) =>
+        row.advertiserBusinessName ?? t("table.advertiserUnknown");
+
+    const bundleName = (row: MediaOwnerProofSubscription) =>
+        (locale === "fr" ? row.bundleNameFr : row.bundleNameEn) ?? t("table.bundleUnavailable");
+
+    const subscriptionCell = (row: MediaOwnerProofSubscription) => (
+        <Stack gap={2}>
+            <Group gap="xs" wrap="nowrap">
+                <Text fw={600} lineClamp={1}>
+                    {advertiserName(row)} · {bundleName(row)}
+                </Text>
+                {row.subscriptionStatus === "CANCELED" && (
+                    <Badge color="gray" variant="light" size="sm">
+                        {t("table.ended")}
+                    </Badge>
+                )}
+            </Group>
+            <Text size="sm" c="dimmed" lineClamp={1}>
+                {row.campaignName ? t("table.campaign", { name: row.campaignName }) : t("table.noCampaign")}
+            </Text>
+        </Stack>
+    );
+
+    const statusCell = (row: MediaOwnerProofSubscription) => {
+        if (row.proofLink.status === "NOT_APPLICABLE") {
+            return (
+                <Tooltip label={t("table.notAvailableTooltip")} multiline w={260} withArrow>
+                    <Badge color="gray" variant="outline">
+                        {t("table.notAvailable")}
+                    </Badge>
+                </Tooltip>
+            );
+        }
+        if (row.proofLink.status === "NOT_SET" || !row.proofLink.url) {
+            return (
+                <Badge color="orange" variant="light">
+                    {t("table.notSet")}
+                </Badge>
+            );
+        }
+        return (
+            <Stack gap={2}>
+                <Group gap={6} wrap="nowrap">
+                    <Badge color="green" variant="light">
+                        {t("table.set")}
+                    </Badge>
+                    <Tooltip label={t("table.openLink")} withArrow>
+                        <ActionIcon
+                            component="a"
+                            href={row.proofLink.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            variant="subtle"
+                            size="sm"
+                            aria-label={t("table.openLink")}
+                        >
+                            <IconExternalLink size={16} />
+                        </ActionIcon>
+                    </Tooltip>
+                </Group>
+                {row.linkUpdatedAt && (
+                    <Text size="xs" c="dimmed">
+                        {t("table.lastUpdated", { date: formatDate(row.linkUpdatedAt) })}
+                    </Text>
+                )}
+            </Stack>
+        );
     };
+
+    /**
+     * A disabled Mantine Button swallows the hover its Tooltip needs, so the blocked cases use
+     * `data-disabled` and ignore the click instead (Mantine's documented pattern).
+     */
+    const actionCell = (row: MediaOwnerProofSubscription) => {
+        const label = row.proofLink.status === "SET" ? t("table.editLink") : t("table.addLink");
+        const blockedReason =
+            row.proofLink.status === "NOT_APPLICABLE"
+                ? t("table.notAvailableTooltip")
+                : row.subscriptionStatus === "CANCELED"
+                  ? t("table.endedTooltip")
+                  : null;
+
+        if (blockedReason) {
+            return (
+                <Tooltip label={blockedReason} multiline w={260} withArrow>
+                    <Button size="xs" variant="light" data-disabled onClick={(event) => event.preventDefault()}>
+                        {row.proofLink.status === "NOT_APPLICABLE" ? t("table.notAvailable") : label}
+                    </Button>
+                </Tooltip>
+            );
+        }
+        return (
+            <Button size="xs" variant="light" onClick={() => onEditLink(row)}>
+                {label}
+            </Button>
+        );
+    };
+
+    const pagination = rows.length > pageSize && (
+        <Pagination
+            total={totalPages}
+            value={page}
+            onChange={setRawPage}
+            color="dark"
+            variant="filled"
+            getControlProps={(control) => {
+                if (control === "previous") return { "aria-label": t("pagination.previous") };
+                if (control === "next") return { "aria-label": t("pagination.next") };
+                if (control === "first") return { "aria-label": t("pagination.first") };
+                if (control === "last") return { "aria-label": t("pagination.last") };
+                return {};
+            }}
+            getItemProps={(item) => ({
+                "aria-label": t("pagination.page", { page: item }),
+                "aria-current": item === page ? "page" : undefined,
+            })}
+        />
+    );
+
+    if (rows.length === 0) {
+        return (
+            <Paper shadow="sm" radius="lg" p="xl">
+                <Text ta="center" c="dimmed">
+                    {t("page.empty")}
+                </Text>
+            </Paper>
+        );
+    }
 
     if (isMobile) {
         return (
             <Stack gap="md">
-                {pagedRows.length ? (
-                    pagedRows.map((row) => (
-                        <Card key={String(row.id)} shadow="sm" radius="lg">
-                            <Group justify="space-between" align="center" mb="sm">
-                                <Group gap="sm">
-                                    <Avatar src={row.image} alt={row.name} size="md" radius="md" />
-                                    <Text fw={500} lineClamp={1}>
-                                        {row.name}
-                                    </Text>
-                                </Group>
-
-                                <Button size="xs" variant="light" onClick={() => onAddProof(row)} disabled={getDisplayedCount(row) === 0}>
-                                    {t("table.addProof")}
-                                </Button>
+                {pagedRows.map((row) => (
+                    <Card key={row.subscriptionId} shadow="sm" radius="lg">
+                        <Stack gap="sm">
+                            {subscriptionCell(row)}
+                            <Text size="sm" c="dimmed">
+                                {row.screenNames.join(", ")}
+                            </Text>
+                            <Group justify="space-between" align="flex-start">
+                                {statusCell(row)}
+                                {actionCell(row)}
                             </Group>
+                        </Stack>
+                    </Card>
+                ))}
 
-                            <Group grow>
-                                <Stack gap={0} align="center">
-                                    <Text size="xs" c="dimmed">
-                                        {t("table.displayed")}
-                                    </Text>
-                                    <Text fw={700} c="blue.9">
-                                        {getDisplayedCount(row)}
-                                    </Text>
-                                </Stack>
-
-                                <Stack gap={0} align="center">
-                                    <Text size="xs" c="dimmed">
-                                        {t("table.pending")}
-                                    </Text>
-                                    <Text fw={700} c="dark.9">
-                                        {row.pending}
-                                    </Text>
-                                </Stack>
-                            </Group>
-                        </Card>
-                    ))
-                ) : (
-                    <Text ta="center" c="dimmed" py="xl">
-                        {t("table.noMedia")}
-                    </Text>
-                )}
-
-                {rows.length > pageSize && (
-                    <Group justify="center">
-                        <Pagination total={totalPages} value={page} onChange={setRawPage} />
-                    </Group>
-                )}
+                {pagination && <Group justify="center">{pagination}</Group>}
             </Stack>
         );
     }
@@ -118,14 +213,9 @@ export default function ProofMediaTable({
                 <Table striped highlightOnHover verticalSpacing="md" horizontalSpacing="lg" layout="fixed">
                     <Table.Thead>
                         <Table.Tr>
-                            <Table.Th w={80}>{t("table.image")}</Table.Th>
-                            <Table.Th>{t("table.name")}</Table.Th>
-                            <Table.Th w={140} ta="center">
-                                {t("table.adsDisplayed")}
-                            </Table.Th>
-                            <Table.Th w={120} ta="center">
-                                {t("table.pending")}
-                            </Table.Th>
+                            <Table.Th>{t("table.subscription")}</Table.Th>
+                            <Table.Th w={220}>{t("table.screens")}</Table.Th>
+                            <Table.Th w={190}>{t("table.status")}</Table.Th>
                             <Table.Th w={160} ta="right">
                                 {t("table.action")}
                             </Table.Th>
@@ -133,72 +223,27 @@ export default function ProofMediaTable({
                     </Table.Thead>
 
                     <Table.Tbody>
-                        {pagedRows.length ? (
-                            pagedRows.map((row) => (
-                                <Table.Tr key={String(row.id)}>
-                                    <Table.Td w={80}>
-                                        <Avatar src={row.image} alt={row.name} size="md" radius="md" />
-                                    </Table.Td>
-
-                                    <Table.Td>
-                                        <Text fw={500} lineClamp={1}>
-                                            {row.name}
-                                        </Text>
-                                    </Table.Td>
-
-                                    <Table.Td w={140} ta="center">
-                                        <Text fw={700} c="blue">
-                                            {getDisplayedCount(row)}
-                                        </Text>
-                                    </Table.Td>
-
-                                    <Table.Td w={120} ta="center">
-                                        <Text fw={700} c="dark.9">
-                                            {row.pending}
-                                        </Text>
-                                    </Table.Td>
-
-                                    <Table.Td w={160} ta="right">
-                                        <Button size="xs" variant="light" onClick={() => onAddProof(row)} disabled={getDisplayedCount(row) === 0}>
-
-                                            {t("table.addProof")}
-                                        </Button>
-                                    </Table.Td>
-                                </Table.Tr>
-                            ))
-                        ) : (
-                            <Table.Tr>
-                                <Table.Td colSpan={5}>
-                                    <Text ta="center" c="dimmed" py="xl">
-                                        {t("table.noMedia")}
+                        {pagedRows.map((row) => (
+                            <Table.Tr key={row.subscriptionId}>
+                                <Table.Td>{subscriptionCell(row)}</Table.Td>
+                                <Table.Td w={220}>
+                                    <Text size="sm" lineClamp={2}>
+                                        {row.screenNames.join(", ")}
                                     </Text>
                                 </Table.Td>
+                                <Table.Td w={190}>{statusCell(row)}</Table.Td>
+                                <Table.Td w={160} ta="right">
+                                    {actionCell(row)}
+                                </Table.Td>
                             </Table.Tr>
-                        )}
+                        ))}
                     </Table.Tbody>
                 </Table>
             </ScrollArea>
 
-            {rows.length > pageSize && (
+            {pagination && (
                 <Group justify="flex-end" p="sm">
-                    <Pagination
-                        total={totalPages}
-                        value={page}
-                        onChange={setRawPage}
-                        color="dark"
-                        variant="filled"
-                        getControlProps={(control) => {
-                            if (control === "previous") return { "aria-label": t("pagination.previous") };
-                            if (control === "next") return { "aria-label": t("pagination.next") };
-                            if (control === "first") return { "aria-label": t("pagination.first") };
-                            if (control === "last") return { "aria-label": t("pagination.last") };
-                            return {};
-                        }}
-                        getItemProps={(item) => ({
-                            "aria-label": t("pagination.page", { page: item }),
-                            "aria-current": item === page ? "page" : undefined,
-                        })}
-                    />
+                    {pagination}
                 </Group>
             )}
         </Paper>

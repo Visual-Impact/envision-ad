@@ -1,117 +1,96 @@
 "use client";
 
-import { Stack, Title } from "@mantine/core";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useMediaList } from "@/pages/dashboard/media-owner/model/useMediaList";
+import { Alert, Loader, Stack, Text, Title } from "@mantine/core";
+import { IconAlertTriangle } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useOrganization } from "@/entities/organization";
+import { getMediaOwnerProofSubscriptions, type MediaOwnerProofSubscription } from "../api";
 import ProofMediaTable from "./tables/ProofMediaTable";
 import SubmitProofStepperModal from "./modals/SubmitProofStepperModal";
-import { getLiveCampaignsForMedia } from "@/features/bundle-subscription";
-import { useTranslations } from "next-intl";
 
-type CountsMap = Record<string, number>;
-
-function chunk<T>(arr: T[], size: number): T[][] {
-    const res: T[][] = [];
-    for (let i = 0; i < arr.length; i += size) res.push(arr.slice(i, i + size));
-    return res;
-}
-
+/**
+ * The media owner's Proof of Display page (P12): every subscription covering their screens, each
+ * with one link to a page they maintain. Replaces the per-screen photo upload, which emailed the
+ * advertiser once and kept nothing.
+ */
 export default function ProofOfDisplayScreen() {
-    const { media } = useMediaList();
-
-    const [opened, setOpened] = useState(false);
-    const [selectedMedia, setSelectedMedia] = useState<{ id: string; name: string } | null>(null);
-
-    const [activeAdsCounts, setActiveAdsCounts] = useState<CountsMap>({});
-
-    // cache counts across renders so it doesnt refetch for the same mediaId
-    const countsCacheRef = useRef<CountsMap>({});
-
-    const mediaIds = useMemo(
-        () => (media ?? []).map((m) => String(m.id)).filter(Boolean),
-        [media]
-    );
-
     const t = useTranslations("proofOfDisplay");
+    const { organization } = useOrganization();
+    const businessId = organization?.businessId;
+
+    const [rows, setRows] = useState<MediaOwnerProofSubscription[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadFailed, setLoadFailed] = useState(false);
+    const [editing, setEditing] = useState<MediaOwnerProofSubscription | null>(null);
 
     useEffect(() => {
-        if (mediaIds.length === 0) return;
+        if (!businessId) return;
 
         let cancelled = false;
 
-        const loadCounts = async () => {
-            // only fetch ids that have not been already cached
-            const missingIds = mediaIds.filter((id) => countsCacheRef.current[id] === undefined);
-            if (missingIds.length === 0) {
-                setActiveAdsCounts({ ...countsCacheRef.current });
-                return;
-            }
-
-            const CONCURRENCY = 5;
-            const batches = chunk(missingIds, CONCURRENCY);
-
-            for (const batch of batches) {
-                const results = await Promise.all(
-                    batch.map(async (id) => {
-                        try {
-                            // The endpoint returns only campaigns on a live subscription
-                            // covering this screen, already distinct — the status filtering and
-                            // de-duplication this used to do client-side now happen server-side.
-                            const liveCampaigns = await getLiveCampaignsForMedia(id);
-
-                            return [id, liveCampaigns.length] as const;
-                        } catch {
-                            return [id, 0] as const;
-                        }
-                    })
-                );
-
+        void (async () => {
+            setLoading(true);
+            setLoadFailed(false);
+            try {
+                const data = await getMediaOwnerProofSubscriptions(businessId);
                 if (cancelled) return;
-
-                // update cache and state incrementally
-                const nextCache = { ...countsCacheRef.current };
-                for (const [id, count] of results) nextCache[id] = count;
-
-                countsCacheRef.current = nextCache;
-
-                // only keep counts for ids that still exist in the current media list
-                const filteredForCurrentMedia: CountsMap = {};
-                for (const id of mediaIds) {
-                    if (nextCache[id] !== undefined) filteredForCurrentMedia[id] = nextCache[id];
-                }
-
-                setActiveAdsCounts(filteredForCurrentMedia);
+                setRows(data);
+            } catch (error) {
+                if (cancelled) return;
+                console.error("Failed to load proof-of-display subscriptions", error);
+                setLoadFailed(true);
+                setRows([]);
+            } finally {
+                if (!cancelled) setLoading(false);
             }
-        };
-
-        void loadCounts();
+        })();
 
         return () => {
             cancelled = true;
         };
-    }, [mediaIds]);
+    }, [businessId]);
 
     return (
         <Stack gap="xs" p="md" style={{ flex: 1, minWidth: 0 }}>
             <Title order={1} mb={0}>
                 {t("page.title")}
             </Title>
+            <Text size="sm" c="dimmed" mb="sm" maw={760}>
+                {t("page.subtitle")}
+            </Text>
 
-            <ProofMediaTable
-                rows={media}
-                activeAdsCounts={activeAdsCounts}
-                onAddProof={(row) => {
-                    setSelectedMedia({ id: String(row.id), name: row.name });
-                    setOpened(true);
-                }}
-            />
+            {loading ? (
+                <Stack align="center" p="xl">
+                    <Loader />
+                </Stack>
+            ) : loadFailed ? (
+                <Alert color="red" icon={<IconAlertTriangle size="1rem" />}>
+                    {t("page.loadError")}
+                </Alert>
+            ) : (
+                <ProofMediaTable rows={rows} onEditLink={setEditing} />
+            )}
 
-            {selectedMedia && (
+            {editing && (
                 <SubmitProofStepperModal
-                    opened={opened}
-                    onClose={() => setOpened(false)}
-                    mediaId={selectedMedia.id}
-                    mediaName={selectedMedia.name}
+                    key={editing.subscriptionId}
+                    subscription={editing}
+                    onClose={() => setEditing(null)}
+                    onSaved={(saved) => {
+                        setRows((current) =>
+                            current.map((row) =>
+                                row.subscriptionId === saved.subscriptionId
+                                    ? {
+                                          ...row,
+                                          proofLink: { status: "SET", url: saved.url },
+                                          linkUpdatedAt: saved.updatedAt,
+                                      }
+                                    : row,
+                            ),
+                        );
+                        setEditing(null);
+                    }}
                 />
             )}
         </Stack>

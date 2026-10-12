@@ -1,7 +1,6 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
-import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
 import com.stripe.exception.StripeException;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -53,12 +52,6 @@ public interface BundleSubscriptionService {
      * history. Access is validated as employee-of-business, matching the rest of this service.
      */
     List<BundleSubscriptionResponseModel> getSubscriptionsForBusiness(Jwt jwt, String businessId);
-
-    /**
-     * The campaigns currently running on one screen, for the media owner's proof-of-display
-     * picker (decision D40). Caller must be an employee of the business that owns the media.
-     */
-    List<LiveCampaignResponseModel> getLiveCampaignsForMedia(Jwt jwt, String mediaId);
 
     /**
      * Emails every affected media owner the advertiser's creatives, once, at the moment a

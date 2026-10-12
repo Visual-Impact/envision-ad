@@ -2,6 +2,7 @@
 
 import {
     Alert,
+    Anchor,
     Badge,
     Button,
     Card,
@@ -13,7 +14,7 @@ import {
     Title,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconAlertTriangle, IconInfoCircle } from "@tabler/icons-react";
+import { IconAlertTriangle, IconExternalLink, IconInfoCircle } from "@tabler/icons-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import type { BundleSubscription, BundleSubscriptionStatus } from "@/entities/bundle-subscription";
@@ -172,6 +173,33 @@ export default function BundleSubscriptionsPage() {
         return t("page.couponTerms", { code: subscription.couponCode, discount, duration });
     };
 
+    /**
+     * P12: the media owner's proof-of-display link, read-only (FR-2). Hidden on INCOMPLETE rows,
+     * which never activated, so there is nothing to prove (P12-PROGRESS D7). Still shown on
+     * CANCELED rows so a lapsed advertiser keeps the last proof on file (FR-2.3).
+     */
+    const proofLinkLine = (subscription: BundleSubscription) => {
+        if (subscription.status === "INCOMPLETE" || !subscription.proofLink) return null;
+        const { status, url } = subscription.proofLink;
+        if (status === "SET" && url) {
+            return (
+                <Anchor href={url} target="_blank" rel="noopener noreferrer" size="sm" fw={500}>
+                    <Group gap={4} wrap="nowrap" component="span">
+                        <IconExternalLink size={14} />
+                        {t("proofLink.view")}
+                    </Group>
+                </Anchor>
+            );
+        }
+        return (
+            <Text size="sm" c="dimmed">
+                {t("proofLink.label")}
+                {": "}
+                {status === "NOT_APPLICABLE" ? t("proofLink.notApplicable") : t("proofLink.notSet")}
+            </Text>
+        );
+    };
+
     if (loading) {
         return (
             <Stack align="center" p="xl">
@@ -244,6 +272,7 @@ export default function BundleSubscriptionsPage() {
                                             : t("page.campaignUnknown")}
                                     </Text>
                                     <Text size="sm" c="dimmed">{renewalLine(subscription)}</Text>
+                                    {proofLinkLine(subscription)}
                                 </Stack>
 
                                 <Stack gap="xs" align="flex-end">

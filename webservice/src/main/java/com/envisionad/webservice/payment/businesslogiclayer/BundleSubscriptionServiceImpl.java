@@ -19,7 +19,6 @@ import com.envisionad.webservice.business.dataaccesslayer.BusinessRepository;
 import com.envisionad.webservice.business.exceptions.BusinessNotVerifiedException;
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
-import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
@@ -28,8 +27,9 @@ import com.envisionad.webservice.payment.exceptions.DuplicateBundleSubscriptionE
 import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.payment.mappinglayer.BundleSubscriptionResponseMapper;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionResponseModel;
-import com.envisionad.webservice.payment.presentationlayer.models.LiveCampaignResponseModel;
 import com.envisionad.webservice.utils.JwtUtils;
+import com.envisionad.webservice.proofofdisplay.businesslogiclayer.ProofOfDisplayLinkService;
+import com.envisionad.webservice.proofofdisplay.presentationlayer.models.ProofLinkResponseModel;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.model.Subscription;
@@ -89,6 +89,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     private final MediaOwnerNotifier mediaOwnerNotifier;
     private final ActiveCampaignService activeCampaignService;
     private final CouponRepository couponRepository;
+    private final ProofOfDisplayLinkService proofOfDisplayLinkService;
 
     public BundleSubscriptionServiceImpl(BundleService bundleService,
             BundlePricingService pricingService,
@@ -103,7 +104,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             JwtUtils jwtUtils,
             MediaOwnerNotifier mediaOwnerNotifier,
             ActiveCampaignService activeCampaignService,
-            CouponRepository couponRepository) {
+            CouponRepository couponRepository,
+            ProofOfDisplayLinkService proofOfDisplayLinkService) {
         this.bundleService = bundleService;
         this.pricingService = pricingService;
         this.adCampaignRepository = adCampaignRepository;
@@ -118,6 +120,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         this.mediaOwnerNotifier = mediaOwnerNotifier;
         this.activeCampaignService = activeCampaignService;
         this.couponRepository = couponRepository;
+        this.proofOfDisplayLinkService = proofOfDisplayLinkService;
     }
 
     /**
@@ -510,6 +513,10 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                 : adCampaignRepository.findByCampaignId_CampaignId(activeCampaignId);
         String activeCampaignName = activeCampaign == null ? null : activeCampaign.getName();
 
+        // P12: each row's proof-of-display link, loaded for the whole list in one go.
+        Map<String, ProofLinkResponseModel> proofLinks = proofOfDisplayLinkService.getProofLinks(
+                subscriptions.stream().map(BundleSubscription::getSubscriptionId).toList());
+
         return subscriptions.stream()
                 .sorted(Comparator.comparing(BundleSubscription::getCreatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
@@ -518,34 +525,10 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                     Coupon coupon = subscription.getCouponId() == null
                             ? null
                             : couponRepository.findById(subscription.getCouponId()).orElse(null);
-                    return responseMapper.entityToResponseModel(
+                    BundleSubscriptionResponseModel response = responseMapper.entityToResponseModel(
                             subscription, bundle, activeCampaignId, activeCampaignName, coupon);
-                })
-                .toList();
-    }
-
-    @Override
-    public List<LiveCampaignResponseModel> getLiveCampaignsForMedia(Jwt jwt, String mediaId) {
-        String userId = jwtUtils.extractUserId(jwt);
-
-        UUID mediaUuid = UUID.fromString(mediaId);
-        Media media = mediaRepository.findById(mediaUuid)
-                .orElseThrow(() -> new MediaNotFoundException(mediaId));
-
-        if (media.getBusinessId() == null) {
-            throw new IllegalStateException("Media has no associated business");
-        }
-        // Only the screen's owner may see which advertisers are running on it.
-        jwtUtils.validateUserIsEmployeeOfBusiness(userId, media.getBusinessId().toString());
-
-        List<String> campaignIds = bundleSubscriptionItemRepository.findLiveCampaignIdsByMediaId(
-                mediaUuid, BundleSubscriptionStatus.LIVE);
-
-        return campaignIds.stream()
-                .map(campaignId -> {
-                    AdCampaign campaign = adCampaignRepository.findByCampaignId_CampaignId(campaignId);
-                    return new LiveCampaignResponseModel(
-                            campaignId, campaign == null ? campaignId : campaign.getName());
+                    response.setProofLink(proofLinks.get(subscription.getSubscriptionId()));
+                    return response;
                 })
                 .toList();
     }

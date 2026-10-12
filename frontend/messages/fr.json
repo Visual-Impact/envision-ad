@@ -653,58 +653,48 @@
     }
   },
   "proofOfDisplay": {
-    "modal": {
-      "title": "Ajouter une preuve pour {mediaName}"
-    },
-    "stepper": {
-      "campaign": {
-        "label": "Campagne",
-        "description": "Sélectionner une campagne"
-      },
-      "upload": {
-        "label": "Téléversement",
-        "description": "Téléverser des images de preuve"
-      }
-    },
-    "campaignSelect": {
-      "label": "Campagne",
-      "placeholder": "Sélectionner une campagne"
-    },
-    "upload": {
-      "helperText": "Téléversez une ou plusieurs photos montrant l’affichage de la publicité.",
-      "uploadedCount": "Téléversé(s) ({count})"
-    },
-    "buttons": {
-      "next": "Suivant",
-      "back": "Retour",
-      "uploadProofImages": "Téléverser des images de preuve",
-      "clear": "Effacer",
-      "submitProof": "Soumettre la preuve",
-      "close": "Fermer",
-      "retry": "Réessayer"
-    },
-    "completed": {
-      "title": "Preuve soumise",
-      "description": "L’annonceur a été informé par e-mail pour cette campagne.",
-      "uploadedFiles": "Téléversé(s) : {count} fichier(s)"
-    },
     "page": {
-      "title": "Preuve d’affichage"
+      "title": "Preuve d’affichage",
+      "subtitle": "Associez chaque abonnement à un lien vers une page que vous tenez à jour, par exemple un design Canva, montrant la publicité de l’annonceur sur vos écrans. Mettez la page à jour quand vous le souhaitez : revenez ici seulement si le lien lui-même change.",
+      "loadError": "Impossible de charger vos abonnements.",
+      "empty": "Aucun de vos écrans ne fait encore partie d’un abonnement."
     },
     "table": {
-      "image": "Image",
-      "name": "Nom",
-      "adsDisplayed": "Publicités affichées",
-      "pending": "En attente",
-      "displayed": "Affichée",
+      "subscription": "Abonnement",
+      "screens": "Vos écrans",
+      "status": "Lien de preuve",
       "action": "Action",
-      "addProof": "Ajouter une preuve",
-      "noMedia": "Aucun média trouvé"
+      "campaign": "Campagne : {name}",
+      "noCampaign": "Aucune campagne sélectionnée",
+      "advertiserUnknown": "Annonceur inconnu",
+      "bundleUnavailable": "Le forfait n’est plus disponible",
+      "ended": "Terminé",
+      "set": "Ajouté",
+      "notSet": "Non ajouté",
+      "lastUpdated": "Mis à jour le {date}",
+      "openLink": "Ouvrir le lien de preuve",
+      "notAvailable": "Non disponible",
+      "notAvailableTooltip": "Cet abonnement couvre les écrans de plusieurs propriétaires de médias : il ne peut pas encore avoir de lien de preuve.",
+      "endedTooltip": "Cet abonnement est terminé : son lien de preuve ne peut plus être modifié.",
+      "addLink": "Ajouter le lien",
+      "editLink": "Modifier le lien"
+    },
+    "modal": {
+      "title": "Lien de preuve : {advertiser}, {bundle}"
+    },
+    "link": {
+      "urlLabel": "Lien vers votre page de preuve",
+      "urlDescription": "Collez le lien de partage en lecture seule d’une page que vous tenez à jour, par exemple un design Canva. Il doit commencer par https:// ou http://.",
+      "urlPlaceholder": "https://www.canva.com/design/…/view",
+      "save": "Enregistrer le lien",
+      "cancel": "Annuler",
+      "saved": "Lien de preuve enregistré."
     },
     "errors": {
-      "notInActiveSubscription": "Ce média ne fait pas partie d’un abonnement actif pour la campagne sélectionnée.",
-      "submitFailed": "Échec de l’envoi de la preuve. Veuillez réessayer.",
-      "loadCampaignsFailed": "Échec du chargement des campagnes pour ce média. Veuillez réessayer."
+      "invalidUrl": "Entrez un lien complet commençant par https:// ou http://.",
+      "multiOwner": "Cet abonnement couvre les écrans de plusieurs propriétaires de médias : il ne peut pas encore avoir de lien de preuve.",
+      "notEditable": "Cet abonnement est terminé : son lien de preuve ne peut plus être modifié.",
+      "saveFailed": "Impossible d’enregistrer le lien de preuve. Veuillez réessayer."
     },
     "pagination": {
       "previous": "Page précédente",
@@ -2079,6 +2069,12 @@
     "statusHint": {
       "PAST_DUE": "Nous n'avons pas pu prélever le dernier paiement. Mettez votre carte à jour dans Stripe pour conserver ce forfait.",
       "INCOMPLETE": "Vous avez commencé ce paiement sans le finaliser. Il empêche un nouvel abonnement au même forfait tant qu'il n'est pas annulé."
+    },
+    "proofLink": {
+      "label": "Preuve d’affichage",
+      "view": "Voir la preuve d’affichage",
+      "notSet": "Le propriétaire des écrans n’a pas encore ajouté de lien de preuve d’affichage.",
+      "notApplicable": "La preuve d’affichage n’est pas encore disponible pour les forfaits couvrant les écrans de plusieurs propriétaires de médias."
     }
   },
   "editAdVenueTags": {

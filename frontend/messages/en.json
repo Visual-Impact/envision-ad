@@ -652,58 +652,48 @@
     }
   },
   "proofOfDisplay": {
-    "modal": {
-      "title": "Add proof for {mediaName}"
-    },
-    "stepper": {
-      "campaign": {
-        "label": "Campaign",
-        "description": "Select campaign"
-      },
-      "upload": {
-        "label": "Upload",
-        "description": "Upload proof images"
-      }
-    },
-    "campaignSelect": {
-      "label": "Campaign",
-      "placeholder": "Select campaign"
-    },
-    "upload": {
-      "helperText": "Upload one or more photos showing the ad display.",
-      "uploadedCount": "Uploaded ({count})"
-    },
-    "buttons": {
-      "next": "Next",
-      "back": "Back",
-      "uploadProofImages": "Upload proof images",
-      "clear": "Clear",
-      "submitProof": "Submit proof",
-      "close": "Close",
-      "retry": "Retry"
-    },
-    "completed": {
-      "title": "Proof submitted",
-      "description": "The advertiser was notified by email for this campaign.",
-      "uploadedFiles": "Uploaded: {count} file(s)"
-    },
     "page": {
-      "title": "Proof of Display"
+      "title": "Proof of Display",
+      "subtitle": "Give each subscription one link to a page you keep up to date, such as a Canva design, showing the advertiser's ad on your screens. Update the page whenever you like; you only need to come back here if the link itself changes.",
+      "loadError": "Could not load your subscriptions.",
+      "empty": "None of your screens are part of a subscription yet."
     },
     "table": {
-      "image": "Image",
-      "name": "Name",
-      "adsDisplayed": "Ads displayed",
-      "pending": "Pending",
-      "displayed": "Displayed",
+      "subscription": "Subscription",
+      "screens": "Your screens",
+      "status": "Proof link",
       "action": "Action",
-      "addProof": "Add proof",
-      "noMedia": "No media found"
+      "campaign": "Campaign: {name}",
+      "noCampaign": "No campaign selected",
+      "advertiserUnknown": "Unknown advertiser",
+      "bundleUnavailable": "Bundle no longer available",
+      "ended": "Ended",
+      "set": "Set",
+      "notSet": "Not set",
+      "lastUpdated": "Updated {date}",
+      "openLink": "Open proof link",
+      "notAvailable": "Not available",
+      "notAvailableTooltip": "This subscription covers screens from several media owners, so it can't have a proof link yet.",
+      "endedTooltip": "This subscription has ended, so its proof link can no longer be changed.",
+      "addLink": "Add link",
+      "editLink": "Edit link"
+    },
+    "modal": {
+      "title": "Proof link: {advertiser}, {bundle}"
+    },
+    "link": {
+      "urlLabel": "Link to your proof page",
+      "urlDescription": "Paste the view-only share link of a page you maintain, for example a Canva design. It must start with https:// or http://.",
+      "urlPlaceholder": "https://www.canva.com/design/…/view",
+      "save": "Save link",
+      "cancel": "Cancel",
+      "saved": "Proof link saved."
     },
     "errors": {
-      "notInActiveSubscription": "This media isn't part of an active subscription for the selected campaign.",
-      "submitFailed": "Failed to submit proof. Please try again.",
-      "loadCampaignsFailed": "Failed to load campaigns for this media. Please try again."
+      "invalidUrl": "Enter a full link starting with https:// or http://.",
+      "multiOwner": "This subscription covers screens from several media owners, so it can't have a proof link yet.",
+      "notEditable": "This subscription has ended, so its proof link can no longer be changed.",
+      "saveFailed": "Could not save the proof link. Please try again."
     },
     "pagination": {
       "previous": "Previous page",
@@ -2078,6 +2068,12 @@
     "statusHint": {
       "PAST_DUE": "We could not take the last payment. Update your card in Stripe to keep this bundle running.",
       "INCOMPLETE": "You started this checkout but never completed payment. It blocks a new subscription to the same bundle until you cancel it."
+    },
+    "proofLink": {
+      "label": "Proof of display",
+      "view": "View proof of display",
+      "notSet": "Your media owner hasn't added a proof-of-display link yet.",
+      "notApplicable": "Proof of display isn't available yet for bundles covering screens from several media owners."
     }
   },
   "editAdVenueTags": {

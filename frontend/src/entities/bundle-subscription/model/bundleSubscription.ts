@@ -1,6 +1,18 @@
 export type BundleSubscriptionStatus = "INCOMPLETE" | "ACTIVE" | "PAST_DUE" | "CANCELED";
 
 /**
+ * Where a subscription stands on its proof-of-display link (P12). `NOT_APPLICABLE` means it
+ * spans several media owners, which v1 doesn't support: show that, don't hide it.
+ */
+export type ProofLinkStatus = "SET" | "NOT_SET" | "NOT_APPLICABLE";
+
+/** A subscription's proof-of-display link. `url` is null unless `status` is `SET`. */
+export interface ProofLink {
+    status: ProofLinkStatus;
+    url: string | null;
+}
+
+/**
  * Body of POST /bundle-subscriptions. Carries no price: the amount is recomputed
  * server-side from the pricing pipeline and a client-supplied figure is never trusted.
  */
@@ -75,10 +87,8 @@ export interface BundleSubscription {
     couponAmountOffCents: number | null;
     couponDuration: "ONCE" | "REPEATING" | "FOREVER" | null;
     couponDurationInMonths: number | null;
+
+    /** The media owner's proof-of-display link for this subscription (P12). Read-only here. */
+    proofLink: ProofLink;
 }
 
-/** A campaign running on a given screen, for the proof-of-display picker. */
-export interface LiveCampaign {
-    campaignId: string;
-    campaignName: string;
-}
