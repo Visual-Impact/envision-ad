@@ -27,6 +27,7 @@ import com.envisionad.webservice.config.exceptions.Auth0ServiceUnavailableExcept
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -58,6 +60,9 @@ class AdminAccountServiceImplUnitTest {
 
     @InjectMocks
     private AdminAccountServiceImpl adminAccountService;
+
+    @Spy
+    private EmailTexts emailTexts = new EmailTexts();
 
     @Mock
     private BusinessRepository businessRepository;
@@ -160,7 +165,12 @@ class AdminAccountServiceImplUnitTest {
         assertTrue(rolesCaptor.getValue().contains(Auth0Roles.ADVERTISER));
         assertFalse(rolesCaptor.getValue().contains(Auth0Roles.MEDIA_OWNER));
 
-        verify(emailService).sendSimpleEmail(eq(EMAIL), anyString(), anyString());
+        // The account is brand new, so it has no language yet: the email goes out in French.
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq(EMAIL), eq("Votre compte Envision Ad est prêt"), body.capture());
+        assertTrue(body.getValue().startsWith("Bonjour " + NAME + ",\n\nUn compte Envision Ad a été créé pour "),
+                body.getValue());
+        assertTrue(body.getValue().contains(TICKET_URL), body.getValue());
         verify(auth0Service, never()).deleteUser(anyString());
     }
 
@@ -265,11 +275,16 @@ class AdminAccountServiceImplUnitTest {
         business.setOwnerId(USER_ID);
         when(businessRepository.findByBusinessId_BusinessId(BUSINESS_ID)).thenReturn(business);
         when(auth0Service.createPasswordChangeTicket(eq(USER_ID), anyString())).thenReturn(TICKET_URL);
-        when(auth0Service.getUserEmailByUserId(USER_ID)).thenReturn(EMAIL);
+        when(auth0Service.getUserContactByUserId(USER_ID)).thenReturn(new Auth0Service.UserContact(EMAIL, "en"));
 
         adminAccountService.resendCredentials(BUSINESS_ID);
 
-        verify(emailService).sendSimpleEmail(eq(EMAIL), anyString(), anyString());
+        // The owner picked English in the app, so the resend is in English.
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq(EMAIL), eq("Your Envision Ad account is ready"), body.capture());
+        assertTrue(body.getValue().contains(
+                "Here's a fresh link to set your password for Acme Signage on Envision Ad:\n" + TICKET_URL),
+                body.getValue());
     }
 
     @Test
@@ -394,6 +409,7 @@ class AdminAccountServiceImplUnitTest {
         assertEquals(1, result.getContent().size());
         assertEquals(EMAIL, result.getContent().get(0).getOwnerEmail());
         verify(auth0Service, never()).getUserEmailByUserId(anyString());
+        verify(auth0Service, never()).getUserContactByUserId(anyString());
     }
 
     @Test

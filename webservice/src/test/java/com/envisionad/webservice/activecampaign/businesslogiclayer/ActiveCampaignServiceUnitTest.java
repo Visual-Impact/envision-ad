@@ -19,6 +19,8 @@ import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
+import com.envisionad.webservice.utils.EmailContent;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
@@ -34,6 +36,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,7 +79,7 @@ class ActiveCampaignServiceUnitTest {
         service = new ActiveCampaignServiceImpl(businessRepository, adCampaignRepository,
                 campaignSwapEventRepository, bundleSubscriptionRepository, bundleSubscriptionItemRepository,
                 mediaRepository, venueRepository, adCampaignResponseMapper, adResponseMapper,
-                new CreativeDistributor(), mediaOwnerNotifier, jwtUtils, DEBOUNCE);
+                new CreativeDistributor(), mediaOwnerNotifier, new EmailTexts(), jwtUtils, DEBOUNCE);
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
     }
 
@@ -421,15 +424,17 @@ class ActiveCampaignServiceUnitTest {
                 BUSINESS_ID, BundleSubscriptionStatus.LIVE))
                 .thenReturn(List.of(gymScreen.getId(), barberScreen.getId()));
         when(mediaRepository.findAllByIdWithLocation(anyList())).thenReturn(List.of(gymScreen, barberScreen));
-        when(venueRepository.findAll()).thenReturn(List.of(venue("venue-gym", "Gym"), venue("venue-barber", "Barbershop")));
+        when(venueRepository.findAll()).thenReturn(List.of(
+                venue("venue-gym", "Gym", "Gymnase"), venue("venue-barber", "Barbershop", "Salon de barbier")));
         when(mediaOwnerNotifier.send(anyList())).thenReturn(new MediaOwnerNotifier.Outcome(1, 0));
 
         service.swapActiveCampaign(jwt, BUSINESS_ID, CAMPAIGN_B);
 
         MediaOwnerNotifier.OwnerMessage message = singleSentMessage();
         assertEquals(owner.toString(), message.ownerBusinessId());
-        assertEquals("New creatives for your Envision Ad screens — Acme Co", message.subject());
-        String body = message.body();
+        EmailContent english = message.content().apply(Locale.ENGLISH);
+        assertEquals("New creatives for your Envision Ad screens — Acme Co", english.subject());
+        String body = english.body();
         assertTrue(body.contains("Acme Co has updated the campaign displayed on your screens to \"Autumn Launch\"."),
                 "swap framing: " + body);
         assertFalse(body.contains("already running"), "a swap must not read as an update to the current campaign");
@@ -444,6 +449,17 @@ class ActiveCampaignServiceUnitTest {
         assertTrue(barberHeaderAt < barberAdAt, "barbershop section holds the barber creative: " + body);
         assertEquals(1, body.split("Brand Spot", -1).length - 1, "the universal creative is listed exactly once");
         assertTrue(body.contains("Screens affected: Gym Lobby, Barber Waiting Room"), body);
+
+        // Same email in French: French texts and French venue names, same sections and screens.
+        EmailContent french = message.content().apply(Locale.FRENCH);
+        assertEquals("Nouveaux créatifs pour vos écrans Envision Ad — Acme Co", french.subject());
+        String frenchBody = french.body();
+        assertTrue(frenchBody.contains("Acme Co a changé la campagne diffusée sur vos écrans pour « Autumn Launch »."),
+                frenchBody);
+        assertTrue(frenchBody.indexOf("Pour vos écrans de type Gymnase :")
+                < frenchBody.indexOf("Pour vos écrans de type Salon de barbier :"), frenchBody);
+        assertFalse(frenchBody.contains("For your "), frenchBody);
+        assertTrue(frenchBody.contains("Écrans concernés : Gym Lobby, Barber Waiting Room"), frenchBody);
     }
 
     /**
@@ -461,7 +477,7 @@ class ActiveCampaignServiceUnitTest {
 
         service.notifyMediaOwners(jwt, BUSINESS_ID);
 
-        String body = singleSentMessage().body();
+        String body = singleSentMessage().content().apply(Locale.ENGLISH).body();
         assertTrue(body.contains("Acme Co has changed the creatives for \"Campaign camp-a\", "
                 + "the campaign already running on your screens."), body);
         assertTrue(body.contains("Please replace the previous set with the following:"), body);
@@ -483,14 +499,15 @@ class ActiveCampaignServiceUnitTest {
         ad.setName(name);
         ad.setAdUrl("https://cdn.example.com/" + name.replace(' ', '-') + ".jpg");
         ad.setAdType(AdType.IMAGE);
-        ad.setVenues(java.util.Arrays.stream(venueIds).map(id -> venue(id, id)).toList());
+        ad.setVenues(java.util.Arrays.stream(venueIds).map(id -> venue(id, id, id)).toList());
         return ad;
     }
 
-    private com.envisionad.webservice.venue.dataaccesslayer.Venue venue(String venueId, String nameEn) {
+    private com.envisionad.webservice.venue.dataaccesslayer.Venue venue(String venueId, String nameEn, String nameFr) {
         var venue = new com.envisionad.webservice.venue.dataaccesslayer.Venue();
         venue.setVenueId(venueId);
         venue.setNameEn(nameEn);
+        venue.setNameFr(nameFr);
         return venue;
     }
 

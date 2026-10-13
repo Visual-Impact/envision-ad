@@ -25,6 +25,8 @@ import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
+import com.envisionad.webservice.utils.EmailContent;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.envisionad.webservice.venue.dataaccesslayer.Venue;
@@ -40,7 +42,9 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -65,6 +69,7 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
     private final AdResponseMapper adResponseMapper;
     private final CreativeDistributor creativeDistributor;
     private final MediaOwnerNotifier mediaOwnerNotifier;
+    private final EmailTexts emailTexts;
     private final JwtUtils jwtUtils;
 
     /**
@@ -86,6 +91,7 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
             AdResponseMapper adResponseMapper,
             CreativeDistributor creativeDistributor,
             MediaOwnerNotifier mediaOwnerNotifier,
+            EmailTexts emailTexts,
             JwtUtils jwtUtils,
             @Value("${envision.active-campaign.swap-debounce}") Duration swapDebounce) {
         this.businessRepository = businessRepository;
@@ -99,6 +105,7 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
         this.adResponseMapper = adResponseMapper;
         this.creativeDistributor = creativeDistributor;
         this.mediaOwnerNotifier = mediaOwnerNotifier;
+        this.emailTexts = emailTexts;
         this.jwtUtils = jwtUtils;
         this.swapDebounce = swapDebounce;
     }
@@ -293,17 +300,30 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
             return new MediaOwnerNotifier.Outcome(0, 0);
         }
 
-        List<OwnerCreativeGroup> groups = creativeDistributor.groupCreativesByOwnerAndVenue(
-                campaign, affectedMedia, ownerResolver(), venueLabels());
+        // Venue names head the email's sections, so the grouping is done once per language. Only
+        // the labels differ between the two: which owners, screens and creatives are listed does not.
+        List<Venue> venues = venueRepository.findAll();
+        Map<Locale, Map<String, OwnerCreativeGroup>> groupsByLocale = Map.of(
+                Locale.ENGLISH, groupByOwner(campaign, affectedMedia, venues, Venue::getNameEn),
+                Locale.FRENCH, groupByOwner(campaign, affectedMedia, venues, Venue::getNameFr));
 
-        String subject = "New creatives for your Envision Ad screens — " + business.getName();
-        List<MediaOwnerNotifier.OwnerMessage> messages = groups.stream()
-                .map(group -> new MediaOwnerNotifier.OwnerMessage(
-                        group.ownerBusinessId(), subject,
-                        buildEmailBody(business.getName(), campaign, group, isUpdate)))
+        List<MediaOwnerNotifier.OwnerMessage> messages = groupsByLocale.get(EmailTexts.DEFAULT_LOCALE).keySet().stream()
+                .map(ownerBusinessId -> new MediaOwnerNotifier.OwnerMessage(ownerBusinessId, locale ->
+                        buildEmail(business.getName(), campaign, groupsByLocale.get(locale).get(ownerBusinessId),
+                                isUpdate, locale)))
                 .toList();
 
         return mediaOwnerNotifier.send(messages);
+    }
+
+    private Map<String, OwnerCreativeGroup> groupByOwner(AdCampaign campaign, List<Media> affectedMedia,
+                                                         List<Venue> venues, Function<Venue, String> venueName) {
+        Map<String, String> venueLabels = venues.stream()
+                .collect(Collectors.toMap(Venue::getVenueId, venueName, (first, second) -> first));
+        Map<String, OwnerCreativeGroup> groups = new LinkedHashMap<>();
+        creativeDistributor.groupCreativesByOwnerAndVenue(campaign, affectedMedia, ownerResolver(), venueLabels)
+                .forEach(group -> groups.put(group.ownerBusinessId(), group));
+        return groups;
     }
 
     /**
@@ -315,49 +335,31 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
         return media -> media.getBusinessId() == null ? null : media.getBusinessId().toString();
     }
 
-    private Map<String, String> venueLabels() {
-        return venueRepository.findAll().stream()
-                .collect(Collectors.toMap(Venue::getVenueId, Venue::getNameEn, (first, second) -> first));
-    }
-
     /**
-     * FR-4.6's plain-text body. {@code isUpdate} changes the framing, not the layout: an owner
+     * FR-4.6's plain-text email. {@code isUpdate} changes the framing, not the layout: an owner
      * who receives a swap-shaped email about a campaign they already have loaded would
      * reasonably read it as a duplicate and ignore it, leaving retired creative on the screen.
      */
-    private String buildEmailBody(String advertiserName, AdCampaign campaign,
-                                  OwnerCreativeGroup group, boolean isUpdate) {
-        StringBuilder body = new StringBuilder("Hi there,\n\n");
-        if (isUpdate) {
-            body.append(advertiserName)
-                    .append(" has changed the creatives for \"")
-                    .append(campaign.getName())
-                    .append("\", the campaign already running on your screens.\n")
-                    .append("Please replace the previous set with the following:\n\n");
-        } else {
-            body.append(advertiserName)
-                    .append(" has updated the campaign displayed on your screens to \"")
-                    .append(campaign.getName())
-                    .append("\".\n")
-                    .append("Please update your displays with the following creatives:\n\n");
-        }
-
+    private EmailContent buildEmail(String advertiserName, AdCampaign campaign,
+                                    OwnerCreativeGroup group, boolean isUpdate, Locale locale) {
+        StringBuilder sections = new StringBuilder();
         for (OwnerCreativeGroup.Section section : group.sections()) {
             if (section.venueLabel() != null) {
-                body.append("For your ").append(section.venueLabel()).append(" screens:\n");
+                sections.append(emailTexts.get("creatives.section.venue", locale, section.venueLabel())).append("\n");
             }
             for (Ad ad : section.creatives()) {
-                body.append("- ").append(ad.getName())
+                sections.append("- ").append(ad.getName())
                         .append(" (").append(ad.getAdType()).append("): ")
                         .append(ad.getAdUrl()).append("\n");
             }
-            body.append("\n");
+            sections.append("\n");
         }
 
-        body.append("Screens affected: ")
-                .append(group.screens().stream().map(Media::getTitle).collect(Collectors.joining(", ")))
-                .append("\n\nThanks,\n— The Envision Ad Team");
-        return body.toString();
+        String screens = group.screens().stream().map(Media::getTitle).collect(Collectors.joining(", "));
+        return new EmailContent(
+                emailTexts.get("creatives.subject", locale, advertiserName),
+                emailTexts.get(isUpdate ? "creatives.update.body" : "creatives.swap.body", locale,
+                        advertiserName, campaign.getName(), sections.toString(), screens));
     }
 
     private void requireOutsideDebounce(String businessId) {

@@ -96,6 +96,7 @@ Each domain module follows the same internal structure:
 - Local-only sample data: `src/main/resources/db/seed/R__seed_dev_data.sql`, a Flyway *repeatable* migration (idempotent via sentinel guards), loaded only under the `local` profile — `application-local.yml` adds `classpath:db/seed` to `spring.flyway.locations`; never add it to a non-local profile. Scope is supply-side only (venue/media_location/media/bundles); no fabricated business/employee rows, because `employee.user_id` is the raw Auth0 JWT `sub` and a fake value makes seeded data invisible to whoever's logged in. Sole exception: one real teammate's business/employee record, keyed to their actual Auth0 sub and guarded on the UNIQUE `employee.user_id`.
 - Tests run against a real PostgreSQL 15 database via Testcontainers (`config/TestcontainersConfig.java`, wired in through `@ServiceConnection`); integration tests extend `config/BaseIntegrationTest`. Test profile disables Flyway and uses `ddl-auto: create`, so the test schema is generated from the JPA entities. Requires a running Docker daemon.
 - JaCoCo enforces 90% code coverage at build time
+- Email subjects and bodies live in `src/main/resources/i18n/emails.properties` (English) and `emails_fr.properties` (French), read through `utils/EmailTexts` — never built inline in a service. Each recipient gets their Auth0 `user_metadata.preferred_language`, French when unset; add every new key to both files (`EmailTextsTest` fails otherwise).
 
 ### Infrastructure
 

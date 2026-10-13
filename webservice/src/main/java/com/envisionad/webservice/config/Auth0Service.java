@@ -79,10 +79,23 @@ public class Auth0Service {
 
 
     /**
+     * A user's email address and the app language they last picked — Auth0
+     * {@code user_metadata.preferred_language}, written by the frontend's language picker
+     * ({@code "en"} / {@code "fr"}). {@code preferredLanguage} is null for anyone who never
+     * picked one.
+     */
+    public record UserContact(String email, String preferredLanguage) {}
+
+    /**
      * Fetches the email for any user by their Auth0 user_id using the Management API
      * (server-to-server, no user JWT required). Always returns the latest email from Auth0.
      */
     public String getUserEmailByUserId(String userId) {
+        return getUserContactByUserId(userId).email();
+    }
+
+    /** {@link #getUserEmailByUserId}, plus the user's preferred language from the same call. */
+    public UserContact getUserContactByUserId(String userId) {
         String managementToken = getManagementApiToken();
 
         HttpHeaders headers = new HttpHeaders();
@@ -103,7 +116,7 @@ public class Auth0Service {
                     getMapTypeRef()
             );
 
-            return extractEmail(response, userId);
+            return extractContact(response, userId);
         } catch (HttpClientErrorException.Unauthorized e) {
             // Token may have expired early (clock drift, early revocation). Invalidate the
             // cache under the lock so no other thread races to use the stale entry, then
@@ -129,7 +142,7 @@ public class Auth0Service {
                         retryEntity,
                         getMapTypeRef()
                 );
-                return extractEmail(retryResponse, userId);
+                return extractContact(retryResponse, userId);
             } catch (RestClientException retryEx) {
                 throw new Auth0ServiceUnavailableException(
                         "Failed to retrieve email for user '" + userId + "' from Auth0 Management API after token refresh", retryEx);
@@ -156,18 +169,25 @@ public class Auth0Service {
      * {@link #getUserEmailByUserId} which 404s per-id.
      */
     public Map<String, String> findEmailsByUserIds(List<String> userIds) {
+        Map<String, String> result = new HashMap<>();
+        findContactsByUserIds(userIds).forEach((userId, contact) -> result.put(userId, contact.email()));
+        return result;
+    }
+
+    /** {@link #findEmailsByUserIds}, plus each user's preferred language from the same calls. */
+    public Map<String, UserContact> findContactsByUserIds(List<String> userIds) {
         if (userIds.isEmpty())
             return Map.of();
 
-        Map<String, String> result = new HashMap<>();
+        Map<String, UserContact> result = new HashMap<>();
         for (int i = 0; i < userIds.size(); i += USER_SEARCH_BATCH_SIZE) {
             List<String> chunk = userIds.subList(i, Math.min(i + USER_SEARCH_BATCH_SIZE, userIds.size()));
-            result.putAll(findEmailsForChunk(chunk));
+            result.putAll(findContactsForChunk(chunk));
         }
         return result;
     }
 
-    private Map<String, String> findEmailsForChunk(List<String> userIds) {
+    private Map<String, UserContact> findContactsForChunk(List<String> userIds) {
         String query = "user_id:(" + userIds.stream()
                 .map(id -> "\"" + id.replace("\"", "\\\"") + "\"")
                 .collect(Collectors.joining(" OR ")) + ")";
@@ -176,7 +196,7 @@ public class Auth0Service {
                 .pathSegment("api", "v2", "users")
                 .queryParam("q", query)
                 .queryParam("search_engine", "v3")
-                .queryParam("fields", "user_id,email")
+                .queryParam("fields", "user_id,email,user_metadata")
                 .queryParam("include_fields", "true")
                 .queryParam("per_page", USER_SEARCH_BATCH_SIZE)
                 .build()
@@ -188,12 +208,12 @@ public class Auth0Service {
             List<Map<String, Object>> body = response.getBody();
             if (body == null)
                 return Map.of();
-            Map<String, String> chunkResult = new HashMap<>();
+            Map<String, UserContact> chunkResult = new HashMap<>();
             for (Map<String, Object> user : body) {
                 String userId = (String) user.get("user_id");
                 String email = (String) user.get("email");
                 if (userId != null && email != null)
-                    chunkResult.put(userId, email);
+                    chunkResult.put(userId, new UserContact(email, preferredLanguageOf(user)));
             }
             return chunkResult;
         } catch (RestClientException e) {
@@ -437,7 +457,7 @@ public class Auth0Service {
     }
 
 
-    private String extractEmail(ResponseEntity<Map<String, Object>> response, String userId) {
+    private UserContact extractContact(ResponseEntity<Map<String, Object>> response, String userId) {
         Map<String, Object> body = Objects.requireNonNull(
                 response.getBody(), "Auth0 Management API returned null body for user: " + userId);
         String email = (String) body.get("email");
@@ -445,7 +465,12 @@ public class Auth0Service {
             throw new Auth0ServiceUnavailableException(
                     "Auth0 Management API returned no email for user: " + userId, null);
         }
-        return email;
+        return new UserContact(email, preferredLanguageOf(body));
+    }
+
+    private static String preferredLanguageOf(Map<String, Object> user) {
+        return user.get("user_metadata") instanceof Map<?, ?> metadata
+                && metadata.get("preferred_language") instanceof String language ? language : null;
     }
 
     private ParameterizedTypeReference<Map<String, Object>> getMapTypeRef() {

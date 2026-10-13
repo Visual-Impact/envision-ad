@@ -9,7 +9,9 @@ import org.springframework.stereotype.Component;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Sends one plain-text email to each of a set of media-owner businesses, isolating failures
@@ -46,8 +48,12 @@ public class MediaOwnerNotifier {
         this.emailService = emailService;
     }
 
-    /** One owner business's message. Bodies are built by the caller; delivery is built here. */
-    public record OwnerMessage(String ownerBusinessId, String subject, String body) {}
+    /**
+     * One owner business's message. The caller says what to write; delivery is built here. The
+     * text is a function of the recipient's language because that is only known once the
+     * owner's contact has been resolved — see {@link EmailTexts#localeFor}.
+     */
+    public record OwnerMessage(String ownerBusinessId, Function<Locale, EmailContent> content) {}
 
     /**
      * What actually happened, for the caller to record. P6 writes these straight into
@@ -66,13 +72,13 @@ public class MediaOwnerNotifier {
             return new Outcome(0, 0);
         }
 
-        Map<String, String> emailsByBusinessId = resolveOwnerEmails(
+        Map<String, Auth0Service.UserContact> contactsByBusinessId = resolveOwnerContacts(
                 messages.stream().map(OwnerMessage::ownerBusinessId).distinct().toList());
 
         int notified = 0;
         int failed = 0;
         for (OwnerMessage message : messages) {
-            String recipient = emailsByBusinessId.get(message.ownerBusinessId());
+            Auth0Service.UserContact recipient = contactsByBusinessId.get(message.ownerBusinessId());
             if (recipient == null) {
                 log.warn("Skipping media-owner notification for business {}: no resolvable email",
                         message.ownerBusinessId());
@@ -80,7 +86,8 @@ public class MediaOwnerNotifier {
                 continue;
             }
             try {
-                emailService.sendSimpleEmail(recipient, message.subject(), message.body());
+                EmailContent email = message.content().apply(EmailTexts.localeFor(recipient.preferredLanguage()));
+                emailService.sendSimpleEmail(recipient.email(), email.subject(), email.body());
                 notified++;
             } catch (Exception e) {
                 log.error("Failed to notify media owner {}", message.ownerBusinessId(), e);
@@ -91,14 +98,14 @@ public class MediaOwnerNotifier {
     }
 
     /**
-     * Maps each owner business to one contact address: its first employee carrying a user id,
+     * Maps each owner business to one contact (address and language): its first employee carrying a user id,
      * resolved through Auth0. Businesses with no employee, no user id, or no matching Auth0
      * account are simply absent from the result — that is a normal outcome, not an error.
      *
      * <p>Returns an empty map rather than throwing if Auth0 is unreachable, so that a caller in
      * a transaction is not rolled back by a notification concern.
      */
-    public Map<String, String> resolveOwnerEmails(Collection<String> ownerBusinessIds) {
+    public Map<String, Auth0Service.UserContact> resolveOwnerContacts(Collection<String> ownerBusinessIds) {
         if (ownerBusinessIds.isEmpty()) {
             return Map.of();
         }
@@ -116,22 +123,22 @@ public class MediaOwnerNotifier {
             return Map.of();
         }
 
-        Map<String, String> emailByUserId;
+        Map<String, Auth0Service.UserContact> contactByUserId;
         try {
-            emailByUserId = auth0Service.findEmailsByUserIds(List.copyOf(userIdByBusinessId.values()));
+            contactByUserId = auth0Service.findContactsByUserIds(List.copyOf(userIdByBusinessId.values()));
         } catch (Exception e) {
             log.error("Could not resolve media-owner emails from Auth0 for {} business(es); "
                     + "no notifications will be sent for them", userIdByBusinessId.size(), e);
             return Map.of();
         }
 
-        Map<String, String> emailByBusinessId = new LinkedHashMap<>();
+        Map<String, Auth0Service.UserContact> contactByBusinessId = new LinkedHashMap<>();
         userIdByBusinessId.forEach((businessId, userId) -> {
-            String email = emailByUserId.get(userId);
-            if (email != null) {
-                emailByBusinessId.put(businessId, email);
+            Auth0Service.UserContact contact = contactByUserId.get(userId);
+            if (contact != null) {
+                contactByBusinessId.put(businessId, contact);
             }
         });
-        return emailByBusinessId;
+        return contactByBusinessId;
     }
 }

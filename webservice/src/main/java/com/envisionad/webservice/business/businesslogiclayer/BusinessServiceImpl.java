@@ -11,6 +11,7 @@ import com.envisionad.webservice.business.utils.Validator;
 import com.envisionad.webservice.config.Auth0Roles;
 import com.envisionad.webservice.config.Auth0Service;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -32,6 +34,8 @@ public class BusinessServiceImpl implements BusinessService {
     private String appBaseUrl;
 
     private final EmailService emailService;
+
+    private final EmailTexts emailTexts;
 
     private final BusinessRepository businessRepository;
 
@@ -53,8 +57,9 @@ public class BusinessServiceImpl implements BusinessService {
 
     private final Auth0Service auth0Service;
 
-    public BusinessServiceImpl(EmailService emailService, BusinessRepository businessRepository, InvitationRepository invitationRepository, EmployeeRepository employeeRepository, VerificationRepository verificationRepository, BusinessMapper businessMapper, EmployeeMapper employeeMapper, InvitationMapper invitationMapper, VerificationMapper verificationMapper, JwtUtils jwtUtils, Auth0Service auth0Service) {
+    public BusinessServiceImpl(EmailService emailService, EmailTexts emailTexts, BusinessRepository businessRepository, InvitationRepository invitationRepository, EmployeeRepository employeeRepository, VerificationRepository verificationRepository, BusinessMapper businessMapper, EmployeeMapper employeeMapper, InvitationMapper invitationMapper, VerificationMapper verificationMapper, JwtUtils jwtUtils, Auth0Service auth0Service) {
         this.emailService = emailService;
+        this.emailTexts = emailTexts;
         this.businessRepository = businessRepository;
         this.invitationRepository = invitationRepository;
         this.employeeRepository = employeeRepository;
@@ -222,15 +227,11 @@ public class BusinessServiceImpl implements BusinessService {
         Invitation savedInvitation = invitationRepository.save(invitation);
 
         String link = appBaseUrl + "/invite?businessId=" + businessId + "&token=" + token;
-        String subject = "Invitation to join " + business.getName() + " on Envision Ad";
-        String body = "Hi there,\n\n"
-                + "You've been invited to join " + business.getName() + " on Envision Ad, "
-                + "a platform connecting digital signage screens with advertisers.\n\n"
-                + "Click the link below to accept:\n"
-                + link + "\n\n"
-                + "This invitation link expires in 1 hour.\n\n"
-                + "— The Envision Ad Team";
-        emailService.sendSimpleEmail(invitation.getEmail(), subject, body);
+        // The invitee has no account yet, so no language of their own: they get the default.
+        Locale locale = EmailTexts.DEFAULT_LOCALE;
+        emailService.sendSimpleEmail(invitation.getEmail(),
+                emailTexts.get("invitation.subject", locale, business.getName()),
+                emailTexts.get("invitation.body", locale, business.getName(), link));
 
         return invitationMapper.toResponse(savedInvitation);
     }
@@ -359,13 +360,12 @@ public class BusinessServiceImpl implements BusinessService {
 
         try {
             String ticketUrl = auth0Service.createPasswordChangeTicket(userId, appBaseUrl + "/auth/login");
-            String subject = "Your Envision Ad account is ready";
-            String body = "Hi " + invitedName + ",\n\n"
-                    + "You've joined " + business.getName() + " on Envision Ad.\n\n"
-                    + "Set your password to get started:\n" + ticketUrl + "\n\n"
-                    + "Once set, log in here:\n" + appBaseUrl + "/auth/login\n\n"
-                    + "— The Envision Ad Team";
-            emailService.sendSimpleEmail(invitation.getEmail(), subject, body);
+            // A brand-new account has no language picked yet, so this goes out in the default.
+            Locale locale = EmailTexts.DEFAULT_LOCALE;
+            emailService.sendSimpleEmail(invitation.getEmail(),
+                    emailTexts.get("account.ready.subject", locale),
+                    emailTexts.get("account.joined.body", locale,
+                            invitedName, business.getName(), ticketUrl, appBaseUrl + "/auth/login"));
         } catch (RuntimeException e) {
             log.warn("Post-provisioning ticket/email failed for new invitee {} joining business {}",
                     invitation.getEmail(), businessId, e);
