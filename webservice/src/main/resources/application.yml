@@ -82,3 +82,8 @@ envision:
       # More often than the quiet period, so a batch waits no longer than it has to.
       interval: 15m
       enabled: true
+  proof-of-display:
+    reminders:
+      # P12: monthly reminder emails (last day of the month for media owners, the 1st for
+      # advertisers). The schedule itself is fixed in ProofOfDisplayScheduledJobs.
+      enabled: true
