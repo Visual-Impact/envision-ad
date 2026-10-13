@@ -10,6 +10,8 @@ import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepos
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.proofofdisplay.dataaccesslayer.ProofOfDisplayLink;
 import com.envisionad.webservice.proofofdisplay.dataaccesslayer.ProofOfDisplayLinkRepository;
+import com.envisionad.webservice.utils.EmailContent;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.envisionad.webservice.utils.MediaOwnerNotifier.OwnerMessage;
 import com.envisionad.webservice.utils.MediaOwnerNotifier.Outcome;
@@ -23,7 +25,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -51,6 +55,7 @@ public class ProofOfDisplayReminderService {
     private final BusinessRepository businessRepository;
     private final BundleRepository bundleRepository;
     private final MediaOwnerNotifier notifier;
+    private final EmailTexts emailTexts;
     private final String appBaseUrl;
 
     public ProofOfDisplayReminderService(BundleSubscriptionRepository subscriptionRepository,
@@ -60,6 +65,7 @@ public class ProofOfDisplayReminderService {
                                          BusinessRepository businessRepository,
                                          BundleRepository bundleRepository,
                                          MediaOwnerNotifier notifier,
+                                         EmailTexts emailTexts,
                                          @Value("${app.base.url}") String appBaseUrl) {
         this.subscriptionRepository = subscriptionRepository;
         this.itemRepository = itemRepository;
@@ -68,6 +74,7 @@ public class ProofOfDisplayReminderService {
         this.businessRepository = businessRepository;
         this.bundleRepository = bundleRepository;
         this.notifier = notifier;
+        this.emailTexts = emailTexts;
         this.appBaseUrl = appBaseUrl;
     }
 
@@ -88,38 +95,35 @@ public class ProofOfDisplayReminderService {
         Map<String, ProofOfDisplayLink> links = linksBySubscription(eligible);
         Map<String, String> advertiserNames = businessNames(
                 eligible.stream().map(e -> e.subscription().getAdvertiserBusinessId()).distinct().toList());
-        Map<String, String> bundleNames = new HashMap<>();
+        Map<String, Optional<Bundle>> bundles = new HashMap<>();
 
         Map<String, List<Eligible>> byOwner = eligible.stream()
                 .collect(Collectors.groupingBy(Eligible::ownerBusinessId, LinkedHashMap::new, Collectors.toList()));
 
         List<OwnerMessage> messages = new ArrayList<>();
-        byOwner.forEach((ownerBusinessId, subscriptions) -> {
-            StringBuilder body = new StringBuilder("Hi there,\n\n")
-                    .append("It's the end of the month. Please check that the proof-of-display page for each of ")
-                    .append("these subscriptions shows your screens as they are now. The advertisers will be ")
-                    .append("reminded to look at it tomorrow.\n\n");
+        byOwner.forEach((ownerBusinessId, subscriptions) -> messages.add(new OwnerMessage(ownerBusinessId, locale -> {
+            StringBuilder lines = new StringBuilder();
             subscriptions.stream()
                     .sorted(Comparator.comparing(e -> advertiserNames.getOrDefault(
                             e.subscription().getAdvertiserBusinessId(), "")))
                     .forEach(e -> {
                         BundleSubscription subscription = e.subscription();
                         ProofOfDisplayLink link = links.get(subscription.getSubscriptionId());
-                        body.append("- ")
+                        lines.append("- ")
                                 .append(advertiserNames.getOrDefault(subscription.getAdvertiserBusinessId(),
-                                        "An advertiser"))
+                                        emailTexts.get("reminder.unknownAdvertiser", locale)))
                                 .append(", ")
-                                .append(bundleNames.computeIfAbsent(subscription.getBundleId(), this::bundleName))
+                                .append(bundleName(bundles, subscription.getBundleId(), locale))
                                 .append(": ")
-                                .append(link == null ? "no link yet, please add one" : "link set (" + link.getUrl() + ")")
+                                .append(link == null ? emailTexts.get("reminder.owner.linkMissing", locale)
+                                        : emailTexts.get("reminder.owner.linkSet", locale, link.getUrl()))
                                 .append("\n");
                     });
-            body.append("\nAdd or update your links here:\n")
-                    .append(appBaseUrl).append("/dashboard/media-owner/proof\n\n")
-                    .append("Thanks,\n— The Envision Ad Team");
-            messages.add(new OwnerMessage(ownerBusinessId, "Monthly check: your proof-of-display links",
-                    body.toString()));
-        });
+            return new EmailContent(
+                    emailTexts.get("reminder.owner.subject", locale),
+                    emailTexts.get("reminder.owner.body", locale,
+                            lines.toString(), appBaseUrl + "/dashboard/media-owner/proof"));
+        })));
 
         Outcome outcome = notifier.send(messages);
         log.info("Proof-of-display media-owner reminders: {} sent, {} failed", outcome.notified(), outcome.failed());
@@ -143,34 +147,32 @@ public class ProofOfDisplayReminderService {
         Map<String, ProofOfDisplayLink> links = linksBySubscription(eligible);
         Map<String, String> ownerNames = businessNames(
                 eligible.stream().map(Eligible::ownerBusinessId).distinct().toList());
-        Map<String, String> bundleNames = new HashMap<>();
+        Map<String, Optional<Bundle>> bundles = new HashMap<>();
 
         Map<String, List<Eligible>> byAdvertiser = eligible.stream()
                 .collect(Collectors.groupingBy(e -> e.subscription().getAdvertiserBusinessId(),
                         LinkedHashMap::new, Collectors.toList()));
 
         List<OwnerMessage> messages = new ArrayList<>();
-        byAdvertiser.forEach((advertiserBusinessId, subscriptions) -> {
-            StringBuilder body = new StringBuilder("Hi there,\n\n")
-                    .append("Your media owners keep a proof-of-display page for each of your subscriptions, ")
-                    .append("showing your ad on their screens. Here is this month's:\n\n");
-            subscriptions.stream()
-                    .map(e -> {
-                        BundleSubscription subscription = e.subscription();
-                        ProofOfDisplayLink link = links.get(subscription.getSubscriptionId());
-                        return "- " + bundleNames.computeIfAbsent(subscription.getBundleId(), this::bundleName)
-                                + " (" + ownerNames.getOrDefault(e.ownerBusinessId(), "your media owner") + "): "
-                                + (link == null ? "no link yet, your media owner has been reminded to add one"
-                                        : link.getUrl());
-                    })
-                    .sorted()
-                    .forEach(line -> body.append(line).append("\n"));
-            body.append("\nYou can also see them all on your Subscriptions page:\n")
-                    .append(appBaseUrl).append("/dashboard/advertiser/subscriptions\n\n")
-                    .append("Thanks,\n— The Envision Ad Team");
-            messages.add(new OwnerMessage(advertiserBusinessId, "Your monthly proof of display is ready to check",
-                    body.toString()));
-        });
+        byAdvertiser.forEach((advertiserBusinessId, subscriptions) -> messages.add(new OwnerMessage(advertiserBusinessId,
+                locale -> {
+                    StringBuilder lines = new StringBuilder();
+                    subscriptions.stream()
+                            .map(e -> {
+                                ProofOfDisplayLink link = links.get(e.subscription().getSubscriptionId());
+                                return "- " + bundleName(bundles, e.subscription().getBundleId(), locale)
+                                        + " (" + ownerNames.getOrDefault(e.ownerBusinessId(),
+                                                emailTexts.get("reminder.unknownOwner", locale)) + "): "
+                                        + (link == null ? emailTexts.get("reminder.advertiser.linkMissing", locale)
+                                                : link.getUrl());
+                            })
+                            .sorted()
+                            .forEach(line -> lines.append(line).append("\n"));
+                    return new EmailContent(
+                            emailTexts.get("reminder.advertiser.subject", locale),
+                            emailTexts.get("reminder.advertiser.body", locale,
+                                    lines.toString(), appBaseUrl + "/dashboard/advertiser/subscriptions"));
+                })));
 
         Outcome outcome = notifier.send(messages);
         log.info("Proof-of-display advertiser reminders: {} sent, {} failed", outcome.notified(), outcome.failed());
@@ -209,7 +211,10 @@ public class ProofOfDisplayReminderService {
                 .collect(Collectors.toMap(b -> b.getBusinessId().getBusinessId(), Business::getName, (a, b) -> a));
     }
 
-    private String bundleName(String bundleId) {
-        return bundleRepository.findByBundleId(bundleId).map(Bundle::getNameEn).orElse("a bundle");
+    /** The bundle's name in {@code locale}, looking each bundle up once per run. */
+    private String bundleName(Map<String, Optional<Bundle>> bundles, String bundleId, Locale locale) {
+        return bundles.computeIfAbsent(bundleId, bundleRepository::findByBundleId)
+                .map(bundle -> Locale.ENGLISH.equals(locale) ? bundle.getNameEn() : bundle.getNameFr())
+                .orElseGet(() -> emailTexts.get("reminder.unknownBundle", locale));
     }
 }

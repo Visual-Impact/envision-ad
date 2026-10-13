@@ -16,6 +16,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatu
 import com.envisionad.webservice.proofofdisplay.dataaccesslayer.ProofOfDisplayLink;
 import com.envisionad.webservice.proofofdisplay.dataaccesslayer.ProofOfDisplayLinkRepository;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -74,22 +75,24 @@ class ProofOfDisplayReminderServiceUnitTest {
     private final List<ProofOfDisplayLink> links = new ArrayList<>();
     private final List<Business> businesses = new ArrayList<>();
     private final List<Employee> employees = new ArrayList<>();
-    private final Map<String, String> emailsByUserId = new HashMap<>();
+    private final Map<String, Auth0Service.UserContact> contactsByUserId = new HashMap<>();
 
     @BeforeEach
     void setUp() {
         service = new ProofOfDisplayReminderService(subscriptionRepository, itemRepository,
                 new ProofOfDisplayEligibilityService(itemRepository), linkRepository, businessRepository,
-                bundleRepository, new MediaOwnerNotifier(employeeRepository, auth0Service, emailService), BASE_URL);
+                bundleRepository, new MediaOwnerNotifier(employeeRepository, auth0Service, emailService), new EmailTexts(),
+                BASE_URL);
 
         when(subscriptionRepository.findAllByStatusIn(BundleSubscriptionStatus.LIVE)).thenReturn(live);
         when(itemRepository.findAllBySubscriptionIdIn(anyCollection())).thenReturn(items);
         when(linkRepository.findBySubscriptionIdIn(anyCollection())).thenReturn(links);
         when(businessRepository.findAllByBusinessId_BusinessIdIn(anyList())).thenReturn(businesses);
         when(employeeRepository.findAllByBusinessId_BusinessIdInOrderById(anyCollection())).thenReturn(employees);
-        when(auth0Service.findEmailsByUserIds(anyList())).thenReturn(emailsByUserId);
+        when(auth0Service.findContactsByUserIds(anyList())).thenReturn(contactsByUserId);
         Bundle bundle = new Bundle();
         bundle.setNameEn("Brossard Bundle");
+        bundle.setNameFr("Forfait Brossard");
         when(bundleRepository.findByBundleId(anyString())).thenReturn(Optional.of(bundle));
     }
 
@@ -223,10 +226,79 @@ class ProofOfDisplayReminderServiceUnitTest {
         assertFalse(body.getValue().contains("null"));
     }
 
+    // ---------- language ----------
+
+    @Test
+    void reminders_goOutInEachRecipientsLanguage_frenchByDefault() {
+        givenBusiness("owner-a", "Écrans Inc", "owner@screens.test", null);
+        givenBusiness("adv-1", "Lotus Yoga", "lotus@yoga.test", null);
+        String withLink = givenLiveSubscription("adv-1", "owner-a");
+        givenLiveSubscription("adv-1", "owner-a");
+        givenLink(withLink, "https://www.canva.com/lotus");
+
+        service.sendMediaOwnerReminders();
+        service.sendAdvertiserReminders();
+
+        ArgumentCaptor<String> ownerBody = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("owner@screens.test"),
+                eq("Vérification mensuelle : vos liens de preuve d'affichage"), ownerBody.capture());
+        assertTrue(ownerBody.getValue().startsWith("Bonjour,\n\nC'est la fin du mois."), ownerBody.getValue());
+        assertTrue(ownerBody.getValue().contains(
+                "- Lotus Yoga, Forfait Brossard: lien ajouté (https://www.canva.com/lotus)\n"), ownerBody.getValue());
+        assertTrue(ownerBody.getValue().contains(
+                "- Lotus Yoga, Forfait Brossard: aucun lien pour l'instant, veuillez en ajouter un\n"),
+                ownerBody.getValue());
+
+        ArgumentCaptor<String> advertiserBody = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("lotus@yoga.test"),
+                eq("Votre preuve d'affichage mensuelle est prête à consulter"), advertiserBody.capture());
+        assertTrue(advertiserBody.getValue().contains(
+                "- Forfait Brossard (Écrans Inc): https://www.canva.com/lotus\n"), advertiserBody.getValue());
+        assertTrue(advertiserBody.getValue().contains("- Forfait Brossard (Écrans Inc): aucun lien pour l'instant"),
+                advertiserBody.getValue());
+        assertTrue(advertiserBody.getValue().contains(BASE_URL + "/dashboard/advertiser/subscriptions"),
+                advertiserBody.getValue());
+    }
+
+    @Test
+    void englishReminders_areWordForWordThePreviousText() {
+        givenBusiness("owner-a", "Screens Inc", "owner@screens.test");
+        givenBusiness("adv-1", "Lotus Yoga", "lotus@yoga.test");
+        givenLink(givenLiveSubscription("adv-1", "owner-a"), "https://www.canva.com/lotus");
+
+        service.sendMediaOwnerReminders();
+        service.sendAdvertiserReminders();
+
+        verify(emailService).sendSimpleEmail("owner@screens.test", "Monthly check: your proof-of-display links",
+                "Hi there,\n\n"
+                        + "It's the end of the month. Please check that the proof-of-display page for each of "
+                        + "these subscriptions shows your screens as they are now. The advertisers will be "
+                        + "reminded to look at it tomorrow.\n\n"
+                        + "- Lotus Yoga, Brossard Bundle: link set (https://www.canva.com/lotus)\n"
+                        + "\nAdd or update your links here:\n"
+                        + BASE_URL + "/dashboard/media-owner/proof\n\n"
+                        + "Thanks,\n— The Envision Ad Team");
+        verify(emailService).sendSimpleEmail("lotus@yoga.test", "Your monthly proof of display is ready to check",
+                "Hi there,\n\n"
+                        + "Your media owners keep a proof-of-display page for each of your subscriptions, "
+                        + "showing your ad on their screens. Here is this month's:\n\n"
+                        + "- Brossard Bundle (Screens Inc): https://www.canva.com/lotus\n"
+                        + "\nYou can also see them all on your Subscriptions page:\n"
+                        + BASE_URL + "/dashboard/advertiser/subscriptions\n\n"
+                        + "Thanks,\n— The Envision Ad Team");
+    }
+
     // ---------- fixtures ----------
 
-    /** A business whose first employee resolves to {@code email} (or to nothing when null). */
+    /**
+     * A business whose first employee resolves to {@code email} (or to nothing when null), and who
+     * picked English in the app, so the texts are the pre-i18n English.
+     */
     private void givenBusiness(String businessId, String name, String email) {
+        givenBusiness(businessId, name, email, "en");
+    }
+
+    private void givenBusiness(String businessId, String name, String email, String preferredLanguage) {
         Business business = new Business();
         business.setBusinessId(new BusinessIdentifier(businessId));
         business.setName(name);
@@ -237,7 +309,7 @@ class ProofOfDisplayReminderServiceUnitTest {
         employee.setUserId("auth0|" + businessId);
         employees.add(employee);
         if (email != null) {
-            emailsByUserId.put("auth0|" + businessId, email);
+            contactsByUserId.put("auth0|" + businessId, new Auth0Service.UserContact(email, preferredLanguage));
         }
     }
 
