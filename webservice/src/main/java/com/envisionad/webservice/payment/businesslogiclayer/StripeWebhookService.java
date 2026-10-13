@@ -109,9 +109,7 @@ public class StripeWebhookService {
         boolean originalOnboardingComplete = localAccount.isOnboardingComplete();
 
         // Update our local record with the latest status from Stripe
-        localAccount.setOnboardingComplete(Boolean.TRUE.equals(account.getDetailsSubmitted()));
-        localAccount.setChargesEnabled(Boolean.TRUE.equals(account.getChargesEnabled()));
-        localAccount.setPayoutsEnabled(Boolean.TRUE.equals(account.getPayoutsEnabled()));
+        StripeAccountSync.apply(account, localAccount);
 
         stripeAccountRepository.save(localAccount);
 

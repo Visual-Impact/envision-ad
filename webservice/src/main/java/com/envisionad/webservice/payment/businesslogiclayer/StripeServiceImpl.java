@@ -131,16 +131,45 @@ public class StripeServiceImpl implements StripeService {
             status.put("onboardingComplete", false);
             status.put("chargesEnabled", false);
             status.put("payoutsEnabled", false);
+            status.put("state", StripeOnboardingState.NOT_CONNECTED.name());
         } else {
             StripeAccount account = accountOpt.get();
+            StripeOnboardingState state = StripeOnboardingState.isComplete(account)
+                    ? StripeOnboardingState.COMPLETE
+                    : refreshFromStripe(account);
             status.put("connected", true);
             status.put("onboardingComplete", account.isOnboardingComplete());
             status.put("chargesEnabled", account.isChargesEnabled());
             status.put("payoutsEnabled", account.isPayoutsEnabled());
             status.put("stripeAccountId", account.getStripeAccountId());
+            status.put("state", state.name());
         }
 
         return status;
+    }
+
+    /**
+     * Asks Stripe for the account's current state and stores any change.
+     * <p>
+     * The {@code account.updated} webhook is the usual writer of these flags, but it can arrive
+     * late or not at all, and an owner just back from Stripe's onboarding would otherwise see a
+     * stale "not set up" page. Only accounts that aren't fully onboarded pay for this call.
+     */
+    private StripeOnboardingState refreshFromStripe(StripeAccount account) {
+        try {
+            Account remote = Account.retrieve(account.getStripeAccountId());
+            if (StripeAccountSync.apply(remote, account)) {
+                stripeAccountRepository.save(account);
+                log.info("Synced Stripe account {} on status read: onboardingComplete={}, chargesEnabled={}, payoutsEnabled={}",
+                        account.getStripeAccountId(), account.isOnboardingComplete(),
+                        account.isChargesEnabled(), account.isPayoutsEnabled());
+            }
+            return StripeOnboardingState.from(remote);
+        } catch (StripeException e) {
+            log.warn("Could not retrieve Stripe account {}, falling back to stored status: {}",
+                    account.getStripeAccountId(), e.getMessage());
+            return StripeOnboardingState.from(account);
+        }
     }
 
 

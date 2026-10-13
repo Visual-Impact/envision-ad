@@ -154,6 +154,9 @@
         "hint": "Stripe lets you securely receive payments from advertisers. You'll be redirected to Stripe to complete setup.",
         "cta": "Connect Stripe",
         "ctaContinue": "Continue Stripe setup",
+        "pendingPrompt": "Stripe is reviewing your details",
+        "pendingHint": "You've submitted everything Stripe needs. Verification usually takes a few minutes; you can add media as soon as it's approved.",
+        "viewStatus": "View Stripe status",
         "errors": {
           "connectFailed": "Failed to connect to Stripe. Please try again."
         }
@@ -637,7 +640,10 @@
     "stripe": {
       "requiredTitle": "Stripe Account Required",
       "requiredMessage": "To create media and receive payments, you must first set up your Stripe account. ",
-      "requiredLink": "Complete your Stripe onboarding here."
+      "requiredLink": "Complete your Stripe onboarding here.",
+      "pendingTitle": "Stripe Is Reviewing Your Details",
+      "pendingMessage": "You've submitted everything Stripe needs. You can add media as soon as Stripe approves your account, which usually takes a few minutes. ",
+      "pendingLink": "View your Stripe status."
     },
     "page": {
       "title": "My Media"
@@ -1336,28 +1342,31 @@
       },
       "incomplete": {
         "title": "Finish Setting Up Your Payments",
-        "description": "To list media and receive payments, you need to complete your Stripe account setup.",
-        "checks": {
-          "onboarding": "Onboarding process",
-          "charges": "Can accept payments",
-          "payouts": "Can receive payouts"
-        }
+        "description": "To list media and receive payments, you need to complete your Stripe account setup."
+      },
+      "notConnected": {
+        "title": "Set Up Your Payments",
+        "description": "To list media and receive payouts, connect a Stripe account. You'll be redirected to Stripe to enter your business and bank details."
+      },
+      "actionRequired": {
+        "title": "Stripe Needs More Information",
+        "description": "Stripe reviewed your details and needs a bit more before your account can receive payouts. Continue onboarding to see what's missing."
+      },
+      "pending": {
+        "title": "Stripe Is Reviewing Your Details",
+        "description": "You've submitted everything Stripe asked for. Verification usually takes a few minutes, and occasionally up to a few business days. There's nothing more you need to do; you'll be able to list media as soon as it's approved."
+      },
+      "checking": {
+        "title": "Confirming your details with Stripe…",
+        "description": "This usually takes a few seconds."
       }
     },
     "buttons": {
       "connect": "Connect with Stripe",
-      "continueOnboarding": "Continue Onboarding"
+      "continueOnboarding": "Continue Onboarding",
+      "checkAgain": "Check again"
     },
-    "notifications": {
-      "success": {
-        "title": "Onboarding Complete!",
-        "message": "Your account is ready. We're just confirming the final details with Stripe."
-      },
-      "refresh": {
-        "title": "Onboarding Session Expired",
-        "message": "Your session expired. Please try connecting again."
-      }
-    }
+    "redirecting": "Reopening Stripe…"
   },
   "stripeOnboarding": {
     "title": "Connect Your Payment Account",

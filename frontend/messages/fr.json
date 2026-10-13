@@ -154,6 +154,9 @@
         "hint": "Stripe vous permet de recevoir les paiements des annonceurs en toute sécurité. Vous serez redirigé vers Stripe pour finaliser la configuration.",
         "cta": "Connecter Stripe",
         "ctaContinue": "Continuer la configuration Stripe",
+        "pendingPrompt": "Stripe vérifie vos informations",
+        "pendingHint": "Vous avez fourni tout ce dont Stripe a besoin. La vérification prend généralement quelques minutes ; vous pourrez ajouter des médias dès qu'elle sera approuvée.",
+        "viewStatus": "Voir le statut Stripe",
         "errors": {
           "connectFailed": "Échec de la connexion à Stripe. Veuillez réessayer."
         }
@@ -638,7 +641,10 @@
     "stripe": {
       "requiredTitle": "Compte Stripe requis",
       "requiredMessage": "Pour créer des médias et recevoir des paiements, vous devez d'abord configurer votre compte Stripe. ",
-      "requiredLink": "Complétez votre intégration Stripe ici."
+      "requiredLink": "Complétez votre intégration Stripe ici.",
+      "pendingTitle": "Stripe vérifie vos informations",
+      "pendingMessage": "Vous avez fourni tout ce dont Stripe a besoin. Vous pourrez ajouter des médias dès que Stripe aura approuvé votre compte, ce qui prend généralement quelques minutes. ",
+      "pendingLink": "Voir le statut de votre compte Stripe."
     },
     "page": {
       "title": "Mes Médias"
@@ -1337,28 +1343,31 @@
       },
       "incomplete": {
         "title": "Terminez la configuration de vos paiements",
-        "description": "Pour afficher des médias et recevoir des paiements, vous devez terminer la configuration de votre compte Stripe.",
-        "checks": {
-          "onboarding": "Processus d'intégration",
-          "charges": "Peut accepter les paiements",
-          "payouts": "Peut recevoir des paiements"
-        }
+        "description": "Pour afficher des médias et recevoir des paiements, vous devez terminer la configuration de votre compte Stripe."
+      },
+      "notConnected": {
+        "title": "Configurez vos paiements",
+        "description": "Pour afficher des médias et recevoir des versements, connectez un compte Stripe. Vous serez redirigé vers Stripe pour saisir les informations de votre entreprise et vos coordonnées bancaires."
+      },
+      "actionRequired": {
+        "title": "Stripe a besoin de plus d'informations",
+        "description": "Stripe a examiné vos informations et a besoin de précisions avant que votre compte puisse recevoir des versements. Continuez l'intégration pour voir ce qui manque."
+      },
+      "pending": {
+        "title": "Stripe vérifie vos informations",
+        "description": "Vous avez fourni tout ce que Stripe demandait. La vérification prend généralement quelques minutes, parfois jusqu'à quelques jours ouvrables. Vous n'avez rien d'autre à faire ; vous pourrez afficher des médias dès qu'elle sera approuvée."
+      },
+      "checking": {
+        "title": "Confirmation de vos informations auprès de Stripe…",
+        "description": "Cela prend généralement quelques secondes."
       }
     },
     "buttons": {
       "connect": "Se connecter avec Stripe",
-      "continueOnboarding": "Continuer l'intégration"
+      "continueOnboarding": "Continuer l'intégration",
+      "checkAgain": "Vérifier à nouveau"
     },
-    "notifications": {
-      "success": {
-        "title": "Intégration terminée !",
-        "message": "Votre compte est prêt. Nous confirmons juste les derniers détails avec Stripe."
-      },
-      "refresh": {
-        "title": "Session d'intégration expirée",
-        "message": "Votre session a expiré. Veuillez essayer de vous reconnecter."
-      }
-    }
+    "redirecting": "Réouverture de Stripe…"
   },
   "stripeOnboarding": {
     "title": "Connecter votre compte de paiement",

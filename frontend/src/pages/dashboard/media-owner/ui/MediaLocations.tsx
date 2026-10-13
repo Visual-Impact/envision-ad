@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Group, Stack, Title } from "@mantine/core";
+import { Button, Group, Stack, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useTranslations } from 'next-intl';
 import { useMediaForm } from "@/pages/dashboard/media-owner/model/useMediaForm";
 import { MediaModal } from "@/pages/dashboard/media-owner/ui/modals/MediaModal";
-import { IconAlertTriangle, IconCheck } from "@tabler/icons-react";
+import { IconCheck } from "@tabler/icons-react";
 import { WeeklyScheduleModel } from "@/entities/media";
 import { MediaLocation, MediaLocationRequestDTO } from "@/entities/media-location";
 import {
@@ -21,15 +21,8 @@ import { EditMediaLocationModal } from "@/pages/dashboard/media-owner/ui/modals/
 import { ConfirmationModal } from "@/shared/ui";
 import { MediaStatusEnum } from "@/entities/media";
 import { useOrganization } from "@/entities/organization";
-import { getStripeAccountStatus } from "@/features/payment";
-import Link from "next/link";
-
-interface StripeStatus {
-    connected: boolean;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-}
+import { getStripeAccountStatus, type StripeAccountStatus } from "@/features/payment";
+import { StripeRequiredAlert } from "./StripeRequiredAlert";
 
 const getApiErrorMessage = (error: unknown): string | null => {
     if (!error || typeof error !== "object" || !("response" in error)) return null;
@@ -62,13 +55,12 @@ const hasApiFieldErrors = (error: unknown): boolean => {
 
 export default function MediaLocations() {
     const t = useTranslations('mediaLocations');
-    const tMedia = useTranslations('media');
     const { organization } = useOrganization();
 
     const [locations, setLocations] = useState<MediaLocation[]>([]);
     const [refreshCount, setRefreshCount] = useState(0);
 
-    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+    const [stripeStatus, setStripeStatus] = useState<StripeAccountStatus | null>(null);
     const [isStripeLoading, setIsStripeLoading] = useState(true);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -109,7 +101,7 @@ export default function MediaLocations() {
         };
     }, [organization]);
 
-    const isStripeOnboarded = stripeStatus?.onboardingComplete && stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
+    const isStripeOnboarded = stripeStatus?.state === "COMPLETE";
 
     useEffect(() => {
         if (!businessId) return;
@@ -346,12 +338,7 @@ export default function MediaLocations() {
             </Group>
 
             {!isStripeLoading && !isStripeOnboarded && (
-                <Alert icon={<IconAlertTriangle size="1rem" />} title={tMedia('stripe.requiredTitle')} color="orange">
-                    {tMedia('stripe.requiredMessage')}
-                    <Link href="/dashboard/stripe" style={{ color: 'var(--mantine-color-orange-7)', textDecoration: 'underline' }}>
-                        {tMedia('stripe.requiredLink')}
-                    </Link>
-                </Alert>
+                <StripeRequiredAlert status={stripeStatus} />
             )}
 
             <MediaLocationsTable

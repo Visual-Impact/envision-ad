@@ -1,101 +1,106 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { getStripeAccountStatus, createStripeConnection } from '@/features/payment';
+import { useState, useEffect } from 'react';
+import { getStripeAccountStatus, createStripeConnection, type StripeAccountStatus } from '@/features/payment';
 import {
-    Title, Paper, Text, Button, Loader, Alert, Stack, Group, ThemeIcon, rem
+    Title, Paper, Text, Button, Loader, Alert, Stack, Group
 } from '@mantine/core';
-import { IconCheck, IconX, IconAlertTriangle } from '@tabler/icons-react';
+import { IconCheck, IconAlertTriangle, IconClock } from '@tabler/icons-react';
 import { useTranslations } from "next-intl";
 import { useSearchParams } from 'next/navigation';
-import { notifications } from '@mantine/notifications';
 import { useOrganization } from "@/entities/organization";
+import { usePathname, useRouter } from "@/shared/lib/i18n";
 
-interface StripeStatus {
-    connected: boolean;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-    stripeAccountId?: string;
-}
+// After a return from Stripe, keep re-checking while Stripe is still verifying,
+// for up to ~30 seconds. Verification often finishes within that window.
+const POLL_INTERVAL_MS = 3000;
+const POLL_ATTEMPTS = 10;
 
 export default function StripePage() {
     const t = useTranslations('stripe');
     const { organization } = useOrganization();
+    const businessId = organization?.businessId;
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
 
-    const [status, setStatus] = useState<StripeStatus | null>(null);
+    // Read once: the query param is stripped from the URL below, so a reload
+    // doesn't replay the return-from-Stripe flow.
+    const [returnFlow] = useState(() => searchParams?.get('onboarding') ?? null);
+
+    const [status, setStatus] = useState<StripeAccountStatus | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isChecking, setIsChecking] = useState(returnFlow === 'success');
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isConnecting, setIsConnecting] = useState(false);
-
-    const fetchStatus = useCallback(async () => {
-        if (!organization) return;
-        try {
-            setIsLoading(true);
-            const stripeStatus = await getStripeAccountStatus(organization.businessId);
-            setStatus(stripeStatus);
-        } catch (e) {
-            console.error("Failed to fetch Stripe status", e);
-            setError(t('errors.fetchFailed'));
-        } finally {
-            setIsLoading(false);
-        }
-    }, [organization, t]);
+    const [isConnecting, setIsConnecting] = useState(returnFlow === 'refresh');
 
     useEffect(() => {
-        if (!searchParams) return;
+        if (returnFlow) router.replace(pathname);
+    }, [returnFlow, router, pathname]);
 
-        const onboardingStatus = searchParams.get('onboarding');
-        if (onboardingStatus === 'success') {
-            notifications.show({
-                title: t('notifications.success.title'),
-                message: t('notifications.success.message'),
-                color: 'teal',
-                icon: <IconCheck />,
-            });
-            const timer = setTimeout(() => { void fetchStatus(); }, 2000);
-            return () => clearTimeout(timer);
-        } else if (onboardingStatus === 'refresh') {
-            notifications.show({
-                title: t('notifications.refresh.title'),
-                message: t('notifications.refresh.message'),
-                color: 'blue',
-            });
-        }
-    }, [searchParams, t, fetchStatus]);
-
-    // Initial load is inlined (rather than calling `fetchStatus`) so the
-    // effect's own state updates stay local to the effect, with proper
-    // unmount cancellation. `fetchStatus` remains for the onboarding-success
-    // re-check above, which runs from a timer callback, not directly.
+    // The backend asks Stripe directly whenever the account isn't fully
+    // onboarded, so each fetch reflects Stripe's current view of the account.
     useEffect(() => {
-        if (!organization) return;
+        if (!businessId) return;
         let cancelled = false;
+        let timer: ReturnType<typeof setTimeout> | undefined;
 
-        (async () => {
-            setIsLoading(true);
+        const load = async (attempt: number) => {
             try {
-                const stripeStatus = await getStripeAccountStatus(organization.businessId);
-                if (!cancelled) setStatus(stripeStatus);
+                const stripeStatus = await getStripeAccountStatus(businessId);
+                if (cancelled) return;
+                setStatus(stripeStatus);
+                const stillVerifying = stripeStatus.state === 'PENDING_VERIFICATION';
+                if (returnFlow === 'success' && stillVerifying && attempt < POLL_ATTEMPTS) {
+                    timer = setTimeout(() => { void load(attempt + 1); }, POLL_INTERVAL_MS);
+                    return;
+                }
+                setIsChecking(false);
             } catch (e) {
                 console.error("Failed to fetch Stripe status", e);
-                if (!cancelled) setError(t('errors.fetchFailed'));
+                if (cancelled) return;
+                setError(t('errors.fetchFailed'));
+                setIsChecking(false);
             } finally {
                 if (!cancelled) setIsLoading(false);
             }
-        })();
+        };
+        void load(1);
 
         return () => {
             cancelled = true;
+            clearTimeout(timer);
         };
-    }, [organization, t]);
+    }, [businessId, returnFlow, t]);
+
+    // Stripe sends the owner to the refresh URL when an onboarding link has
+    // expired or was already used. Stripe's guidance is to issue a fresh link
+    // and send them straight back, rather than asking them to start over.
+    useEffect(() => {
+        if (returnFlow !== 'refresh' || !businessId) return;
+
+        (async () => {
+            try {
+                const response = await createStripeConnection(businessId);
+                if (response?.onboardingUrl) {
+                    window.location.href = response.onboardingUrl;
+                    return;
+                }
+                setError(t('errors.connectFailed'));
+            } catch (e) {
+                console.error("Failed to reopen Stripe onboarding", e);
+                setError(t('errors.connectFailed'));
+            }
+            setIsConnecting(false);
+        })();
+    }, [returnFlow, businessId, t]);
 
     const handleConnect = async () => {
-        if (!organization) return;
+        if (!businessId) return;
 
         setIsConnecting(true);
         try {
-            const response = await createStripeConnection(organization.businessId);
+            const response = await createStripeConnection(businessId);
             if (response?.onboardingUrl) {
                 window.location.href = response.onboardingUrl;
             } else {
@@ -109,57 +114,100 @@ export default function StripePage() {
         }
     };
 
-    const StatusCheck = ({ label, checked }: { label: string; checked: boolean }) => (
-        <Group>
-            <ThemeIcon color={checked ? 'teal' : 'red'} size={24} radius="xl">
-                {checked
-                    ? <IconCheck style={{ width: rem(16), height: rem(16) }} />
-                    : <IconX style={{ width: rem(16), height: rem(16) }} />}
-            </ThemeIcon>
-            <Text>{label}</Text>
-        </Group>
+    const handleCheckAgain = async () => {
+        if (!businessId) return;
+        setIsRefreshing(true);
+        try {
+            setStatus(await getStripeAccountStatus(businessId));
+            setError(null);
+        } catch (e) {
+            console.error("Failed to fetch Stripe status", e);
+            setError(t('errors.fetchFailed'));
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const renderWaiting = (title: string, description?: string) => (
+        <Paper shadow="sm" radius="lg" p="md">
+            <Group wrap="nowrap" align="flex-start">
+                <Loader size="sm" mt={2} />
+                <Stack gap={4}>
+                    <Text fw={500}>{title}</Text>
+                    {description && <Text size="sm" c="dimmed">{description}</Text>}
+                </Stack>
+            </Group>
+        </Paper>
+    );
+
+    const renderOnboardingPrompt = (title: string, description: string, buttonLabel: string) => (
+        <Paper shadow="sm" radius="lg" p="md">
+            <Stack>
+                <Title order={4}>{title}</Title>
+                <Text c="dimmed">{description}</Text>
+                <Button variant="gradient" onClick={handleConnect} loading={isConnecting} mt="md">
+                    {buttonLabel}
+                </Button>
+            </Stack>
+        </Paper>
     );
 
     const renderStatus = () => {
         if (!status) return <Text>{t('noStatus')}</Text>;
 
-        const isFullyOnboarded = status.connected && status.onboardingComplete && status.chargesEnabled && status.payoutsEnabled;
-
-        if (isFullyOnboarded) {
-            return (
-                <Alert icon={<IconCheck size="1rem" />} title={t('status.connected.title')} color="teal">
-                    <Text>{t('status.connected.description')}</Text>
-                    <Text size="xs" c="dimmed" mt="sm">{t('status.connected.accountId')}: {status.stripeAccountId}</Text>
-                </Alert>
-            );
+        switch (status.state) {
+            case 'COMPLETE':
+                return (
+                    <Alert icon={<IconCheck size="1rem" />} title={t('status.connected.title')} color="teal">
+                        <Text>{t('status.connected.description')}</Text>
+                        <Text size="xs" c="dimmed" mt="sm">{t('status.connected.accountId')}: {status.stripeAccountId}</Text>
+                    </Alert>
+                );
+            case 'PENDING_VERIFICATION':
+                return (
+                    <Alert icon={<IconClock size="1rem" />} title={t('status.pending.title')} color="blue">
+                        <Text>{t('status.pending.description')}</Text>
+                        <Button variant="light" size="xs" mt="md" onClick={handleCheckAgain} loading={isRefreshing}>
+                            {t('buttons.checkAgain')}
+                        </Button>
+                    </Alert>
+                );
+            case 'ACTION_REQUIRED':
+                // Details submitted means Stripe came back with more questions;
+                // otherwise the owner left the form before finishing it.
+                return status.onboardingComplete
+                    ? renderOnboardingPrompt(
+                        t('status.actionRequired.title'),
+                        t('status.actionRequired.description'),
+                        t('buttons.continueOnboarding'))
+                    : renderOnboardingPrompt(
+                        t('status.incomplete.title'),
+                        t('status.incomplete.description'),
+                        t('buttons.continueOnboarding'));
+            default:
+                return renderOnboardingPrompt(
+                    t('status.notConnected.title'),
+                    t('status.notConnected.description'),
+                    t('buttons.connect'));
         }
+    };
 
-        return (
-            <Paper shadow="sm" radius="lg" p="md">
-                <Stack>
-                    <Title order={4}>{t('status.incomplete.title')}</Title>
-                    <Text c="dimmed">{t('status.incomplete.description')}</Text>
-                    <StatusCheck label={t('status.incomplete.checks.onboarding')} checked={status.onboardingComplete} />
-                    <StatusCheck label={t('status.incomplete.checks.charges')} checked={status.chargesEnabled} />
-                    <StatusCheck label={t('status.incomplete.checks.payouts')} checked={status.payoutsEnabled} />
-                    <Button variant="gradient" onClick={handleConnect} loading={isConnecting} mt="md">
-                        {status.connected ? t('buttons.continueOnboarding') : t('buttons.connect')}
-                    </Button>
-                </Stack>
-            </Paper>
-        );
+    const renderBody = () => {
+        if (returnFlow === 'refresh' && isConnecting) return renderWaiting(t('redirecting'));
+        if (isChecking) return renderWaiting(t('status.checking.title'), t('status.checking.description'));
+        if (isLoading) return <Loader />;
+        // Without a status there's nothing to show beneath the error
+        if (error && !status) return null;
+        return renderStatus();
     };
 
     return (
         <Stack gap="lg" p="md">
             <Title order={2}>{t('title')}</Title>
-            {isLoading ? (
-                <Loader />
-            ) : error ? (
+            {error && (
                 <Alert icon={<IconAlertTriangle size="1rem" />} title="Error" color="red">{error}</Alert>
-            ) : (
-                renderStatus()
             )}
+            {renderBody()}
         </Stack>
     );
 }

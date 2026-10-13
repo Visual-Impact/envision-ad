@@ -21,7 +21,9 @@ public interface StripeService {
     // BundleSubscriptionService, which creates its own subscription-mode session.
 
     /**
-     * Get Stripe account status for a business
+     * Get Stripe account status for a business. Besides the stored flags, the map carries
+     * {@code state}, a {@link StripeOnboardingState} name. When the account isn't fully
+     * onboarded, the status is read live from Stripe and any change is stored.
      */
     Map<String, Object> getAccountStatus(Jwt jwt, String businessId);
 

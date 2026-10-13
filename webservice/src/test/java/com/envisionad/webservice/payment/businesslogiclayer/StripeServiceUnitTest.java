@@ -12,6 +12,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.StripeAccount;
 import com.envisionad.webservice.payment.dataaccesslayer.StripeAccountRepository;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.payment.exceptions.StripeAccountNotFoundException;
+import com.stripe.exception.InvalidRequestException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.AccountLink;
@@ -306,16 +307,137 @@ class StripeServiceUnitTest {
                 doNothing().when(jwtUtils).validateUserIsEmployeeOfBusiness(userId, businessId);
                 when(stripeAccountRepository.findByBusinessId(businessId)).thenReturn(Optional.of(account));
 
-                // When
-                Map<String, Object> status = stripeService.getAccountStatus(jwt, businessId);
+                Account remote = remoteAccount(false, false, false, null);
 
-                // Then
-                assertEquals(true, status.get("connected"));
-                assertEquals(false, status.get("onboardingComplete"));
-                assertEquals(false, status.get("chargesEnabled"));
-                assertEquals(false, status.get("payoutsEnabled"));
-                assertEquals(stripeAccountId, status.get("stripeAccountId"));
+                try (MockedStatic<Account> accountMock = mockStatic(Account.class)) {
+                        accountMock.when(() -> Account.retrieve(stripeAccountId)).thenReturn(remote);
+
+                        // When
+                        Map<String, Object> status = stripeService.getAccountStatus(jwt, businessId);
+
+                        // Then
+                        assertEquals(true, status.get("connected"));
+                        assertEquals(false, status.get("onboardingComplete"));
+                        assertEquals(false, status.get("chargesEnabled"));
+                        assertEquals(false, status.get("payoutsEnabled"));
+                        assertEquals(stripeAccountId, status.get("stripeAccountId"));
+                        assertEquals("ACTION_REQUIRED", status.get("state"));
+                        // Nothing changed on Stripe's side, so nothing to store
+                        verify(stripeAccountRepository, never()).save(any(StripeAccount.class));
+                }
         }
+
+        @Test
+        void getAccountStatus_shouldNotCallStripe_whenStoredAccountIsComplete() {
+                StripeAccount account = storedAccount(true, true, true);
+                givenStoredAccount(account);
+
+                try (MockedStatic<Account> accountMock = mockStatic(Account.class)) {
+                        Map<String, Object> status = stripeService.getAccountStatus(jwtFor("user-1"), "biz-1");
+
+                        assertEquals("COMPLETE", status.get("state"));
+                        accountMock.verifyNoInteractions();
+                }
+        }
+
+        @Test
+        void getAccountStatus_shouldReturnNotConnectedState_whenAccountDoesNotExist() {
+                when(jwtUtils.extractUserId(any())).thenReturn("user-1");
+                when(stripeAccountRepository.findByBusinessId("biz-1")).thenReturn(Optional.empty());
+
+                Map<String, Object> status = stripeService.getAccountStatus(jwtFor("user-1"), "biz-1");
+
+                assertEquals("NOT_CONNECTED", status.get("state"));
+        }
+
+        @Test
+        void getAccountStatus_shouldStoreStripesState_whenWebhookHasNotArrived() {
+                // The owner finished onboarding but account.updated never reached us
+                StripeAccount account = storedAccount(false, false, false);
+                givenStoredAccount(account);
+                Account remote = remoteAccount(true, true, true, null);
+
+                try (MockedStatic<Account> accountMock = mockStatic(Account.class)) {
+                        accountMock.when(() -> Account.retrieve("acct_123")).thenReturn(remote);
+
+                        Map<String, Object> status = stripeService.getAccountStatus(jwtFor("user-1"), "biz-1");
+
+                        assertEquals("COMPLETE", status.get("state"));
+                        assertEquals(true, status.get("onboardingComplete"));
+                        assertEquals(true, status.get("chargesEnabled"));
+                        assertEquals(true, status.get("payoutsEnabled"));
+                        verify(stripeAccountRepository).save(account);
+                        assertTrue(account.isOnboardingComplete());
+                        assertTrue(account.isChargesEnabled());
+                        assertTrue(account.isPayoutsEnabled());
+                }
+        }
+
+        @Test
+        void getAccountStatus_shouldReportPendingVerification_whenSubmittedAndNothingDue() {
+                StripeAccount account = storedAccount(false, false, false);
+                givenStoredAccount(account);
+                Account.Requirements requirements = new Account.Requirements();
+                requirements.setCurrentlyDue(List.of());
+                requirements.setPastDue(List.of());
+                requirements.setPendingVerification(List.of("individual.verification.document"));
+                Account remote = remoteAccount(true, false, false, requirements);
+
+                try (MockedStatic<Account> accountMock = mockStatic(Account.class)) {
+                        accountMock.when(() -> Account.retrieve("acct_123")).thenReturn(remote);
+
+                        Map<String, Object> status = stripeService.getAccountStatus(jwtFor("user-1"), "biz-1");
+
+                        assertEquals("PENDING_VERIFICATION", status.get("state"));
+                        assertEquals(true, status.get("onboardingComplete"));
+                        verify(stripeAccountRepository).save(account);
+                }
+        }
+
+        @Test
+        void getAccountStatus_shouldFallBackToStoredFlags_whenStripeIsUnreachable() {
+                StripeAccount account = storedAccount(true, false, false);
+                givenStoredAccount(account);
+
+                try (MockedStatic<Account> accountMock = mockStatic(Account.class)) {
+                        accountMock.when(() -> Account.retrieve("acct_123"))
+                                        .thenThrow(new InvalidRequestException("boom", null, null, null, 500, null));
+
+                        Map<String, Object> status = stripeService.getAccountStatus(jwtFor("user-1"), "biz-1");
+
+                        assertEquals("PENDING_VERIFICATION", status.get("state"));
+                        assertEquals(true, status.get("onboardingComplete"));
+                        assertEquals(false, status.get("payoutsEnabled"));
+                        verify(stripeAccountRepository, never()).save(any(StripeAccount.class));
+                }
+        }
+
+        private StripeAccount storedAccount(boolean onboardingComplete, boolean chargesEnabled, boolean payoutsEnabled) {
+                StripeAccount account = new StripeAccount();
+                account.setBusinessId("biz-1");
+                account.setStripeAccountId("acct_123");
+                account.setOnboardingComplete(onboardingComplete);
+                account.setChargesEnabled(chargesEnabled);
+                account.setPayoutsEnabled(payoutsEnabled);
+                return account;
+        }
+
+        private void givenStoredAccount(StripeAccount account) {
+                when(jwtUtils.extractUserId(any())).thenReturn("user-1");
+                when(stripeAccountRepository.findByBusinessId("biz-1")).thenReturn(Optional.of(account));
+        }
+
+        private Account remoteAccount(boolean detailsSubmitted, boolean chargesEnabled, boolean payoutsEnabled,
+                        Account.Requirements requirements) {
+                Account remote = new Account();
+                remote.setId("acct_123");
+                remote.setDetailsSubmitted(detailsSubmitted);
+                remote.setChargesEnabled(chargesEnabled);
+                remote.setPayoutsEnabled(payoutsEnabled);
+                remote.setRequirements(requirements);
+                return remote;
+        }
+
         // ========== Tests for getDashboardData ==========
 
         private org.springframework.security.oauth2.jwt.Jwt jwtFor(String userId) {
