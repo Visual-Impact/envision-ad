@@ -86,6 +86,8 @@ services:
       EMAIL_SMTP: "${EMAIL_SMTP}"
       EMAIL_USER: "${EMAIL_USER}"
       EMAIL_PASSWORD: "${EMAIL_PASSWORD}"
+      # Must be "Name <address>"; see app.mail.from in application.yml.
+      EMAIL_FROM: "${EMAIL_FROM}"
 #     STRIPE
       STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
       STRIPE_EVENTS_WEBHOOK_SECRET: "${STRIPE_EVENTS_WEBHOOK_SECRET}"

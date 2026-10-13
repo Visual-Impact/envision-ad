@@ -20,7 +20,7 @@ class EmailServiceTest {
 
     private EmailService emailService;
 
-    private static final String FROM_EMAIL = "Envision Ad <noreply@envision-ad.ca>";
+    private static final String FROM_EMAIL = "Envision Ad <no-reply@envision-ad.ca>";
     private static final String TO_EMAIL = "recipient@example.com";
     private static final String SUBJECT = "Test Subject";
     private static final String BODY = "Test email body content";
