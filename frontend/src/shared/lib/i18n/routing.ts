@@ -60,10 +60,6 @@ export const routing = defineRouting({
       'en': '/dashboard/advertiser/metrics',
       'fr': '/tableau-de-bord/annonceur/metriques'
     },
-    '/dashboard/advertiser/overview': {
-      'en': '/dashboard/advertiser/overview',
-      'fr': '/tableau-de-bord/annonceur/apercu'
-    },
     '/dashboard/advertiser/campaigns': {
       'en': '/dashboard/advertiser/campaigns',
       'fr': '/tableau-de-bord/annonceur/campagnes'
