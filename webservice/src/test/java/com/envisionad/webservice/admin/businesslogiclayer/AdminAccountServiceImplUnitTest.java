@@ -409,6 +409,7 @@ class AdminAccountServiceImplUnitTest {
         assertEquals(1, result.getContent().size());
         assertEquals(EMAIL, result.getContent().get(0).getOwnerEmail());
         verify(auth0Service, never()).getUserEmailByUserId(anyString());
+        verify(auth0Service, never()).getUserContactByUserId(anyString());
     }
 
     @Test
