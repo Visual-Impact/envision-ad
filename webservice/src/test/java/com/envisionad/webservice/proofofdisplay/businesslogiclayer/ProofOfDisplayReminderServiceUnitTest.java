@@ -151,11 +151,13 @@ class ProofOfDisplayReminderServiceUnitTest {
     // ---------- advertisers ----------
 
     @Test
-    void advertiserReminder_isOneEmailPerAdvertiser_pointingAtTheirSubscriptionsPage() {
+    void advertiserReminder_isOneEmailPerAdvertiser_listingEachSubscriptionsProofLink() {
         givenBusiness("owner-a", "Screens Inc", "owner@screens.test");
+        givenBusiness("owner-b", "Panneaux Rive-Sud", "rivesud@screens.test");
         givenBusiness("adv-1", "Lotus Yoga", "lotus@yoga.test");
-        givenLiveSubscription("adv-1", "owner-a");
-        givenLiveSubscription("adv-1", "owner-a");
+        String withLink = givenLiveSubscription("adv-1", "owner-a");
+        givenLiveSubscription("adv-1", "owner-b");
+        givenLink(withLink, "https://www.canva.com/lotus");
 
         MediaOwnerNotifier.Outcome outcome = service.sendAdvertiserReminders();
 
@@ -163,8 +165,29 @@ class ProofOfDisplayReminderServiceUnitTest {
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(emailService, times(1)).sendSimpleEmail(eq("lotus@yoga.test"),
                 eq("Your monthly proof of display is ready to check"), body.capture());
-        assertTrue(body.getValue().contains(BASE_URL + "/dashboard/advertiser/subscriptions"));
+        String text = body.getValue();
+        // The proof opens straight from the email, no login needed.
+        assertTrue(text.contains("- Brossard Bundle (Screens Inc): https://www.canva.com/lotus\n"), text);
+        assertTrue(text.contains("- Brossard Bundle (Panneaux Rive-Sud): no link yet, "
+                + "your media owner has been reminded to add one\n"), text);
+        assertTrue(text.indexOf("(Panneaux Rive-Sud)") < text.indexOf("(Screens Inc)"), "sorted: " + text);
+        assertTrue(text.contains(BASE_URL + "/dashboard/advertiser/subscriptions"), text);
         verify(emailService, never()).sendSimpleEmail(eq("owner@screens.test"), anyString(), anyString());
+        verify(emailService, never()).sendSimpleEmail(eq("rivesud@screens.test"), anyString(), anyString());
+    }
+
+    @Test
+    void advertiserReminder_fallsBackWhenTheOwnerOrBundleIsGone() {
+        givenBusiness("adv-1", "Lotus Yoga", "lotus@yoga.test");
+        givenLiveSubscription("adv-1", "deleted-owner");
+        when(bundleRepository.findByBundleId(anyString())).thenReturn(Optional.empty());
+
+        service.sendAdvertiserReminders();
+
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("lotus@yoga.test"), anyString(), body.capture());
+        assertTrue(body.getValue().contains("- a bundle (your media owner): no link yet"), body.getValue());
+        assertFalse(body.getValue().contains("null"));
     }
 
     @Test

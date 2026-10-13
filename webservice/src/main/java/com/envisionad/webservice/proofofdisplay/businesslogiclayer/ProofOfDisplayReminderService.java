@@ -85,10 +85,7 @@ public class ProofOfDisplayReminderService {
             return new Outcome(0, 0);
         }
 
-        Map<String, ProofOfDisplayLink> links = linkRepository.findBySubscriptionIdIn(
-                        eligible.stream().map(e -> e.subscription().getSubscriptionId()).toList())
-                .stream()
-                .collect(Collectors.toMap(ProofOfDisplayLink::getSubscriptionId, Function.identity()));
+        Map<String, ProofOfDisplayLink> links = linksBySubscription(eligible);
         Map<String, String> advertiserNames = businessNames(
                 eligible.stream().map(e -> e.subscription().getAdvertiserBusinessId()).distinct().toList());
         Map<String, String> bundleNames = new HashMap<>();
@@ -130,32 +127,61 @@ public class ProofOfDisplayReminderService {
     }
 
     /**
-     * FR-4.2: one email per advertiser business with at least one eligible subscription, pointing
-     * them at their Subscriptions page. It doesn't list link status: the advertiser can't act on a
-     * missing link anyway.
+     * FR-4.2: one email per advertiser business with at least one eligible subscription, listing
+     * each of them with its proof-of-display link, so the advertiser can open the proof straight
+     * from the email without logging in. A subscription whose owner hasn't added a link yet is
+     * listed as such (the owner was reminded the day before); the Subscriptions page link stays
+     * at the bottom as the place to see them all.
      */
     @Transactional(readOnly = true)
     public Outcome sendAdvertiserReminders() {
-        List<String> advertiserIds = findEligibleSubscriptions().stream()
-                .map(e -> e.subscription().getAdvertiserBusinessId())
-                .distinct()
-                .toList();
-        if (advertiserIds.isEmpty()) {
+        List<Eligible> eligible = findEligibleSubscriptions();
+        if (eligible.isEmpty()) {
             return new Outcome(0, 0);
         }
 
-        String body = "Hi there,\n\n"
-                + "Your media owners keep a proof-of-display page for your subscriptions, showing your ad on "
-                + "their screens. This month's is ready to check on your Subscriptions page:\n"
-                + appBaseUrl + "/dashboard/advertiser/subscriptions\n\n"
-                + "Thanks,\n— The Envision Ad Team";
-        List<OwnerMessage> messages = advertiserIds.stream()
-                .map(id -> new OwnerMessage(id, "Your monthly proof of display is ready to check", body))
-                .toList();
+        Map<String, ProofOfDisplayLink> links = linksBySubscription(eligible);
+        Map<String, String> ownerNames = businessNames(
+                eligible.stream().map(Eligible::ownerBusinessId).distinct().toList());
+        Map<String, String> bundleNames = new HashMap<>();
+
+        Map<String, List<Eligible>> byAdvertiser = eligible.stream()
+                .collect(Collectors.groupingBy(e -> e.subscription().getAdvertiserBusinessId(),
+                        LinkedHashMap::new, Collectors.toList()));
+
+        List<OwnerMessage> messages = new ArrayList<>();
+        byAdvertiser.forEach((advertiserBusinessId, subscriptions) -> {
+            StringBuilder body = new StringBuilder("Hi there,\n\n")
+                    .append("Your media owners keep a proof-of-display page for each of your subscriptions, ")
+                    .append("showing your ad on their screens. Here is this month's:\n\n");
+            subscriptions.stream()
+                    .map(e -> {
+                        BundleSubscription subscription = e.subscription();
+                        ProofOfDisplayLink link = links.get(subscription.getSubscriptionId());
+                        return "- " + bundleNames.computeIfAbsent(subscription.getBundleId(), this::bundleName)
+                                + " (" + ownerNames.getOrDefault(e.ownerBusinessId(), "your media owner") + "): "
+                                + (link == null ? "no link yet, your media owner has been reminded to add one"
+                                        : link.getUrl());
+                    })
+                    .sorted()
+                    .forEach(line -> body.append(line).append("\n"));
+            body.append("\nYou can also see them all on your Subscriptions page:\n")
+                    .append(appBaseUrl).append("/dashboard/advertiser/subscriptions\n\n")
+                    .append("Thanks,\n— The Envision Ad Team");
+            messages.add(new OwnerMessage(advertiserBusinessId, "Your monthly proof of display is ready to check",
+                    body.toString()));
+        });
 
         Outcome outcome = notifier.send(messages);
         log.info("Proof-of-display advertiser reminders: {} sent, {} failed", outcome.notified(), outcome.failed());
         return outcome;
+    }
+
+    private Map<String, ProofOfDisplayLink> linksBySubscription(List<Eligible> eligible) {
+        return linkRepository.findBySubscriptionIdIn(
+                        eligible.stream().map(e -> e.subscription().getSubscriptionId()).toList())
+                .stream()
+                .collect(Collectors.toMap(ProofOfDisplayLink::getSubscriptionId, Function.identity()));
     }
 
     /** ACTIVE or PAST_DUE, and every screen belongs to one media-owner business. */
