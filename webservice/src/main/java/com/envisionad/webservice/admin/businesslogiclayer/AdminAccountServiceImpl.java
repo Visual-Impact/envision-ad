@@ -28,6 +28,7 @@ import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionItemR
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.venue.dataaccesslayer.VenueRepository;
 import com.envisionad.webservice.venue.exceptions.VenueNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -65,13 +67,14 @@ public class AdminAccountServiceImpl implements AdminAccountService {
     private final BusinessMapper businessMapper;
     private final Auth0Service auth0Service;
     private final EmailService emailService;
+    private final EmailTexts emailTexts;
     private final VenueRepository venueRepository;
 
     public AdminAccountServiceImpl(BusinessRepository businessRepository, EmployeeRepository employeeRepository,
             BundleSubscriptionRepository bundleSubscriptionRepository,
             BundleSubscriptionItemRepository bundleSubscriptionItemRepository,
             BusinessMapper businessMapper, Auth0Service auth0Service, EmailService emailService,
-            VenueRepository venueRepository) {
+            EmailTexts emailTexts, VenueRepository venueRepository) {
         this.businessRepository = businessRepository;
         this.employeeRepository = employeeRepository;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
@@ -79,6 +82,7 @@ public class AdminAccountServiceImpl implements AdminAccountService {
         this.businessMapper = businessMapper;
         this.auth0Service = auth0Service;
         this.emailService = emailService;
+        this.emailTexts = emailTexts;
         this.venueRepository = venueRepository;
     }
 
@@ -144,15 +148,12 @@ public class AdminAccountServiceImpl implements AdminAccountService {
             throw new BusinessNotFoundException(businessId);
 
         String ticketUrl = auth0Service.createPasswordChangeTicket(business.getOwnerId(), appBaseUrl + "/auth/login");
-        String email = auth0Service.getUserEmailByUserId(business.getOwnerId());
+        Auth0Service.UserContact owner = auth0Service.getUserContactByUserId(business.getOwnerId());
 
-        String subject = "Your Envision Ad account is ready";
-        String body = "Hi there,\n\n"
-                + "Here's a fresh link to set your password for " + business.getName() + " on Envision Ad:\n"
-                + ticketUrl + "\n\n"
-                + "Once set, log in here:\n" + appBaseUrl + "/auth/login\n\n"
-                + "— The Envision Ad Team";
-        emailService.sendSimpleEmail(email, subject, body);
+        Locale locale = EmailTexts.localeFor(owner.preferredLanguage());
+        emailService.sendSimpleEmail(owner.email(),
+                emailTexts.get("account.ready.subject", locale),
+                emailTexts.get("account.resend.body", locale, business.getName(), ticketUrl, appBaseUrl + "/auth/login"));
     }
 
     @Override
@@ -400,13 +401,15 @@ public class AdminAccountServiceImpl implements AdminAccountService {
             return;
         }
         try {
-            String subject = "Your Envision Ad account is ready";
-            String body = "Hi " + (name != null && !name.isBlank() ? name : "there") + ",\n\n"
-                    + "An Envision Ad account has been created for " + businessName + ".\n\n"
-                    + "Set your password to get started:\n" + ticketUrl + "\n\n"
-                    + "Once set, log in here:\n" + appBaseUrl + "/auth/login\n\n"
-                    + "— The Envision Ad Team";
-            emailService.sendSimpleEmail(email, subject, body);
+            // A brand-new account has no language picked yet, so this goes out in the default.
+            Locale locale = EmailTexts.DEFAULT_LOCALE;
+            String greeting = name != null && !name.isBlank()
+                    ? emailTexts.get("greeting.named", locale, name)
+                    : emailTexts.get("greeting.anonymous", locale);
+            emailService.sendSimpleEmail(email,
+                    emailTexts.get("account.ready.subject", locale),
+                    emailTexts.get("account.created.body", locale,
+                            greeting, businessName, ticketUrl, appBaseUrl + "/auth/login"));
         } catch (RuntimeException e) {
             log.warn("Welcome email failed to send to {}", email, e);
             warnings.add("Welcome email may not have sent. Use Resend Credentials to retry.");

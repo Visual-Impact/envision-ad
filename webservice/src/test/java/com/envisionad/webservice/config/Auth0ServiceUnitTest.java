@@ -324,7 +324,7 @@ class Auth0ServiceUnitTest {
                 .pathSegment("api", "v2", "users")
                 .queryParam("q", query)
                 .queryParam("search_engine", "v3")
-                .queryParam("fields", "user_id,email")
+                .queryParam("fields", "user_id,email,user_metadata")
                 .queryParam("include_fields", "true")
                 .queryParam("per_page", 50)
                 .build()
@@ -395,6 +395,38 @@ class Auth0ServiceUnitTest {
         )).thenThrow(new ResourceAccessException("Connection refused"));
 
         assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.findEmailsByUserIds(requested));
+    }
+
+    @Test
+    void whenFindContactsByUserIds_thenReadsThePreferredLanguageFromTheSameCall() {
+        List<String> requested = List.of(USER_ID, "auth0|nolanguage", "auth0|nometadata");
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(usersSearchUri(requested)), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(
+                Map.of("user_id", USER_ID, "email", USER_EMAIL,
+                        "user_metadata", Map.of("preferred_language", "en")),
+                Map.of("user_id", "auth0|nolanguage", "email", "b@example.com", "user_metadata", Map.of()),
+                Map.of("user_id", "auth0|nometadata", "email", "c@example.com")), HttpStatus.OK));
+
+        Map<String, Auth0Service.UserContact> result = auth0Service.findContactsByUserIds(requested);
+
+        assertEquals(new Auth0Service.UserContact(USER_EMAIL, "en"), result.get(USER_ID));
+        assertEquals(new Auth0Service.UserContact("b@example.com", null), result.get("auth0|nolanguage"));
+        assertEquals(new Auth0Service.UserContact("c@example.com", null), result.get("auth0|nometadata"));
+    }
+
+    @Test
+    void whenGetUserContactByUserId_thenReturnsEmailAndPreferredLanguage() {
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                eq(userUri()), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<Map<String, Object>>>any()
+        )).thenReturn(new ResponseEntity<>(Map.of("email", USER_EMAIL, "user_id", USER_ID,
+                "user_metadata", Map.of("preferred_language", "fr")), HttpStatus.OK));
+
+        assertEquals(new Auth0Service.UserContact(USER_EMAIL, "fr"), auth0Service.getUserContactByUserId(USER_ID));
     }
 
     // =========================================================================

@@ -20,6 +20,8 @@ import com.envisionad.webservice.business.exceptions.BusinessNotVerifiedExceptio
 import com.envisionad.webservice.media.DataAccessLayer.Media;
 import com.envisionad.webservice.media.DataAccessLayer.MediaRepository;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
+import com.envisionad.webservice.utils.EmailContent;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPaidException;
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
@@ -49,10 +51,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -87,6 +91,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
     private final BundleSubscriptionResponseMapper responseMapper;
     private final JwtUtils jwtUtils;
     private final MediaOwnerNotifier mediaOwnerNotifier;
+    private final EmailTexts emailTexts;
     private final ActiveCampaignService activeCampaignService;
     private final CouponRepository couponRepository;
     private final ProofOfDisplayLinkService proofOfDisplayLinkService;
@@ -103,6 +108,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
             BundleSubscriptionResponseMapper responseMapper,
             JwtUtils jwtUtils,
             MediaOwnerNotifier mediaOwnerNotifier,
+            EmailTexts emailTexts,
             ActiveCampaignService activeCampaignService,
             CouponRepository couponRepository,
             ProofOfDisplayLinkService proofOfDisplayLinkService) {
@@ -118,6 +124,7 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         this.responseMapper = responseMapper;
         this.jwtUtils = jwtUtils;
         this.mediaOwnerNotifier = mediaOwnerNotifier;
+        this.emailTexts = emailTexts;
         this.activeCampaignService = activeCampaignService;
         this.couponRepository = couponRepository;
         this.proofOfDisplayLinkService = proofOfDisplayLinkService;
@@ -563,9 +570,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                 advertiserBusiness != null ? advertiserBusiness.getName() : subscription.getAdvertiserBusinessId();
 
         Bundle bundle = bundleRepository.findByBundleId(subscription.getBundleId()).orElse(null);
-        String bundleName = bundle != null ? bundle.getNameEn() : subscription.getBundleId();
-
-        String subject = "New creatives for your Envision Ad screens — " + advertiserName;
+        Function<Locale, String> bundleName = locale -> bundle == null ? subscription.getBundleId()
+                : Locale.ENGLISH.equals(locale) ? bundle.getNameEn() : bundle.getNameFr();
 
         List<BundleSubscriptionItem> items =
                 bundleSubscriptionItemRepository.findAllBySubscriptionId(subscriptionId);
@@ -586,9 +592,8 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
                         .map(BundleSubscriptionItem::getMonthlyAmount)
                         .reduce(BigDecimal.ZERO, BigDecimal::add)
                         .setScale(MONEY_SCALE, RoundingMode.HALF_UP);
-                String body = buildNewSubscriptionEmailBody(
-                        advertiserName, bundleName, campaign, ownerMedias, ownerMonthlyTotal);
-                messages.add(new MediaOwnerNotifier.OwnerMessage(ownerBusinessId, subject, body));
+                messages.add(new MediaOwnerNotifier.OwnerMessage(ownerBusinessId, locale -> buildNewSubscriptionEmail(
+                        advertiserName, bundleName.apply(locale), campaign, ownerMedias, ownerMonthlyTotal, locale)));
             } catch (Exception e) {
                 // A lookup failure while composing one owner's email must not cost the others
                 // theirs, and must never propagate into the caller's webhook transaction.
@@ -602,37 +607,32 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         mediaOwnerNotifier.send(messages);
     }
 
-    private String buildNewSubscriptionEmailBody(
+    private EmailContent buildNewSubscriptionEmail(
             String advertiserName,
             String bundleName,
             AdCampaign campaign,
             List<Media> ownerMedias,
-            BigDecimal ownerMonthlyTotal) {
-        StringBuilder body = new StringBuilder();
-        body.append("Hi there,\n\n");
-        body.append(advertiserName)
-                .append(" just subscribed to the \"")
-                .append(bundleName)
-                .append("\" bundle, which includes the following of your screens:\n\n");
+            BigDecimal ownerMonthlyTotal,
+            Locale locale) {
+        StringBuilder screens = new StringBuilder();
         for (Media media : ownerMedias) {
-            body.append("- ").append(media.getTitle());
+            screens.append("- ").append(media.getTitle());
             if (media.getMediaLocation() != null) {
-                body.append(" (")
+                screens.append(" (")
                         .append(media.getMediaLocation().getName())
                         .append(", ")
                         .append(media.getMediaLocation().getCity())
                         .append(")");
             }
-            body.append("\n");
+            screens.append("\n");
         }
-        body.append("\nYou'll earn $").append(ownerMonthlyTotal).append("/month from this subscription.\n");
-        body.append("\nCampaign: ").append(campaign.getName()).append("\n\n");
-        body.append("Please update your display(s) with the following creatives:\n\n");
+        StringBuilder creatives = new StringBuilder();
         for (Ad ad : campaign.getAds()) {
-            body.append("- ").append(ad.getName()).append(": ").append(ad.getAdUrl()).append("\n");
+            creatives.append("- ").append(ad.getName()).append(": ").append(ad.getAdUrl()).append("\n");
         }
-        body.append("\nThanks for partnering with Envision Ad!\n");
-        body.append("— The Envision Ad Team");
-        return body.toString();
+        return new EmailContent(
+                emailTexts.get("creatives.subject", locale, advertiserName),
+                emailTexts.get("creatives.subscription.body", locale, advertiserName, bundleName, screens.toString(),
+                        emailTexts.money(ownerMonthlyTotal, locale), campaign.getName(), creatives.toString()));
     }
 }

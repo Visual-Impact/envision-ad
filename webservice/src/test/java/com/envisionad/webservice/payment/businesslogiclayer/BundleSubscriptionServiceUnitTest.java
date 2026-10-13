@@ -24,6 +24,7 @@ import com.envisionad.webservice.payment.exceptions.BundleSubscriptionAlreadyPai
 import com.envisionad.webservice.payment.exceptions.BundleSubscriptionNotFoundException;
 import com.envisionad.webservice.payment.exceptions.InvalidCouponException;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.JwtUtils;
 import com.envisionad.webservice.utils.MediaOwnerNotifier;
 import com.stripe.exception.StripeException;
@@ -107,7 +108,7 @@ class BundleSubscriptionServiceUnitTest {
         service = new BundleSubscriptionServiceImpl(bundleService, pricingService, adCampaignRepository,
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
                 bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
-                jwtUtils, new MediaOwnerNotifier(employeeRepository, auth0Service, emailService),
+                jwtUtils, new MediaOwnerNotifier(employeeRepository, auth0Service, emailService), new EmailTexts(),
                 activeCampaignService, couponRepository, proofOfDisplayLinkService);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
@@ -914,6 +915,42 @@ class BundleSubscriptionServiceUnitTest {
     }
 
     @Test
+    void notifyMediaOwners_writesEachOwnerInTheirOwnLanguage() {
+        givenNotifiableSubscription();
+        Media ownerAScreen = givenMediaWithLocation(ownerA, "Downtown Billboard", "Complexe Desjardins", "Montreal");
+        Media ownerBScreen = givenMediaWithLocation(ownerB, "Highway Sign", "Autoroute 15", "Laval");
+        when(bundleSubscriptionItemRepository.findAllBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(List.of(
+                givenSubscriptionItem(ownerAScreen.getId(), ownerA),
+                givenSubscriptionItem(ownerBScreen.getId(), ownerB)));
+        when(mediaRepository.findAllByIdWithLocation(List.of(ownerAScreen.getId())))
+                .thenReturn(List.of(ownerAScreen));
+        when(mediaRepository.findAllByIdWithLocation(List.of(ownerBScreen.getId())))
+                .thenReturn(List.of(ownerBScreen));
+        givenResolvableOwnerEmail(ownerA.toString(), "auth0|ownerA", "ownerA@example.com", "en");
+        // Never touched the language picker: gets the default, French.
+        givenResolvableOwnerEmail(ownerB.toString(), "auth0|ownerB", "ownerB@example.com", null);
+
+        service.notifyMediaOwnersOfNewSubscription(NOTIFY_SUB_ID);
+
+        ArgumentCaptor<String> ownerABody = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> ownerBSubject = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> ownerBBody = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(eq("ownerA@example.com"),
+                eq("New creatives for your Envision Ad screens — Acme Co"), ownerABody.capture());
+        verify(emailService).sendSimpleEmail(eq("ownerB@example.com"), ownerBSubject.capture(), ownerBBody.capture());
+
+        assertTrue(ownerABody.getValue().contains("just subscribed to the \"Full Network\" bundle"), ownerABody.getValue());
+        assertEquals("Nouveaux créatifs pour vos écrans Envision Ad — Acme Co", ownerBSubject.getValue());
+        String french = ownerBBody.getValue();
+        assertTrue(french.contains("Acme Co vient de s'abonner au forfait « Réseau complet »"),
+                "French email names the bundle by its French name: " + french);
+        assertTrue(french.contains("- Highway Sign (Autoroute 15, Laval)"), french);
+        assertTrue(french.contains("Vous toucherez 4,00 $ par mois"), french);
+        assertTrue(french.contains("- Billboard Creative: https://cdn.example.com/ad.jpg"), french);
+        assertFalse(french.contains("You'll earn"), french);
+    }
+
+    @Test
     void notifyMediaOwners_unknownSubscription_isANoOp() {
         when(bundleSubscriptionRepository.findBySubscriptionId(NOTIFY_SUB_ID)).thenReturn(Optional.empty());
 
@@ -1041,11 +1078,17 @@ class BundleSubscriptionServiceUnitTest {
      * whole answer each time — stubbing per business would leave only the last owner resolvable.
      */
     private final Map<String, String> ownerUserIds = new LinkedHashMap<>();
-    private final Map<String, String> ownerEmailsByUserId = new LinkedHashMap<>();
+    private final Map<String, Auth0Service.UserContact> ownerContactsByUserId = new LinkedHashMap<>();
 
+    /** An owner who picked English in the app, so the email text matches the pre-i18n English. */
     private void givenResolvableOwnerEmail(String ownerBusinessId, String userId, String email) {
+        givenResolvableOwnerEmail(ownerBusinessId, userId, email, "en");
+    }
+
+    private void givenResolvableOwnerEmail(String ownerBusinessId, String userId, String email,
+                                           String preferredLanguage) {
         ownerUserIds.put(ownerBusinessId, userId);
-        ownerEmailsByUserId.put(userId, email);
+        ownerContactsByUserId.put(userId, new Auth0Service.UserContact(email, preferredLanguage));
 
         List<Employee> employees = ownerUserIds.entrySet().stream()
                 .map(entry -> {
@@ -1058,7 +1101,7 @@ class BundleSubscriptionServiceUnitTest {
 
         when(employeeRepository.findAllByBusinessId_BusinessIdInOrderById(anyCollection()))
                 .thenReturn(employees);
-        when(auth0Service.findEmailsByUserIds(anyList()))
-                .thenReturn(Map.copyOf(ownerEmailsByUserId));
+        when(auth0Service.findContactsByUserIds(anyList()))
+                .thenReturn(Map.copyOf(ownerContactsByUserId));
     }
 }

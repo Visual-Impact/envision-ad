@@ -9,12 +9,14 @@ import com.envisionad.webservice.business.mappinglayer.VerificationMapper;
 import com.envisionad.webservice.business.presentationlayer.models.BusinessRequestModel;
 import com.envisionad.webservice.business.presentationlayer.models.InvitationRequestModel;
 import com.envisionad.webservice.utils.EmailService;
+import com.envisionad.webservice.utils.EmailTexts;
 import com.envisionad.webservice.utils.JwtUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -37,6 +39,9 @@ class BusinessServiceUnitTest {
 
     @Mock
     private EmailService emailService;
+
+    @Spy
+    private EmailTexts emailTexts = new EmailTexts();
 
     @Mock
     private BusinessMapper businessMapper;
@@ -341,7 +346,12 @@ class BusinessServiceUnitTest {
                 result.getStatus());
         assertEquals("auth0|brandnew", result.getEmployee().getUserId());
         verify(invitationRepository).delete(invitation);
-        verify(emailService).sendSimpleEmail(org.mockito.ArgumentMatchers.eq(TEST_EMAIL), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+        // A brand-new account has no language picked yet, so the email goes out in the default, French.
+        org.mockito.ArgumentCaptor<String> body = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendSimpleEmail(org.mockito.ArgumentMatchers.eq(TEST_EMAIL),
+                org.mockito.ArgumentMatchers.eq("Votre compte Envision Ad est prêt"), body.capture());
+        assertTrue(body.getValue().startsWith("Bonjour Jane Doe,"), body.getValue());
+        assertTrue(body.getValue().contains("https://auth0.example.com/ticket/xyz"), body.getValue());
         // createBusiness(true) is media-owner-only — the new employee should get exactly
         // MEDIA_OWNER, matching the business's own roles (colleagues share the business's
         // role flags; there's no per-employee role selection in this data model).
