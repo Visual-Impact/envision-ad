@@ -14,6 +14,8 @@ import com.envisionad.webservice.config.BaseIntegrationTest;
 import com.envisionad.webservice.media.DataAccessLayer.*;
 import com.envisionad.webservice.payment.dataaccesslayer.*;
 import com.envisionad.webservice.payment.presentationlayer.models.BundleSubscriptionRequestModel;
+import com.envisionad.webservice.proofofdisplay.dataaccesslayer.ProofOfDisplayLink;
+import com.envisionad.webservice.proofofdisplay.dataaccesslayer.ProofOfDisplayLinkRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,12 +70,16 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
     @Autowired
     private BusinessRepository businessRepository;
 
+    @Autowired
+    private ProofOfDisplayLinkRepository proofOfDisplayLinkRepository;
+
     private String businessId;
     private Bundle bundle;
     private AdCampaign campaign;
 
     @BeforeEach
     void setUp() {
+        proofOfDisplayLinkRepository.deleteAll();
         subscriptionItemRepository.deleteAll();
         subscriptionRepository.deleteAll();
         bundleRepository.deleteAll();
@@ -414,65 +420,33 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
                         "anonymous callers must be rejected, got " + status));
     }
 
-    // ---------- live campaigns for proof of display (D40) ----------
+    // ---------- proof-of-display link on each row (P12) ----------
 
     @Test
-    void liveCampaigns_returnsCampaignsRunningOnTheOwnersScreen() {
-        UUID mediaId = givenMediaOwnedBy(businessId);
-        BundleSubscription subscription =
-                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
-        givenSubscriptionItem(subscription.getSubscriptionId(), mediaId);
-
-        getLiveCampaigns(mediaId.toString())
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.length()").isEqualTo(1)
-                .jsonPath("$[0].campaignId").isEqualTo(campaign.getCampaignId().getCampaignId());
-    }
-
-    /** PAST_DUE still counts as running — the screens keep playing until cancellation (D40). */
-    @Test
-    void liveCampaigns_includesPastDueSubscriptions() {
-        UUID mediaId = givenMediaOwnedBy(businessId);
-        BundleSubscription subscription =
-                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.PAST_DUE);
-        givenSubscriptionItem(subscription.getSubscriptionId(), mediaId);
-
-        getLiveCampaigns(mediaId.toString())
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.length()").isEqualTo(1);
-    }
-
-    @Test
-    void liveCampaigns_excludesCanceledAndIncompleteSubscriptions() {
-        UUID mediaId = givenMediaOwnedBy(businessId);
-        BundleSubscription canceled =
-                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.CANCELED);
-        givenSubscriptionItem(canceled.getSubscriptionId(), mediaId);
-        Bundle other = givenBundle(true);
-        BundleSubscription incomplete =
-                givenSubscription(other.getBundleId(), businessId, BundleSubscriptionStatus.INCOMPLETE);
-        givenSubscriptionItem(incomplete.getSubscriptionId(), mediaId);
-
-        getLiveCampaigns(mediaId.toString())
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.length()").isEqualTo(0);
-    }
-
-    @Test
-    void liveCampaigns_forAScreenOwnedByAnotherBusiness_returnsForbidden() {
+    void listSubscriptions_carriesEachRowsProofLink() {
         UUID mediaId = givenMediaOwnedBy(UUID.randomUUID().toString());
+        BundleSubscription withLink =
+                givenSubscription(bundle.getBundleId(), businessId, BundleSubscriptionStatus.ACTIVE);
+        givenSubscriptionItem(withLink.getSubscriptionId(), mediaId);
+        ProofOfDisplayLink link = new ProofOfDisplayLink();
+        link.setSubscriptionId(withLink.getSubscriptionId());
+        link.setUrl("https://www.canva.com/proof");
+        link.setUpdatedAt(java.time.LocalDateTime.now());
+        proofOfDisplayLinkRepository.save(link);
 
-        getLiveCampaigns(mediaId.toString())
-                .expectStatus().isForbidden();
-    }
+        BundleSubscription withoutLink =
+                givenSubscription(givenBundle(true).getBundleId(), businessId, BundleSubscriptionStatus.CANCELED);
+        givenSubscriptionItem(withoutLink.getSubscriptionId(), mediaId);
 
-    @Test
-    void liveCampaigns_forAnUnknownScreen_returnsNotFound() {
-        getLiveCampaigns(UUID.randomUUID().toString())
-                .expectStatus().isNotFound();
+        getSubscriptions(businessId)
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$[?(@.subscriptionId == '" + withLink.getSubscriptionId() + "')].proofLink.status")
+                .isEqualTo("SET")
+                .jsonPath("$[?(@.subscriptionId == '" + withLink.getSubscriptionId() + "')].proofLink.url")
+                .isEqualTo("https://www.canva.com/proof")
+                .jsonPath("$[?(@.subscriptionId == '" + withoutLink.getSubscriptionId() + "')].proofLink.status")
+                .isEqualTo("NOT_SET");
     }
 
     // ---------- fixtures ----------
@@ -579,15 +553,6 @@ class BundleSubscriptionControllerIntegrationTest extends BaseIntegrationTest {
             String forBusinessId) {
         return webTestClient.get()
                 .uri(uriBuilder -> uriBuilder.path(BASE_URI).queryParam("businessId", forBusinessId).build())
-                .headers(headers -> headers.setBearerAuth(TOKEN))
-                .exchange();
-    }
-
-    private org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec getLiveCampaigns(
-            String mediaId) {
-        return webTestClient.get()
-                .uri(uriBuilder -> uriBuilder.path(BASE_URI + "/live-campaigns")
-                        .queryParam("mediaId", mediaId).build())
                 .headers(headers -> headers.setBearerAuth(TOKEN))
                 .exchange();
     }

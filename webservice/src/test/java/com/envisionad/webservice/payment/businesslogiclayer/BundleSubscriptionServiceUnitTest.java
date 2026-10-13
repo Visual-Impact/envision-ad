@@ -34,6 +34,7 @@ import com.stripe.net.RequestOptions;
 import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.SubscriptionUpdateParams;
 import com.stripe.param.checkout.SessionCreateParams;
+import com.envisionad.webservice.proofofdisplay.businesslogiclayer.ProofOfDisplayLinkService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -90,6 +91,7 @@ class BundleSubscriptionServiceUnitTest {
     @Mock private EmailService emailService;
     @Mock private CouponRepository couponRepository;
     @Mock private ActiveCampaignService activeCampaignService;
+    @Mock private ProofOfDisplayLinkService proofOfDisplayLinkService;
 
     private Jwt jwt;
     private Media montrealScreen;
@@ -106,7 +108,7 @@ class BundleSubscriptionServiceUnitTest {
                 businessRepository, stripeCustomerRepository, bundleSubscriptionRepository,
                 bundleSubscriptionItemRepository, bundleRepository, mediaRepository, responseMapper,
                 jwtUtils, new MediaOwnerNotifier(employeeRepository, auth0Service, emailService),
-                activeCampaignService, couponRepository);
+                activeCampaignService, couponRepository, proofOfDisplayLinkService);
 
         jwt = Jwt.withTokenValue("token").header("alg", "none").claim("sub", "auth0|user").build();
 

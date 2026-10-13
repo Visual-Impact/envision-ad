@@ -3,5 +3,6 @@ export type {
     BundleSubscriptionRequestDTO,
     BundleSubscriptionCheckout,
     BundleSubscription,
-    LiveCampaign,
+    ProofLink,
+    ProofLinkStatus,
 } from './model/bundleSubscription';

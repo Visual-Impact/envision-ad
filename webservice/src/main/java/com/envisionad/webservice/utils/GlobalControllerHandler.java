@@ -26,8 +26,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.envisionad.webservice.media.exceptions.MediaNotFoundException;
 import com.envisionad.webservice.media.exceptions.MediaRejectedReactivationException;
 import com.envisionad.webservice.media.exceptions.InvalidMediaStatusTransitionException;
-import com.envisionad.webservice.proofofdisplay.exceptions.AdvertiserEmailNotFoundException;
-import com.envisionad.webservice.proofofdisplay.exceptions.MediaNotInActiveSubscriptionException;
+import com.envisionad.webservice.proofofdisplay.exceptions.ProofLinkMultiOwnerException;
+import com.envisionad.webservice.proofofdisplay.exceptions.ProofLinkNotEditableException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import static org.springframework.http.HttpStatus.*;
@@ -150,12 +150,6 @@ public class GlobalControllerHandler {
     @ResponseStatus(NOT_FOUND)
     @ExceptionHandler(MediaNotFoundException.class)
     public HttpErrorInfo handleMediaNotFoundException(MediaNotFoundException ex) {
-        return createHttpErrorInfo(NOT_FOUND, ex);
-    }
-
-    @ResponseStatus(NOT_FOUND)
-    @ExceptionHandler(AdvertiserEmailNotFoundException.class)
-    public HttpErrorInfo handleAdvertiserEmailNotFoundException(AdvertiserEmailNotFoundException ex) {
         return createHttpErrorInfo(NOT_FOUND, ex);
     }
 
@@ -321,10 +315,20 @@ public class GlobalControllerHandler {
         return createHttpErrorInfo(CONFLICT, ex);
     }
 
+    /**
+     * P12: the two proof-link conflicts carry a {@code code} so the media-owner page can say why
+     * (network-wide bundle vs. subscription no longer running) instead of a generic error.
+     */
     @ResponseStatus(CONFLICT)
-    @ExceptionHandler(MediaNotInActiveSubscriptionException.class)
-    public HttpErrorInfo handleMediaNotInActiveSubscriptionException(MediaNotInActiveSubscriptionException ex) {
-        return createHttpErrorInfo(CONFLICT, ex);
+    @ExceptionHandler(ProofLinkMultiOwnerException.class)
+    public HttpErrorInfo handleProofLinkMultiOwnerException(ProofLinkMultiOwnerException ex) {
+        return new HttpErrorInfo(CONFLICT, ex.getMessage(), "PROOF_LINK_MULTI_OWNER");
+    }
+
+    @ResponseStatus(CONFLICT)
+    @ExceptionHandler(ProofLinkNotEditableException.class)
+    public HttpErrorInfo handleProofLinkNotEditableException(ProofLinkNotEditableException ex) {
+        return new HttpErrorInfo(CONFLICT, ex.getMessage(), "PROOF_LINK_NOT_EDITABLE");
     }
 
     @ResponseStatus(CONFLICT)

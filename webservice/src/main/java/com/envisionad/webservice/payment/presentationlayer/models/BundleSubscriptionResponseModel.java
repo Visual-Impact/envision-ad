@@ -3,6 +3,7 @@ package com.envisionad.webservice.payment.presentationlayer.models;
 import com.envisionad.webservice.payment.dataaccesslayer.BundleSubscriptionStatus;
 import com.envisionad.webservice.payment.dataaccesslayer.CouponDuration;
 import com.envisionad.webservice.payment.dataaccesslayer.DiscountType;
+import com.envisionad.webservice.proofofdisplay.presentationlayer.models.ProofLinkResponseModel;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -73,4 +74,11 @@ public class BundleSubscriptionResponseModel {
     private Long couponAmountOffCents;
     private CouponDuration couponDuration;
     private Integer couponDurationInMonths;
+
+    /**
+     * P12: the subscription's proof-of-display link, {@code { status, url }}. Status is
+     * {@code SET}, {@code NOT_SET} or {@code NOT_APPLICABLE} (the subscription spans several
+     * media owners, which v1 does not support).
+     */
+    private ProofLinkResponseModel proofLink;
 }

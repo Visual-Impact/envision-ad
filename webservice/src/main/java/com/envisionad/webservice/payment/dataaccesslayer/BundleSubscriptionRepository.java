@@ -1,6 +1,8 @@
 package com.envisionad.webservice.payment.dataaccesslayer;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -66,4 +68,19 @@ public interface BundleSubscriptionRepository extends JpaRepository<BundleSubscr
      */
     List<BundleSubscription> findAllByAdvertiserBusinessIdAndCreatedAtBetween(
             String advertiserBusinessId, LocalDateTime start, LocalDateTime end);
+
+    /**
+     * Every subscription that covers at least one of a media owner's screens (P12's proof table),
+     * read from the frozen items via the denormalized {@code mediaOwnerBusinessId}.
+     */
+    @Query("""
+            SELECT DISTINCT s
+            FROM BundleSubscription s, BundleSubscriptionItem i
+            WHERE i.subscriptionId = s.subscriptionId
+              AND i.mediaOwnerBusinessId = :businessId
+              AND s.status IN :statuses
+            """)
+    List<BundleSubscription> findAllCoveringMediaOwnerBusiness(
+            @Param("businessId") String businessId,
+            @Param("statuses") Collection<BundleSubscriptionStatus> statuses);
 }
