@@ -73,7 +73,3 @@ envision:
       # so a sweep firing mid-run would pollute verify(emailService, ...) in unrelated classes.
       # The sweep's own logic is tested by calling it directly, never by waiting on a timer.
       enabled: false
-  proof-of-display:
-    reminders:
-      # Off in tests for the same reason as the sweep above (P12).
-      enabled: false
