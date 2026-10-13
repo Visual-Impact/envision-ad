@@ -9,7 +9,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useMediaQuery } from "@mantine/hooks";
 import { useOrganization } from "@/entities/organization";
 import { usePermissions } from "@/shared/lib/permissions";
-import { getStripeAccountStatus, createStripeConnection } from "@/features/payment";
+import { getStripeAccountStatus, createStripeConnection, type StripeAccountStatus } from "@/features/payment";
 import {
     IconCheck, IconBuilding, IconCreditCard, IconRocket,
     IconAlertTriangle, IconPhoto, IconSpeakerphone, IconCalendar,
@@ -18,13 +18,8 @@ import { getAllMediaLocations } from "@/features/media-location-management";
 import { getAllAdCampaigns } from "@/features/ad-campaign-management";
 import { getBundleSubscriptions } from "@/features/bundle-subscription";
 import { useRouter, Link } from "@/shared/lib/i18n";
-
-interface StripeStatus {
-    connected: boolean;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-}
+// The Stripe page isn't in the localized route table, so link to it the way the other pages do
+import NextLink from "next/link";
 
 type StepStatus = "complete" | "current" | "upcoming";
 type StepKey = "organization" | "stripe" | "media" | "campaign" | "subscription";
@@ -44,7 +39,7 @@ export default function OnboardingPage() {
     const isMobile = useMediaQuery("(max-width: 48em)") ?? false;
     const router = useRouter();
 
-    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+    const [stripeStatus, setStripeStatus] = useState<StripeAccountStatus | null>(null);
     const [isStripeLoading, setIsStripeLoading] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const [stripeError, setStripeError] = useState<string | null>(null);
@@ -103,12 +98,7 @@ export default function OnboardingPage() {
         }
     };
 
-    const isStripeOnboarded =
-        !isMediaOwner || (
-            stripeStatus?.onboardingComplete &&
-            stripeStatus?.chargesEnabled &&
-            stripeStatus?.payoutsEnabled
-        );
+    const isStripeOnboarded = !isMediaOwner || stripeStatus?.state === "COMPLETE";
 
     const [hasMedia, setHasMedia] = useState(false);
     const [hasCampaign, setHasCampaign] = useState(false);
@@ -213,6 +203,15 @@ export default function OnboardingPage() {
                         <Loader size="sm" />
                         <Text size="sm" c="dimmed">{t("actions.stripe.loading")}</Text>
                     </Group>
+                ) : stripeStatus?.state === "PENDING_VERIFICATION" ? (
+                    // Nothing for the owner to do in Stripe, so don't offer to send them back there
+                    <>
+                        <Text fw={500}>{t("actions.stripe.pendingPrompt")}</Text>
+                        <Text size="sm" c="dimmed">{t("actions.stripe.pendingHint")}</Text>
+                        <Button fullWidth variant="light" component={NextLink} href="/dashboard/stripe">
+                            {t("actions.stripe.viewStatus")}
+                        </Button>
+                    </>
                 ) : (
                     <>
                         <Text fw={500}>{t("actions.stripe.prompt")}</Text>

@@ -6,23 +6,16 @@ import { MediaTable } from "@/pages/dashboard/media-owner/ui/tables/MediaTable";
 import { useMediaList } from "@/pages/dashboard/media-owner/model/useMediaList";
 import { useMediaForm } from "@/pages/dashboard/media-owner/model/useMediaForm";
 import { useTranslations } from "next-intl";
-import {Alert, Button, Group, Loader, Pagination, Stack, Title, VisuallyHidden} from "@mantine/core";
+import {Button, Group, Loader, Pagination, Stack, Title, VisuallyHidden} from "@mantine/core";
 import { modals } from "@mantine/modals";
 import { notifications } from "@mantine/notifications";
 import { WeeklyScheduleModel } from "@/entities/media";
-import { IconCheck, IconAlertTriangle } from "@tabler/icons-react";
-import { getStripeAccountStatus } from "@/features/payment";
+import { IconCheck } from "@tabler/icons-react";
+import { getStripeAccountStatus, type StripeAccountStatus } from "@/features/payment";
 import { useOrganization } from "@/entities/organization";
-import Link from "next/link";
+import { StripeRequiredAlert } from "./StripeRequiredAlert";
 
 const ITEMS_PER_PAGE = 20;
-
-interface StripeStatus {
-    connected: boolean;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-}
 
 export default function MediaOwnerPage() {
     const { media, addNewMedia, editMedia, deleteMediaById, fetchMediaById, toggleMediaStatus } = useMediaList();
@@ -33,7 +26,7 @@ export default function MediaOwnerPage() {
     const t = useTranslations("media");
     const { organization } = useOrganization();
 
-    const [stripeStatus, setStripeStatus] = useState<StripeStatus | null>(null);
+    const [stripeStatus, setStripeStatus] = useState<StripeAccountStatus | null>(null);
     const [isStripeLoading, setIsStripeLoading] = useState(true);
 
     useEffect(() => {
@@ -57,7 +50,7 @@ export default function MediaOwnerPage() {
         };
     }, [organization]);
 
-    const isStripeOnboarded = stripeStatus?.onboardingComplete && stripeStatus?.chargesEnabled && stripeStatus?.payoutsEnabled;
+    const isStripeOnboarded = stripeStatus?.state === "COMPLETE";
 
     const handleSave = async () => {
         try {
@@ -187,12 +180,7 @@ export default function MediaOwnerPage() {
                         {t('newMedia')}
                     </Button>
                 ) : (
-                    <Alert icon={<IconAlertTriangle size="1rem" />} title={t('stripe.requiredTitle')} color="orange" style={{ width: '100%' }}>
-                        {t('stripe.requiredMessage')}
-                        <Link href="/dashboard/stripe" style={{ color: 'var(--mantine-color-orange-7)', textDecoration: 'underline' }}>
-                            {t('stripe.requiredLink')}
-                        </Link>
-                    </Alert>
+                    <StripeRequiredAlert status={stripeStatus} style={{ width: '100%' }} />
                 )}
             </Group>
 
