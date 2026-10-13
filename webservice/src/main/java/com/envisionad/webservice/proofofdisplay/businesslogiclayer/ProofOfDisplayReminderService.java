@@ -110,13 +110,12 @@ public class ProofOfDisplayReminderService {
                         BundleSubscription subscription = e.subscription();
                         ProofOfDisplayLink link = links.get(subscription.getSubscriptionId());
                         lines.append("- ")
-                                .append(advertiserNames.getOrDefault(subscription.getAdvertiserBusinessId(),
-                                        emailTexts.get("reminder.unknownAdvertiser", locale)))
-                                .append(", ")
-                                .append(bundleName(bundles, subscription.getBundleId(), locale))
-                                .append(": ")
-                                .append(link == null ? emailTexts.get("reminder.owner.linkMissing", locale)
-                                        : emailTexts.get("reminder.owner.linkSet", locale, link.getUrl()))
+                                .append(emailTexts.get("reminder.owner.line", locale,
+                                        advertiserNames.getOrDefault(subscription.getAdvertiserBusinessId(),
+                                                emailTexts.get("reminder.unknownAdvertiser", locale)),
+                                        bundleName(bundles, subscription.getBundleId(), locale),
+                                        link == null ? emailTexts.get("reminder.owner.linkMissing", locale)
+                                                : emailTexts.get("reminder.owner.linkSet", locale, link.getUrl())))
                                 .append("\n");
                     });
             return new EmailContent(
@@ -160,10 +159,11 @@ public class ProofOfDisplayReminderService {
                     subscriptions.stream()
                             .map(e -> {
                                 ProofOfDisplayLink link = links.get(e.subscription().getSubscriptionId());
-                                return "- " + bundleName(bundles, e.subscription().getBundleId(), locale)
-                                        + " (" + ownerNames.getOrDefault(e.ownerBusinessId(),
-                                                emailTexts.get("reminder.unknownOwner", locale)) + "): "
-                                        + (link == null ? emailTexts.get("reminder.advertiser.linkMissing", locale)
+                                return "- " + emailTexts.get("reminder.advertiser.line", locale,
+                                        bundleName(bundles, e.subscription().getBundleId(), locale),
+                                        ownerNames.getOrDefault(e.ownerBusinessId(),
+                                                emailTexts.get("reminder.unknownOwner", locale)),
+                                        link == null ? emailTexts.get("reminder.advertiser.linkMissing", locale)
                                                 : link.getUrl());
                             })
                             .sorted()

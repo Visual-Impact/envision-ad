@@ -946,7 +946,7 @@ class BundleSubscriptionServiceUnitTest {
                 "French email names the bundle by its French name: " + french);
         assertTrue(french.contains("- Highway Sign (Autoroute 15, Laval)"), french);
         assertTrue(french.contains("Vous toucherez 4,00 $ par mois"), french);
-        assertTrue(french.contains("- Billboard Creative: https://cdn.example.com/ad.jpg"), french);
+        assertTrue(french.contains("- Billboard Creative : https://cdn.example.com/ad.jpg"), french);
         assertFalse(french.contains("You'll earn"), french);
     }
 

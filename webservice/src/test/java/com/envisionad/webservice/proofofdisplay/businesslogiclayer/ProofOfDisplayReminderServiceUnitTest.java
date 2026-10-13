@@ -244,17 +244,17 @@ class ProofOfDisplayReminderServiceUnitTest {
                 eq("Vérification mensuelle : vos liens de preuve d'affichage"), ownerBody.capture());
         assertTrue(ownerBody.getValue().startsWith("Bonjour,\n\nC'est la fin du mois."), ownerBody.getValue());
         assertTrue(ownerBody.getValue().contains(
-                "- Lotus Yoga, Forfait Brossard: lien ajouté (https://www.canva.com/lotus)\n"), ownerBody.getValue());
+                "- Lotus Yoga, Forfait Brossard : lien ajouté (https://www.canva.com/lotus)\n"), ownerBody.getValue());
         assertTrue(ownerBody.getValue().contains(
-                "- Lotus Yoga, Forfait Brossard: aucun lien pour l'instant, veuillez en ajouter un\n"),
+                "- Lotus Yoga, Forfait Brossard : aucun lien pour l'instant, veuillez en ajouter un\n"),
                 ownerBody.getValue());
 
         ArgumentCaptor<String> advertiserBody = ArgumentCaptor.forClass(String.class);
         verify(emailService).sendSimpleEmail(eq("lotus@yoga.test"),
                 eq("Votre preuve d'affichage mensuelle est prête à consulter"), advertiserBody.capture());
         assertTrue(advertiserBody.getValue().contains(
-                "- Forfait Brossard (Écrans Inc): https://www.canva.com/lotus\n"), advertiserBody.getValue());
-        assertTrue(advertiserBody.getValue().contains("- Forfait Brossard (Écrans Inc): aucun lien pour l'instant"),
+                "- Forfait Brossard (Écrans Inc) : https://www.canva.com/lotus\n"), advertiserBody.getValue());
+        assertTrue(advertiserBody.getValue().contains("- Forfait Brossard (Écrans Inc) : aucun lien pour l'instant"),
                 advertiserBody.getValue());
         assertTrue(advertiserBody.getValue().contains(BASE_URL + "/dashboard/advertiser/subscriptions"),
                 advertiserBody.getValue());

@@ -64,6 +64,35 @@ class EmailTextsTest {
         assertTrue(texts.get("account.resend.body", Locale.FRENCH, "Acme", "T", "L").endsWith("— L'équipe Envision Ad"));
     }
 
+    // ---------- list lines: French puts a space before the colon, English doesn't ----------
+
+    @Test
+    void listLines_followEachLanguagesColonSpacing() {
+        assertEquals("Spot (IMAGE): https://x/s.jpg",
+                texts.get("creatives.item", Locale.ENGLISH, "Spot", "IMAGE", "https://x/s.jpg"));
+        assertEquals("Spot (IMAGE) : https://x/s.jpg",
+                texts.get("creatives.item", Locale.FRENCH, "Spot", "IMAGE", "https://x/s.jpg"));
+        assertEquals("Spot: https://x/s.jpg",
+                texts.get("creatives.subscription.item", Locale.ENGLISH, "Spot", "https://x/s.jpg"));
+        assertEquals("Spot : https://x/s.jpg",
+                texts.get("creatives.subscription.item", Locale.FRENCH, "Spot", "https://x/s.jpg"));
+        assertEquals("Acme, Brossard Bundle: link set (https://c/v)",
+                texts.get("reminder.owner.line", Locale.ENGLISH, "Acme", "Brossard Bundle", "link set (https://c/v)"));
+        assertEquals("Acme, Forfait Brossard : lien ajouté (https://c/v)",
+                texts.get("reminder.owner.line", Locale.FRENCH, "Acme", "Forfait Brossard", "lien ajouté (https://c/v)"));
+        assertEquals("Forfait Brossard (Visual Impact) : https://c/v",
+                texts.get("reminder.advertiser.line", Locale.FRENCH, "Forfait Brossard", "Visual Impact", "https://c/v"));
+        assertEquals("Brossard Bundle (Visual Impact): https://c/v",
+                texts.get("reminder.advertiser.line", Locale.ENGLISH, "Brossard Bundle", "Visual Impact", "https://c/v"));
+    }
+
+    @Test
+    void listLines_keepApostrophesInNames() {
+        assertEquals("Anvar's All Star Cuisine, Forfait Brossard : lien ajouté (https://c/v)",
+                texts.get("reminder.owner.line", Locale.FRENCH,
+                        "Anvar's All Star Cuisine", "Forfait Brossard", "lien ajouté (https://c/v)"));
+    }
+
     // ---------- English is word for word what the services used to build inline ----------
     // Each expected string below is the pre-i18n concatenation, copied from the service it lived in.
 

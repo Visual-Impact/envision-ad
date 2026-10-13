@@ -348,9 +348,10 @@ public class ActiveCampaignServiceImpl implements ActiveCampaignService {
                 sections.append(emailTexts.get("creatives.section.venue", locale, section.venueLabel())).append("\n");
             }
             for (Ad ad : section.creatives()) {
-                sections.append("- ").append(ad.getName())
-                        .append(" (").append(ad.getAdType()).append("): ")
-                        .append(ad.getAdUrl()).append("\n");
+                sections.append("- ")
+                        .append(emailTexts.get("creatives.item", locale,
+                                ad.getName(), String.valueOf(ad.getAdType()), ad.getAdUrl()))
+                        .append("\n");
             }
             sections.append("\n");
         }

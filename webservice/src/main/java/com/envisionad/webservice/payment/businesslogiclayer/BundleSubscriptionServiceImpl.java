@@ -628,7 +628,9 @@ public class BundleSubscriptionServiceImpl implements BundleSubscriptionService 
         }
         StringBuilder creatives = new StringBuilder();
         for (Ad ad : campaign.getAds()) {
-            creatives.append("- ").append(ad.getName()).append(": ").append(ad.getAdUrl()).append("\n");
+            creatives.append("- ")
+                    .append(emailTexts.get("creatives.subscription.item", locale, ad.getName(), ad.getAdUrl()))
+                    .append("\n");
         }
         return new EmailContent(
                 emailTexts.get("creatives.subject", locale, advertiserName),
