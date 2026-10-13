@@ -5,6 +5,7 @@ import com.envisionad.webservice.config.exceptions.Auth0UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -442,13 +443,18 @@ class Auth0ServiceUnitTest {
     // findUserIdByEmail (P5)
     // =========================================================================
 
+    /**
+     * Written out literally rather than rebuilt with UriComponentsBuilder, so the expected
+     * value can't silently agree with an encoding bug in the code under test.
+     */
+    private static final URI USERS_BY_EMAIL_URI =
+            URI.create("https://dev-test.auth0.com/api/v2/users-by-email?email=advertiser%40example.com");
+
     @Test
     void whenFindUserIdByEmail_andUserExists_thenReturnsUserId() {
         stubTokenEndpoint();
-        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
-                .pathSegment("api", "v2", "users-by-email").queryParam("email", USER_EMAIL).build().toUri();
         when(restTemplate.exchange(
-                eq(uri), eq(HttpMethod.GET), any(),
+                eq(USERS_BY_EMAIL_URI), eq(HttpMethod.GET), any(),
                 ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
         )).thenReturn(new ResponseEntity<>(List.of(Map.of("user_id", USER_ID)), HttpStatus.OK));
 
@@ -461,10 +467,8 @@ class Auth0ServiceUnitTest {
     @Test
     void whenFindUserIdByEmail_andNoMatch_thenReturnsEmpty() {
         stubTokenEndpoint();
-        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
-                .pathSegment("api", "v2", "users-by-email").queryParam("email", USER_EMAIL).build().toUri();
         when(restTemplate.exchange(
-                eq(uri), eq(HttpMethod.GET), any(),
+                eq(USERS_BY_EMAIL_URI), eq(HttpMethod.GET), any(),
                 ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
         )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
 
@@ -474,14 +478,34 @@ class Auth0ServiceUnitTest {
     @Test
     void whenFindUserIdByEmail_andNetworkFailure_thenThrowsAuth0ServiceUnavailableException() {
         stubTokenEndpoint();
-        URI uri = UriComponentsBuilder.fromUriString(BASE_URL)
-                .pathSegment("api", "v2", "users-by-email").queryParam("email", USER_EMAIL).build().toUri();
         when(restTemplate.exchange(
-                eq(uri), eq(HttpMethod.GET), any(),
+                eq(USERS_BY_EMAIL_URI), eq(HttpMethod.GET), any(),
                 ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
         )).thenThrow(new ResourceAccessException("Connection refused"));
 
         assertThrows(Auth0ServiceUnavailableException.class, () -> auth0Service.findUserIdByEmail(USER_EMAIL));
+    }
+
+    @Test
+    void whenFindUserIdByEmail_withPlusAddressedEmail_thenPlusIsPercentEncoded() {
+        // Regression: a raw '+' in the query is decoded by Auth0 as a space, so
+        // "a+b@example.com" reached Auth0 as "a b@example.com" and failed with a 400.
+        stubTokenEndpoint();
+        when(restTemplate.exchange(
+                any(URI.class), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any()
+        )).thenReturn(new ResponseEntity<>(List.of(), HttpStatus.OK));
+
+        auth0Service.findUserIdByEmail("a+b@example.com");
+
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        verify(restTemplate).exchange(
+                uriCaptor.capture(), eq(HttpMethod.GET), any(),
+                ArgumentMatchers.<ParameterizedTypeReference<List<Map<String, Object>>>>any());
+        URI sent = uriCaptor.getValue();
+        assertEquals("/api/v2/users-by-email", sent.getRawPath());
+        assertEquals("email=a%2Bb%40example.com", sent.getRawQuery());
+        assertEquals("email=a+b@example.com", sent.getQuery());
     }
 
     // =========================================================================

@@ -237,12 +237,17 @@ public class Auth0Service {
      * duplicate-email guard (brief FR 4.2.a) and the invitation-accept auto-provisioning
      * check (brief FR 3.2). Auth0's users-by-email endpoint returns 200 with an empty
      * array for "no match" — there is no 404 case to special-case here.
+     *
+     * The email goes in as a URI variable so it is strictly encoded: '+' is a legal
+     * query character that build().toUri() would send raw, and Auth0 decodes a raw '+'
+     * as a space — every plus-addressed email (a+b@example.com) then failed with a 400.
      */
     public Optional<String> findUserIdByEmail(String email) {
         URI uri = UriComponentsBuilder.fromUriString(managementBaseUrl)
                 .pathSegment("api", "v2", "users-by-email")
-                .queryParam("email", email)
-                .build()
+                .queryParam("email", "{email}")
+                .encode()
+                .buildAndExpand(email)
                 .toUri();
         try {
             ResponseEntity<List<Map<String, Object>>> response = exchangeWithTokenRetry(
