@@ -59,6 +59,12 @@ auth0:
 app:
   base:
     url: ${APP_BASE_URL}
+  mail:
+    # Sender on every email the backend sends. Defaults to the SMTP login. EMAIL_FROM can add a
+    # display name ("Envision Ad <noreply@envision-ad.ca>") or use an alias of that account, but
+    # docker-compose.prod.yml doesn't pass it yet; add it there (never as an empty string —
+    # Spring would use "" as the sender) when you need it.
+    from: ${EMAIL_FROM:${EMAIL_USER}}
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY}
