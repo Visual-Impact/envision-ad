@@ -2071,7 +2071,6 @@
       "INCOMPLETE": "Vous avez commencé ce paiement sans le finaliser. Il empêche un nouvel abonnement au même forfait tant qu'il n'est pas annulé."
     },
     "proofLink": {
-      "label": "Preuve d’affichage",
       "view": "Voir la preuve d’affichage",
       "notSet": "Le propriétaire des écrans n’a pas encore ajouté de lien de preuve d’affichage.",
       "notSetEnded": "Aucun lien de preuve d’affichage n’a été ajouté pour cet abonnement.",

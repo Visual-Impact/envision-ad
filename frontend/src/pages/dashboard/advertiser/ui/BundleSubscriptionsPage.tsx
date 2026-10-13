@@ -194,8 +194,6 @@ export default function BundleSubscriptionsPage() {
         }
         return (
             <Text size="sm" c="dimmed">
-                {t("proofLink.label")}
-                {": "}
                 {status === "NOT_APPLICABLE"
                     ? t("proofLink.notApplicable")
                     : subscription.status === "CANCELED"

@@ -32,7 +32,9 @@ type Props = {
  * disabled and a tooltip saying why, so a real campaign never silently vanishes (FR-3.2).
  */
 export default function ProofMediaTable({ rows, onEditLink, pageSize = 10 }: Props) {
-    const isMobile = useMediaQuery("(max-width: 768px)");
+    // Cards below 1024px, not the usual 768px: the three fixed-width columns take 570px, which
+    // leaves the subscription column almost nothing beside the sidebar on a narrow laptop.
+    const showCards = useMediaQuery("(max-width: 1024px)");
     const t = useTranslations("proofOfDisplay");
     const locale = useLocale();
 
@@ -184,7 +186,7 @@ export default function ProofMediaTable({ rows, onEditLink, pageSize = 10 }: Pro
         );
     }
 
-    if (isMobile) {
+    if (showCards) {
         return (
             <Stack gap="md">
                 {pagedRows.map((row) => (
@@ -210,7 +212,7 @@ export default function ProofMediaTable({ rows, onEditLink, pageSize = 10 }: Pro
     return (
         <Paper shadow="sm" radius="lg">
             <ScrollArea>
-                <Table striped highlightOnHover verticalSpacing="md" horizontalSpacing="lg" layout="fixed">
+                <Table striped highlightOnHover verticalSpacing="md" horizontalSpacing="lg" layout="fixed" miw={860}>
                     <Table.Thead>
                         <Table.Tr>
                             <Table.Th>{t("table.subscription")}</Table.Th>

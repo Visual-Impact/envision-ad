@@ -2070,7 +2070,6 @@
       "INCOMPLETE": "You started this checkout but never completed payment. It blocks a new subscription to the same bundle until you cancel it."
     },
     "proofLink": {
-      "label": "Proof of display",
       "view": "View proof of display",
       "notSet": "Your media owner hasn't added a proof-of-display link yet.",
       "notSetEnded": "No proof-of-display link was added for this subscription.",
