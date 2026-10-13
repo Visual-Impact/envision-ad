@@ -5,8 +5,8 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD}
   # The local profile never sends real email. Every message lands in Mailpit, a local SMTP
   # catcher with a web inbox at http://localhost:8025, so testing a feature that emails people
-  # cannot reach a real one. That matters here: the dev Doppler configs send through a live Gmail
-  # account, and dev data includes real people's Auth0 accounts — a test swap would otherwise mail
+  # cannot reach a real one. That matters here: the EMAIL_* Doppler values point at a live
+  # mailbox, and dev data includes real people's Auth0 accounts — a test swap would otherwise mail
   # actual client staff.
   #
   # Set on the profile rather than left to Doppler's EMAIL_* values, so the guarantee holds no
@@ -26,3 +26,9 @@ spring:
     # Adds db/seed on top of the default db/migration, local only — application-prod.yml
     # does not set this key, so prod keeps resolving to the plain db/migration default.
     locations: classpath:db/migration,classpath:db/seed
+
+app:
+  mail:
+    # Mailpit accepts any sender, and EMAIL_USER isn't in the dev Doppler configs, so the base
+    # file's ${EMAIL_FROM:${EMAIL_USER}} would fail to resolve here.
+    from: noreply@envision-ad.local

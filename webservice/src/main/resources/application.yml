@@ -59,6 +59,11 @@ auth0:
 app:
   base:
     url: ${APP_BASE_URL}
+  mail:
+    # Sender on every email the backend sends. Defaults to the SMTP login. EMAIL_FROM adds a
+    # display name or uses an alias of that account, and must include the address in angle
+    # brackets ("Envision Ad <no-reply@envision-ad.ca>"): a bare name makes every send fail.
+    from: ${EMAIL_FROM:${EMAIL_USER}}
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY}

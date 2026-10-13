@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.SimpleMailMessage;
@@ -16,21 +15,21 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EmailServiceTest {
 
-    @InjectMocks
-    private EmailService emailService;
-
     @Mock
     private JavaMailSender mailSender;
 
-    private static final String FROM_EMAIL = "envisionadinc@gmail.com";
+    private EmailService emailService;
+
+    private static final String FROM_EMAIL = "Envision Ad <no-reply@envision-ad.ca>";
     private static final String TO_EMAIL = "recipient@example.com";
     private static final String SUBJECT = "Test Subject";
     private static final String BODY = "Test email body content";
 
     @BeforeEach
     void setUp() {
-        // Reset mocks before each test
-        reset(mailSender);
+        // Built by hand rather than @InjectMocks: the sender address is a constructor String,
+        // which Mockito would pass as null.
+        emailService = new EmailService(mailSender, FROM_EMAIL);
     }
 
     @Test

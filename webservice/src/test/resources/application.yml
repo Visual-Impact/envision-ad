@@ -51,6 +51,8 @@ auth0:
 app:
   base:
     url: ${APP_BASE_URL:http://localhost:8080}
+  mail:
+    from: ${EMAIL_FROM:noreply@example.com}
 
 stripe:
   api-key: ${STRIPE_SECRET_KEY:test_stripe_secret_key}
