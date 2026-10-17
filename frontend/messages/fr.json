@@ -312,6 +312,7 @@
     "linkedin": "LinkedIn",
     "instagram": "Instagram",
     "privacy": "Politique de confidentialité",
+    "terms": "Conditions d’utilisation",
     "copyright": "© {year} Envision AD. Tous droits réservés."
   },
   "mediaPage": {
@@ -2034,7 +2035,257 @@
   },
   "privacyPage": {
     "title": "Politique de confidentialité",
-    "placeholder": "Notre politique de confidentialité est en cours de finalisation et sera publiée ici prochainement. En attendant, si vous avez des questions sur la gestion de vos données, veuillez nous contacter."
+    "lastUpdated": "Dernière mise à jour : 17 octobre 2026",
+    "intro": "La présente politique explique comment Envision Ad (la « Plateforme »), accessible à envision-ad.ca, recueille, utilise, communique et protège les renseignements personnels, ainsi que les droits que vous avez sur ceux-ci. Elle est rédigée pour respecter la Loi sur la protection des renseignements personnels dans le secteur privé du Québec. Elle s’applique avec nos <link>conditions d’utilisation</link>.",
+    "who": {
+      "title": "1. Qui nous sommes",
+      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p2": "La Plateforme est destinée aux entreprises. Les renseignements personnels que nous traitons concernent surtout les personnes qui l’utilisent pour le compte de leur organisation : propriétaires, employés et autres représentants des annonceurs et des propriétaires de médias. La présente politique vise aussi les visiteurs de nos pages publiques."
+    },
+    "officer": {
+      "title": "2. Responsable de la protection des renseignements personnels",
+      "p1": "La personne responsable de la protection des renseignements personnels chez Visual Impact est [TO CONFIRM: name and title]. Vous pouvez la joindre à [TO CONFIRM: privacy contact email] pour toute question, demande ou plainte concernant la présente politique ou vos renseignements personnels."
+    },
+    "collect": {
+      "title": "3. Ce que nous recueillons",
+      "listIntro": "Nous recueillons seulement ce dont nous avons besoin pour exploiter la Plateforme :",
+      "items": {
+        "account": "Renseignements de compte : prénom et nom, adresse courriel, nom d’utilisateur, photo de profil, une biographie facultative, votre langue de préférence et votre identifiant de connexion, géré par notre fournisseur d’authentification.",
+        "organization": "Renseignements sur l’organisation : le nom, l’adresse et la taille de votre organisation, son rôle d’annonceur ou de propriétaire de médias, ses membres et les adresses courriel des personnes invitées à s’y joindre.",
+        "billing": "Renseignements de facturation : les abonnements de votre organisation, le montant, la date et le statut de ses paiements, et les identifiants que Stripe leur attribue. Les données de votre carte sont transmises directement à Stripe et n’atteignent jamais nos serveurs.",
+        "payouts": "Renseignements de versement des propriétaires de médias : Stripe recueille les renseignements d’identité, bancaires et fiscaux dont il a besoin pour vérifier votre compte et vous payer. Nous recevons seulement l’identifiant de votre compte Stripe et l’indication que votre compte est vérifié et peut recevoir des versements.",
+        "content": "Contenu que vous ajoutez : publicités (images et vidéos), descriptions, emplacements et photos des écrans, et liens de preuve d’affichage. Si une publicité ou une photo montre une personne, elle contient des renseignements personnels à son sujet.",
+        "technical": "Renseignements techniques : les témoins énumérés à la section 9, et les données techniques, comme votre adresse IP, que nos serveurs enregistrent lorsque vous utilisez la Plateforme."
+      },
+      "p1": "Nous n’utilisons aucune technologie permettant de vous identifier, de vous localiser ou d’effectuer un profilage, et la Plateforme ne contient aucun traceur publicitaire ou analytique."
+    },
+    "how": {
+      "title": "4. Comment nous les recueillons",
+      "p1": "Nous recueillons des renseignements personnels directement auprès de vous, lorsque vous ou un membre de votre organisation remplissez la Plateforme; auprès de votre organisation, lorsqu’un administrateur crée votre compte ou qu’un membre vous invite; auprès d’Auth0 et de Stripe, comme décrit ci-dessus; et automatiquement, au moyen de témoins et de journaux de serveur."
+    },
+    "purposes": {
+      "title": "5. Pourquoi nous les utilisons",
+      "listIntro": "Nous utilisons les renseignements personnels pour :",
+      "items": {
+        "accounts": "créer et sécuriser les comptes, et vérifier les organisations;",
+        "service": "exploiter la Plateforme : présenter les écrans, gérer les abonnements, transmettre les publicités aux propriétaires de médias et montrer les preuves d’affichage aux annonceurs;",
+        "payments": "facturer les annonceurs, payer les propriétaires de médias et tenir nos registres comptables;",
+        "emails": "envoyer des courriels de service, comme les invitations, les avis de nouvelles campagnes et de changements de publicités, et les rappels mensuels de preuve d’affichage, dans votre langue de préférence;",
+        "support": "répondre à vos questions et à vos demandes;",
+        "security": "protéger la Plateforme, détecter et prévenir la fraude et les abus, et corriger les problèmes;",
+        "legal": "respecter nos obligations légales et faire respecter nos conditions d’utilisation."
+      },
+      "p1": "Nous utilisons les renseignements personnels seulement à ces fins, ou à une autre fin avec votre consentement ou lorsque la loi le permet. Nous ne vendons pas de renseignements personnels et nous n’envoyons pas de courriels de marketing [TO CONFIRM: whether any marketing emails will be sent]."
+    },
+    "sharing": {
+      "title": "6. À qui nous les communiquons",
+      "p1": "Au sein de la Plateforme : les membres de votre organisation peuvent se voir entre eux et voir les données de votre organisation. Les propriétaires de médias dont les écrans font partie d’un abonnement reçoivent le nom de l’organisation de l’annonceur, sa campagne et ses publicités. Les annonceurs voient les écrans auxquels ils s’abonnent et les liens de preuve d’affichage fournis par les propriétaires de médias. Les fiches des écrans sont publiques.",
+      "listIntro": "Fournisseurs de services qui traitent des renseignements personnels pour nous :",
+      "items": {
+        "auth0": "Auth0 (Okta) : connexion et gestion des comptes;",
+        "stripe": "Stripe : paiements par carte, ainsi que vérification et versements des propriétaires de médias;",
+        "cloudinary": "Cloudinary : stockage et diffusion des publicités;",
+        "aws": "Amazon Web Services : hébergement de la Plateforme et de sa base de données;",
+        "email": "[TO CONFIRM: email provider] : envoi des courriels de service;",
+        "maps": "OpenStreetMap et CARTO : recherche d’adresses et cartes. Lorsque vous cherchez une adresse ou consultez une carte, votre navigateur leur transmet directement les termes recherchés et votre adresse IP."
+      },
+      "p2": "Nous ne donnons à chaque fournisseur que les renseignements dont il a besoin, et nous l’obligeons par contrat à les protéger [TO CONFIRM: written agreements in place with each provider]. Nous pouvons aussi communiquer des renseignements personnels lorsque la loi l’exige, ou à un acheteur ou successeur si notre entreprise est vendue ou réorganisée, aux conditions prévues par la loi."
+    },
+    "outsideQuebec": {
+      "title": "7. Conservation à l’extérieur du Québec",
+      "p1": "Notre base de données est hébergée par Amazon Web Services au Canada (région de Montréal). Certains fournisseurs, dont Auth0, Stripe et Cloudinary, peuvent conserver ou traiter des renseignements personnels à l’extérieur du Québec, notamment aux États-Unis [TO CONFIRM: each provider’s storage locations]. Avant de communiquer des renseignements personnels à l’extérieur du Québec, nous évaluons s’ils y bénéficieront d’une protection adéquate, comme l’exige la loi."
+    },
+    "retention": {
+      "title": "8. Durée de conservation",
+      "p1": "Nous conservons les renseignements personnels seulement le temps nécessaire aux fins décrites ci-dessus, ou plus longtemps lorsque la loi l’exige. Les dossiers de facturation et comptables sont conservés pendant [TO CONFIRM: retention period for billing records]. Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, afin que ces dossiers leur restent rattachés. Les autres renseignements sont conservés pendant [TO CONFIRM: retention period for other account data] après la fermeture d’un compte. Lorsque nous n’avons plus besoin de renseignements personnels, nous les détruisons ou les anonymisons."
+    },
+    "cookies": {
+      "title": "9. Témoins (cookies)",
+      "listIntro": "La Plateforme utilise seulement les témoins nécessaires à son fonctionnement :",
+      "items": {
+        "session": "un témoin de session de notre système de connexion, qui vous garde connecté;",
+        "locale": "NEXT_LOCALE et user_preferred_language, qui mémorisent votre langue;",
+        "stripe": "les témoins que Stripe dépose sur la page de paiement pour traiter les paiements et prévenir la fraude."
+      },
+      "p1": "Nous n’utilisons aucun témoin publicitaire ou analytique."
+    },
+    "security": {
+      "title": "10. Comment nous les protégeons",
+      "p1": "Nous prenons des mesures de sécurité raisonnables, adaptées à la sensibilité des renseignements, notamment des connexions chiffrées (HTTPS), une connexion au moyen d’un fournisseur d’authentification spécialisé, des permissions d’accès selon le rôle de chaque utilisateur, et un accès restreint à nos systèmes et à nos secrets. Aucun système n’est parfaitement sécuritaire.",
+      "p2": "Si un incident de confidentialité présente un risque de préjudice sérieux, nous en aviserons la Commission d’accès à l’information et les personnes concernées, et nous tenons un registre des incidents de confidentialité, comme l’exige la loi."
+    },
+    "rights": {
+      "title": "11. Vos droits",
+      "listIntro": "Sous réserve de la loi, vous avez le droit :",
+      "items": {
+        "access": "d’accéder aux renseignements personnels que nous détenons à votre sujet;",
+        "correct": "de faire rectifier des renseignements inexacts, incomplets ou périmés;",
+        "withdraw": "de retirer votre consentement à une utilisation de vos renseignements, ce qui peut nous empêcher de fournir certains services;",
+        "portability": "de recevoir les renseignements personnels que vous nous avez fournis dans un format technologique structuré et couramment utilisé;",
+        "explain": "de savoir comment vos renseignements sont utilisés et qui y a accès."
+      },
+      "p1": "Pour exercer un droit, écrivez à la personne responsable de la protection des renseignements personnels (section 2). Nous vous répondrons par écrit dans un délai de 30 jours. Nous pourrions d’abord devoir vérifier votre identité.",
+      "p2": "Si notre réponse ne vous satisfait pas, vous pouvez porter plainte auprès de la Commission d’accès à l’information du Québec."
+    },
+    "minors": {
+      "title": "12. Mineurs",
+      "p1": "La Plateforme est destinée aux entreprises et ne s’adresse pas aux mineurs. Nous ne recueillons pas sciemment de renseignements personnels sur des personnes de moins de 18 ans."
+    },
+    "changes": {
+      "title": "13. Modifications de la présente politique",
+      "p1": "Nous pouvons mettre à jour la présente politique. Nous publierons la nouvelle version sur cette page avec une nouvelle date de « Dernière mise à jour » et aviserons les titulaires de compte par courriel de tout changement important."
+    },
+    "contact": {
+      "title": "14. Nous joindre",
+      "p1": "Pour toute question ou demande concernant la présente politique ou vos renseignements personnels :",
+      "entity": "[TO CONFIRM: name and title]",
+      "address": "[TO CONFIRM: legal entity name], [TO CONFIRM: registered address]",
+      "email": "[TO CONFIRM: privacy contact email]"
+    },
+    "termsLink": "Consultez aussi nos <link>conditions d’utilisation</link>."
+  },
+  "termsPage": {
+    "title": "Conditions d’utilisation",
+    "lastUpdated": "Dernière mise à jour : 17 octobre 2026",
+    "intro": "Les présentes conditions d’utilisation (les « Conditions ») régissent l’accès à Envision Ad (la « Plateforme »), accessible à envision-ad.ca, et son utilisation. Veuillez les lire attentivement. En accédant à la Plateforme ou en l’utilisant, vous acceptez les présentes Conditions au nom de votre entreprise.",
+    "parties": {
+      "title": "1. Qui nous sommes",
+      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p2": "Envision Ad est une place de marché qui met en relation deux types d’entreprises : les annonceurs, qui s’abonnent à des forfaits d’écrans publicitaires pour y diffuser leurs publicités, et les propriétaires de médias, qui inscrivent les écrans qu’ils exploitent et touchent une part de ce que paient les annonceurs. Une même entreprise peut être les deux. Dans les présentes Conditions, « vous » désigne l’entreprise titulaire du compte et chaque personne qui utilise la Plateforme pour son compte.",
+      "p3": "Nous exploitons la Plateforme et percevons les paiements des annonceurs. Nous ne possédons ni n’exploitons les écrans : ce sont les propriétaires de médias qui les exploitent et qui sont responsables d’y afficher les publicités."
+    },
+    "accounts": {
+      "title": "2. Comptes et admissibilité",
+      "p1": "La Plateforme est réservée aux entreprises. Vous ne pouvez l’utiliser qu’au nom d’une entreprise ou d’une autre organisation, et non en tant que consommateur à des fins personnelles, familiales ou domestiques. En utilisant la Plateforme, vous confirmez être autorisé à engager cette entreprise envers les présentes Conditions.",
+      "p2": "Il n’y a pas d’inscription publique. Les comptes sont créés par nous ou sur invitation d’un membre existant de votre organisation. La connexion est assurée par notre fournisseur d’authentification, Auth0. Nous pouvons vérifier votre organisation avant de lui donner accès à certaines fonctionnalités.",
+      "p3": "Vous êtes responsable de la confidentialité de vos identifiants de connexion, de tout ce qui est fait au moyen des comptes de votre organisation et de l’exactitude des renseignements de votre organisation. Lorsqu’une personne quitte votre organisation, il vous revient de retirer son accès. Avisez-nous sans délai à [TO CONFIRM: contact email] si vous croyez qu’un compte a été utilisé sans autorisation."
+    },
+    "subscriptions": {
+      "title": "3. Abonnements des annonceurs",
+      "p1": "Les annonceurs achètent de la publicité au moyen d’abonnements mensuels à des forfaits. Un forfait est un groupe d’écrans défini par ville, par région, par type de lieu ou pour l’ensemble du réseau. Pour vous abonner, vous devez avoir une campagne publicitaire comportant au moins une publicité. C’est cette campagne que les propriétaires de médias affichent sur les écrans de votre abonnement.",
+      "p2": "Le prix mensuel et la liste des écrans sont fixés au moment de l’abonnement et restent les mêmes pendant toute la durée de cet abonnement. Les écrans ajoutés au forfait par la suite ne sont pas ajoutés à votre abonnement, et les changements de prix ultérieurs du forfait ne s’y appliquent pas.",
+      "p3": "Vos publicités sont diffusées en rotation avec d’autres publicités, selon la durée de boucle et l’horaire de fonctionnement de chaque écran indiqués sur la Plateforme. Les propriétaires de médias choisissent quelle publicité de votre campagne afficher sur chaque écran.",
+      "p4": "Si un écran de votre abonnement devient indisponible pendant l’abonnement : [TO CONFIRM: remedy, for example a credit, a replacement screen, or none]."
+    },
+    "billing": {
+      "title": "4. Facturation et renouvellement",
+      "p1": "Les prix sont en dollars canadiens (CAD) et sont facturés mensuellement, à l’avance. Vous payez par carte au moyen de Stripe Checkout, notre processeur de paiement. Nous ne conservons pas les données complètes de votre carte. Le premier mois est facturé au moment de l’abonnement.",
+      "p2": "Les abonnements se renouvellent automatiquement chaque mois, et votre moyen de paiement est débité à chaque renouvellement jusqu’à ce que vous annuliez.",
+      "p3": "Les prix excluent les taxes applicables. [TO CONFIRM: how applicable taxes, such as the GST and QST, are charged and shown on invoices].",
+      "p4": "Un rabais ou un code promotionnel ne s’applique qu’à l’abonnement pour lequel il a été utilisé, et seulement selon les modalités annoncées au moment de l’offre, y compris le nombre de mois pendant lesquels il s’applique.",
+      "p5": "Si un paiement de renouvellement échoue, l’abonnement passe en souffrance et le paiement est tenté de nouveau [TO CONFIRM: retry schedule]. Si le paiement n’est toujours pas reçu, [TO CONFIRM: when the subscription is suspended or cancelled]."
+    },
+    "cancellation": {
+      "title": "5. Annulation et remboursements",
+      "p1": "Vous pouvez annuler un abonnement en tout temps à partir de votre page Abonnements. L’annulation prend effet à la fin de la période de facturation en cours : vos publicités restent en rotation, et vous conservez l’accès à l’abonnement, jusqu’à cette date. Aucun autre montant ne vous sera facturé.",
+      "p2": "Les paiements déjà effectués ne sont pas remboursés, y compris pour le reste d’une période de facturation après votre annulation. [TO CONFIRM: refund policy, including any exceptions, for example screens that did not show your ad]."
+    },
+    "mediaOwners": {
+      "title": "6. Obligations des propriétaires de médias",
+      "p1": "Lorsque vous inscrivez un écran, vous devez le décrire avec exactitude et tenir sa fiche à jour, notamment son emplacement, son lieu, son type d’affichage, ses dimensions, sa résolution, sa durée de boucle, son horaire de fonctionnement, ses impressions quotidiennes estimées, son prix et sa photo. Nous examinons les écrans nouveaux ou modifiés avant que les annonceurs puissent les acheter, et nous pouvons refuser une fiche.",
+      "p2": "Lorsqu’un abonnement comprenant vos écrans commence, et lorsque l’annonceur modifie ses publicités, nous vous envoyons par courriel les publicités à afficher. Vous devez les mettre en place sur les écrans visés dans un délai de [TO CONFIRM: number of days] et les garder en rotation, conformément à la fiche de l’écran, pendant toute la durée de l’abonnement.",
+      "p3": "Si vous croyez qu’une publicité contrevient aux présentes Conditions, à la loi ou aux règles de votre lieu, ne l’affichez pas et avisez-nous immédiatement à [TO CONFIRM: contact email].",
+      "p4": "Avisez-nous sans délai si un écran cesse de fonctionner, est retiré ou ne peut pas afficher de publicités pendant plus de [TO CONFIRM: duration].",
+      "p5": "Pour un abonnement dont tous les écrans vous appartiennent, vous devez tenir à jour sur la Plateforme un lien de preuve d’affichage : une page, par exemple un design Canva en lecture seule, qui montre les publicités de l’annonceur sur vos écrans. Nous vous le rappelons chaque mois. Nous pouvons aussi vous demander toute autre preuve raisonnable que les publicités ont été affichées.",
+      "p6": "Vous devez détenir tous les droits, permis et autorisations nécessaires pour exploiter vos écrans et y afficher des publicités, y compris l’autorisation du lieu lorsque vous n’en êtes pas propriétaire."
+    },
+    "payouts": {
+      "title": "7. Partage des revenus et versements",
+      "p1": "Pour chaque facture d’abonnement payée, vous recevez 70 % du prix mensuel de vos écrans compris dans cet abonnement, tel que fixé au moment où l’annonceur s’est abonné. Nous conservons les 30 % restants à titre de frais de plateforme.",
+      "p2": "Les rabais et codes promotionnels que nous accordons aux annonceurs sont prélevés sur notre part, et non sur la vôtre : vos 70 % sont calculés sur le plein prix de vos écrans, comme si aucun rabais ne s’appliquait.",
+      "p3": "Votre part est transférée à votre compte Stripe après le paiement de la facture de l’annonceur, [TO CONFIRM: payout timing in days]. Stripe la verse ensuite dans votre compte bancaire selon le calendrier de versement de votre compte Stripe. Rien n’est versé pour une facture impayée, par exemple un renouvellement dont le paiement a échoué.",
+      "p4": "Pour recevoir des versements, vous devez connecter un compte Stripe au moyen de la Plateforme et terminer l’intégration de Stripe, y compris la vérification d’identité. Si votre intégration n’est pas terminée au moment où une facture est payée, votre part de cette facture n’est pas transférée automatiquement. [TO CONFIRM: whether and how such amounts are paid later].",
+      "p5": "Les services de traitement des paiements offerts aux propriétaires de médias sur Envision Ad sont fournis par Stripe et sont assujettis à l’Entente sur les comptes connectés Stripe (Stripe Connected Account Agreement), qui comprend les Conditions d’utilisation de Stripe (collectivement, l’« Entente sur les services Stripe »). En acceptant les présentes Conditions ou en continuant d’exercer vos activités de propriétaire de médias sur Envision Ad, vous acceptez d’être lié par l’Entente sur les services Stripe, telle que Stripe peut la modifier de temps à autre. Comme condition à ce qu’Envision Ad vous donne accès aux services de traitement des paiements de Stripe, vous acceptez de nous fournir des renseignements exacts et complets sur vous et votre entreprise, et vous nous autorisez à communiquer ces renseignements ainsi que les renseignements sur les opérations liées à votre utilisation des services de traitement des paiements fournis par Stripe.",
+      "p6": "Nous vous donnerons un préavis d’au moins [TO CONFIRM: notice period] par courriel avant de modifier les frais de plateforme.",
+      "p7": "Si le paiement d’un annonceur est remboursé, annulé ou contesté après le transfert de votre part : [TO CONFIRM: whether we may recover your share, and how].",
+      "p8": "Vous êtes responsable de vos propres taxes et impôts sur les montants que vous recevez. [TO CONFIRM: tax treatment of payouts, including GST and QST]."
+    },
+    "content": {
+      "title": "8. Règles sur le contenu publicitaire",
+      "p1": "Vous êtes responsable de vos publicités. Chaque publicité est une image ou une vidéo d’au plus 30 secondes. Les publicités sont téléversées chez notre fournisseur d’hébergement de médias, Cloudinary, qui les héberge.",
+      "listIntro": "Les publicités ne doivent pas :",
+      "items": {
+        "law": "contrevenir à une loi applicable là où elles sont affichées, notamment la Loi sur la concurrence et la Loi sur la protection du consommateur du Québec;",
+        "misleading": "être fausses, trompeuses ou mensongères, ni contenir d’affirmations que vous ne pouvez pas étayer;",
+        "children": "être destinées à des enfants de moins de 13 ans;",
+        "regulated": "promouvoir le tabac, les produits de vapotage ou le cannabis, ni promouvoir l’alcool, les jeux de hasard ou d’autres produits réglementés, sauf dans la mesure permise par la loi;",
+        "political": "contenir de la publicité politique ou électorale [TO CONFIRM: whether political advertising is allowed];",
+        "offensive": "contenir de contenu sexuellement explicite, violent, haineux ou discriminatoire;",
+        "rights": "porter atteinte aux droits de quiconque, notamment le droit d’auteur, les marques de commerce, la vie privée ou le droit à l’image;",
+        "personalInfo": "montrer des renseignements personnels sur une personne sans son consentement."
+      },
+      "p2": "Les publicités affichées au Québec doivent respecter la Charte de la langue française.",
+      "p3": "Nous pouvons refuser ou retirer toute publicité, ou demander aux propriétaires de médias de cesser de l’afficher, si nous croyons raisonnablement qu’elle contrevient aux présentes Conditions, à la loi ou aux règles d’un lieu. Lorsque c’est raisonnable, nous vous en indiquerons la raison. [TO CONFIRM: effect on billing when an ad is removed]."
+    },
+    "ip": {
+      "title": "9. Propriété intellectuelle",
+      "p1": "Vous demeurez propriétaire de vos publicités, des photos de vos écrans et des autres contenus que vous téléversez. Vous confirmez détenir tous les droits nécessaires pour accorder les licences ci-dessous.",
+      "p2": "Les annonceurs nous accordent, ainsi qu’aux propriétaires de médias dont les écrans font partie de leurs abonnements, une licence non exclusive et libre de redevances pour stocker, copier, redimensionner, convertir et afficher leurs publicités sur ces écrans pendant toute la durée de l’abonnement, et pour les montrer dans les preuves d’affichage. Nous pouvons aussi stocker et afficher les publicités sur la Plateforme pour l’exploiter, et en conserver des copies dans nos dossiers après la fin d’un abonnement.",
+      "p3": "Les propriétaires de médias nous accordent une licence non exclusive et libre de redevances pour utiliser les descriptions et les photos de leurs écrans afin de les présenter et d’en faire la promotion sur la Plateforme.",
+      "p4": "La Plateforme, y compris son logiciel, son design ainsi que le nom et le logo Envision Ad, nous appartient ou appartient à nos concédants de licence. Les présentes Conditions ne vous y donnent aucun droit, sauf celui d’utiliser la Plateforme comme elles le permettent."
+    },
+    "acceptableUse": {
+      "title": "10. Utilisation acceptable",
+      "listIntro": "Vous ne devez pas :",
+      "items": {
+        "unlawful": "utiliser la Plateforme à des fins illégales ou en contravention des présentes Conditions;",
+        "sharing": "donner accès à votre compte à une personne extérieure à votre organisation, ni utiliser le compte d’une autre personne;",
+        "access": "tenter d’accéder à des comptes, à des données ou à des parties de la Plateforme auxquels vous n’êtes pas autorisé à accéder;",
+        "disrupt": "nuire au fonctionnement de la Plateforme ou la perturber, ni tester sa sécurité sans notre autorisation écrite;",
+        "scrape": "copier, extraire ou revendre la Plateforme ou ses données, ni en faire l’ingénierie inverse, sauf dans la mesure permise par la loi;",
+        "malware": "téléverser des virus ou tout autre code nuisible;",
+        "circumvent": "traiter directement avec un annonceur ou un propriétaire de médias rencontré au moyen de la Plateforme afin d’éviter les frais de plateforme [TO CONFIRM: whether to keep this restriction, and for how long]."
+      }
+    },
+    "termination": {
+      "title": "11. Suspension et résiliation",
+      "p1": "Vous pouvez cesser d’utiliser la Plateforme en tout temps. Pour fermer le compte de votre organisation, communiquez avec nous à [TO CONFIRM: contact email]. Annulez d’abord vos abonnements : la fermeture d’un compte n’annule pas les paiements déjà effectués.",
+      "p2": "Nous pouvons suspendre ou désactiver un compte, annuler des abonnements ou retirer des fiches si vous contrevenez aux présentes Conditions, si la loi l’exige, ou pour protéger la Plateforme, ses utilisateurs ou le public. Lorsque c’est raisonnable, nous vous en aviserons au préalable et vous donnerons l’occasion de corriger la situation.",
+      "p3": "Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, et nous conservons les dossiers de facturation aussi longtemps que la loi l’exige.",
+      "p4": "Les dispositions qui, de par leur nature, doivent survivre à la résiliation demeurent en vigueur, notamment les obligations de paiement, les licences nécessaires à la conservation des dossiers, les exclusions de garantie, la limitation de responsabilité, l’indemnisation et le droit applicable."
+    },
+    "disclaimers": {
+      "title": "12. Exclusions de garantie",
+      "p1": "La Plateforme est fournie « telle quelle » et « selon sa disponibilité ». Dans la mesure permise par la loi, nous ne garantissons pas qu’elle fonctionnera sans interruption ni erreur.",
+      "p2": "Nous ne garantissons aucun résultat publicitaire, notamment un nombre de vues, d’impressions, de visites ou de ventes. Les impressions quotidiennes estimées et les autres caractéristiques des écrans sont fournies par les propriétaires de médias, et nous ne les vérifions pas.",
+      "p3": "Les écrans sont exploités par les propriétaires de médias, et non par nous. Nous ne garantissons pas qu’un écran donné fonctionnera, ni qu’il affichera une publicité donnée, à un moment précis."
+    },
+    "liability": {
+      "title": "13. Limitation de responsabilité",
+      "p1": "Dans la mesure permise par la loi, nous ne sommes pas responsables des dommages indirects, accessoires, spéciaux ou consécutifs, ni de la perte de profits, de revenus, de clientèle ou de données, découlant de la Plateforme ou des présentes Conditions.",
+      "p2": "Dans la mesure permise par la loi, notre responsabilité totale pour l’ensemble des réclamations découlant de la Plateforme ou des présentes Conditions est limitée à [TO CONFIRM: liability cap amount].",
+      "p3": "Rien dans les présentes Conditions n’exclut ni ne limite une responsabilité qui ne peut être exclue ou limitée par la loi, notamment la responsabilité pour le préjudice corporel ou moral, ou pour le préjudice causé par une faute intentionnelle ou une faute lourde."
+    },
+    "indemnity": {
+      "title": "14. Indemnisation",
+      "p1": "Vous acceptez de nous indemniser, ainsi que nos administrateurs, dirigeants, employés et mandataires, de toute réclamation, de tout dommage, de toute perte et de tous frais, y compris des honoraires juridiques raisonnables, découlant de vos publicités ou autres contenus, de vos écrans et lieux et de leur exploitation, ou de votre contravention aux présentes Conditions ou à la loi."
+    },
+    "privacy": {
+      "title": "15. Protection des renseignements personnels",
+      "p1": "Notre <link>politique de confidentialité</link> explique comment nous traitons les renseignements personnels, notamment en vertu de la Loi sur la protection des renseignements personnels dans le secteur privé du Québec. Chacun est responsable de respecter les lois sur la protection des renseignements personnels à l’égard des renseignements personnels qu’il fournit à la Plateforme."
+    },
+    "governingLaw": {
+      "title": "16. Droit applicable et langue",
+      "p1": "Les présentes Conditions sont régies par les lois de la province de Québec et les lois fédérales du Canada qui s’y appliquent.",
+      "p2": "Les tribunaux de [TO CONFIRM: governing venue] ont compétence exclusive sur tout litige découlant des présentes Conditions.",
+      "p3": "Les présentes Conditions sont rédigées en français et en anglais. La version française a été mise à votre disposition en premier, et vous avez expressément choisi de les recevoir aussi en anglais. En cas de divergence entre les deux versions, la version française prévaut."
+    },
+    "changes": {
+      "title": "17. Modifications des présentes Conditions",
+      "p1": "Nous pouvons mettre à jour les présentes Conditions. Nous publierons la nouvelle version sur cette page avec une nouvelle date de « Dernière mise à jour » et, pour les modifications importantes, nous aviserons les titulaires de compte par courriel au moins [TO CONFIRM: notice period] avant leur entrée en vigueur. Si vous continuez d’utiliser la Plateforme après cette date, vous acceptez les nouvelles Conditions. Si vous ne les acceptez pas, vous pouvez annuler vos abonnements et cesser d’utiliser la Plateforme avant cette date."
+    },
+    "general": {
+      "title": "18. Dispositions générales",
+      "p1": "Les présentes Conditions, avec notre politique de confidentialité, constituent l’entente intégrale entre vous et nous concernant la Plateforme. Si une partie de celles-ci est jugée inapplicable, le reste demeure en vigueur. Le fait que nous n’appliquions pas une disposition ne constitue pas une renonciation à celle-ci.",
+      "p2": "Vous ne pouvez pas céder vos droits ou obligations en vertu des présentes Conditions sans notre consentement écrit. Nous pouvons les céder dans le cadre d’une réorganisation, d’une fusion ou de la vente de notre entreprise. Aucune des parties n’est responsable des retards causés par des événements indépendants de sa volonté raisonnable."
+    },
+    "contact": {
+      "title": "19. Nous joindre",
+      "p1": "Pour toute question sur les présentes Conditions :",
+      "entity": "[TO CONFIRM: legal entity name]",
+      "address": "[TO CONFIRM: registered address]",
+      "email": "[TO CONFIRM: contact email]"
+    }
   },
   "bundleSubscriptions": {
     "page": {

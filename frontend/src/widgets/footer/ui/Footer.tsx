@@ -121,9 +121,14 @@ export default function Footer({ bookMeetingUrl }: FooterProps) {
                     <Text className={styles.copyright}>
                         {t("copyright", { year: new Date().getFullYear() })}
                     </Text>
-                    <Link href="/privacy" className={styles.legalLink}>
-                        {t("privacy")}
-                    </Link>
+                    <div className={styles.legalLinks}>
+                        <Link href="/terms" className={styles.legalLink}>
+                            {t("terms")}
+                        </Link>
+                        <Link href="/privacy" className={styles.legalLink}>
+                            {t("privacy")}
+                        </Link>
+                    </div>
                 </div>
             </div>
         </footer>

@@ -30,6 +30,10 @@ export const routing = defineRouting({
       'en': '/privacy',
       'fr': '/confidentialite'
     },
+    '/terms': {
+      'en': '/terms',
+      'fr': '/conditions-utilisation'
+    },
     '/dashboard': {
       'en': '/dashboard',
       'fr': '/tableau-de-bord'

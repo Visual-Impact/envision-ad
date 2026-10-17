@@ -129,6 +129,12 @@
   margin: 0;
 }
 
+.legalLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
 .legalLink {
   color: #9a9ea8;
   font-size: 0.8rem;
