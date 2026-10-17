@@ -4,23 +4,11 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { Anchor, Container, List, Stack, Text, Title } from "@mantine/core";
 import { Link } from "@/shared/lib/i18n";
+import { LegalParagraph as Para, LegalSection as Section } from "@/shared/ui";
 
 // Every clause is written out here rather than mapped from the messages file, so that each
 // legal judgment call can carry a LAWYER REVIEW comment right next to it (JSON can't hold
 // comments). Placeholders for facts we don't have yet are "[TO CONFIRM: …]" in the copy itself.
-
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-    return (
-        <Stack component="section" id={id} gap="sm">
-            <Title order={2} size="h3">{title}</Title>
-            {children}
-        </Stack>
-    );
-}
-
-function Para({ children }: { children: ReactNode }) {
-    return <Text>{children}</Text>;
-}
 
 export default function TermsOfServicePage() {
     const t = useTranslations("termsPage");
@@ -180,7 +168,7 @@ export default function TermsOfServicePage() {
                 </Section>
 
                 <Section id="privacy" title={t("privacy.title")}>
-                    {/* LAWYER REVIEW: the linked privacy page is still a placeholder ("being finalized"). Law 25 requires a published privacy policy, so these Terms point at nothing until it is written. */}
+                    {/* LAWYER REVIEW: the "each party is responsible for the personal information it gives the Platform" split, and its fit with the privacy policy drafted alongside these Terms (sections 3, 6 and 7 there). */}
                     <Para>{t.rich("privacy.p1", { link: privacyLink })}</Para>
                 </Section>
 

@@ -2035,7 +2035,113 @@
   },
   "privacyPage": {
     "title": "Politique de confidentialité",
-    "placeholder": "Notre politique de confidentialité est en cours de finalisation et sera publiée ici prochainement. En attendant, si vous avez des questions sur la gestion de vos données, veuillez nous contacter.",
+    "lastUpdated": "Dernière mise à jour : 17 octobre 2026",
+    "intro": "La présente politique explique comment Envision Ad (la « Plateforme »), accessible à envision-ad.ca, recueille, utilise, communique et protège les renseignements personnels, ainsi que les droits que vous avez sur ceux-ci. Elle est rédigée pour respecter la Loi sur la protection des renseignements personnels dans le secteur privé du Québec. Elle s’applique avec nos <link>conditions d’utilisation</link>.",
+    "who": {
+      "title": "1. Qui nous sommes",
+      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p2": "La Plateforme est destinée aux entreprises. Les renseignements personnels que nous traitons concernent surtout les personnes qui l’utilisent pour le compte de leur organisation : propriétaires, employés et autres représentants des annonceurs et des propriétaires de médias. La présente politique vise aussi les visiteurs de nos pages publiques."
+    },
+    "officer": {
+      "title": "2. Responsable de la protection des renseignements personnels",
+      "p1": "La personne responsable de la protection des renseignements personnels chez Visual Impact est [TO CONFIRM: name and title]. Vous pouvez la joindre à [TO CONFIRM: privacy contact email] pour toute question, demande ou plainte concernant la présente politique ou vos renseignements personnels."
+    },
+    "collect": {
+      "title": "3. Ce que nous recueillons",
+      "listIntro": "Nous recueillons seulement ce dont nous avons besoin pour exploiter la Plateforme :",
+      "items": {
+        "account": "Renseignements de compte : prénom et nom, adresse courriel, nom d’utilisateur, photo de profil, une biographie facultative, votre langue de préférence et votre identifiant de connexion, géré par notre fournisseur d’authentification.",
+        "organization": "Renseignements sur l’organisation : le nom, l’adresse et la taille de votre organisation, son rôle d’annonceur ou de propriétaire de médias, ses membres et les adresses courriel des personnes invitées à s’y joindre.",
+        "billing": "Renseignements de facturation : les abonnements de votre organisation, le montant, la date et le statut de ses paiements, et les identifiants que Stripe leur attribue. Les données de votre carte sont transmises directement à Stripe et n’atteignent jamais nos serveurs.",
+        "payouts": "Renseignements de versement des propriétaires de médias : Stripe recueille les renseignements d’identité, bancaires et fiscaux dont il a besoin pour vérifier votre compte et vous payer. Nous recevons seulement l’identifiant de votre compte Stripe et l’indication que votre compte est vérifié et peut recevoir des versements.",
+        "content": "Contenu que vous ajoutez : publicités (images et vidéos), descriptions, emplacements et photos des écrans, et liens de preuve d’affichage. Si une publicité ou une photo montre une personne, elle contient des renseignements personnels à son sujet.",
+        "technical": "Renseignements techniques : les témoins énumérés à la section 9, et les données techniques, comme votre adresse IP, que nos serveurs enregistrent lorsque vous utilisez la Plateforme."
+      },
+      "p1": "Nous n’utilisons aucune technologie permettant de vous identifier, de vous localiser ou d’effectuer un profilage, et la Plateforme ne contient aucun traceur publicitaire ou analytique."
+    },
+    "how": {
+      "title": "4. Comment nous les recueillons",
+      "p1": "Nous recueillons des renseignements personnels directement auprès de vous, lorsque vous ou un membre de votre organisation remplissez la Plateforme; auprès de votre organisation, lorsqu’un administrateur crée votre compte ou qu’un membre vous invite; auprès d’Auth0 et de Stripe, comme décrit ci-dessus; et automatiquement, au moyen de témoins et de journaux de serveur."
+    },
+    "purposes": {
+      "title": "5. Pourquoi nous les utilisons",
+      "listIntro": "Nous utilisons les renseignements personnels pour :",
+      "items": {
+        "accounts": "créer et sécuriser les comptes, et vérifier les organisations;",
+        "service": "exploiter la Plateforme : présenter les écrans, gérer les abonnements, transmettre les publicités aux propriétaires de médias et montrer les preuves d’affichage aux annonceurs;",
+        "payments": "facturer les annonceurs, payer les propriétaires de médias et tenir nos registres comptables;",
+        "emails": "envoyer des courriels de service, comme les invitations, les avis de nouvelles campagnes et de changements de publicités, et les rappels mensuels de preuve d’affichage, dans votre langue de préférence;",
+        "support": "répondre à vos questions et à vos demandes;",
+        "security": "protéger la Plateforme, détecter et prévenir la fraude et les abus, et corriger les problèmes;",
+        "legal": "respecter nos obligations légales et faire respecter nos conditions d’utilisation."
+      },
+      "p1": "Nous utilisons les renseignements personnels seulement à ces fins, ou à une autre fin avec votre consentement ou lorsque la loi le permet. Nous ne vendons pas de renseignements personnels et nous n’envoyons pas de courriels de marketing [TO CONFIRM: whether any marketing emails will be sent]."
+    },
+    "sharing": {
+      "title": "6. À qui nous les communiquons",
+      "p1": "Au sein de la Plateforme : les membres de votre organisation peuvent se voir entre eux et voir les données de votre organisation. Les propriétaires de médias dont les écrans font partie d’un abonnement reçoivent le nom de l’organisation de l’annonceur, sa campagne et ses publicités. Les annonceurs voient les écrans auxquels ils s’abonnent et les liens de preuve d’affichage fournis par les propriétaires de médias. Les fiches des écrans sont publiques.",
+      "listIntro": "Fournisseurs de services qui traitent des renseignements personnels pour nous :",
+      "items": {
+        "auth0": "Auth0 (Okta) : connexion et gestion des comptes;",
+        "stripe": "Stripe : paiements par carte, ainsi que vérification et versements des propriétaires de médias;",
+        "cloudinary": "Cloudinary : stockage et diffusion des publicités;",
+        "aws": "Amazon Web Services : hébergement de la Plateforme et de sa base de données;",
+        "email": "[TO CONFIRM: email provider] : envoi des courriels de service;",
+        "maps": "OpenStreetMap et CARTO : recherche d’adresses et cartes. Lorsque vous cherchez une adresse ou consultez une carte, votre navigateur leur transmet directement les termes recherchés et votre adresse IP."
+      },
+      "p2": "Nous ne donnons à chaque fournisseur que les renseignements dont il a besoin, et nous l’obligeons par contrat à les protéger [TO CONFIRM: written agreements in place with each provider]. Nous pouvons aussi communiquer des renseignements personnels lorsque la loi l’exige, ou à un acheteur ou successeur si notre entreprise est vendue ou réorganisée, aux conditions prévues par la loi."
+    },
+    "outsideQuebec": {
+      "title": "7. Conservation à l’extérieur du Québec",
+      "p1": "Notre base de données est hébergée par Amazon Web Services au Canada (région de Montréal). Certains fournisseurs, dont Auth0, Stripe et Cloudinary, peuvent conserver ou traiter des renseignements personnels à l’extérieur du Québec, notamment aux États-Unis [TO CONFIRM: each provider’s storage locations]. Avant de communiquer des renseignements personnels à l’extérieur du Québec, nous évaluons s’ils y bénéficieront d’une protection adéquate, comme l’exige la loi."
+    },
+    "retention": {
+      "title": "8. Durée de conservation",
+      "p1": "Nous conservons les renseignements personnels seulement le temps nécessaire aux fins décrites ci-dessus, ou plus longtemps lorsque la loi l’exige. Les dossiers de facturation et comptables sont conservés pendant [TO CONFIRM: retention period for billing records]. Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, afin que ces dossiers leur restent rattachés. Les autres renseignements sont conservés pendant [TO CONFIRM: retention period for other account data] après la fermeture d’un compte. Lorsque nous n’avons plus besoin de renseignements personnels, nous les détruisons ou les anonymisons."
+    },
+    "cookies": {
+      "title": "9. Témoins (cookies)",
+      "listIntro": "La Plateforme utilise seulement les témoins nécessaires à son fonctionnement :",
+      "items": {
+        "session": "un témoin de session de notre système de connexion, qui vous garde connecté;",
+        "locale": "NEXT_LOCALE et user_preferred_language, qui mémorisent votre langue;",
+        "stripe": "les témoins que Stripe dépose sur la page de paiement pour traiter les paiements et prévenir la fraude."
+      },
+      "p1": "Nous n’utilisons aucun témoin publicitaire ou analytique."
+    },
+    "security": {
+      "title": "10. Comment nous les protégeons",
+      "p1": "Nous prenons des mesures de sécurité raisonnables, adaptées à la sensibilité des renseignements, notamment des connexions chiffrées (HTTPS), une connexion au moyen d’un fournisseur d’authentification spécialisé, des permissions d’accès selon le rôle de chaque utilisateur, et un accès restreint à nos systèmes et à nos secrets. Aucun système n’est parfaitement sécuritaire.",
+      "p2": "Si un incident de confidentialité présente un risque de préjudice sérieux, nous en aviserons la Commission d’accès à l’information et les personnes concernées, et nous tenons un registre des incidents de confidentialité, comme l’exige la loi."
+    },
+    "rights": {
+      "title": "11. Vos droits",
+      "listIntro": "Sous réserve de la loi, vous avez le droit :",
+      "items": {
+        "access": "d’accéder aux renseignements personnels que nous détenons à votre sujet;",
+        "correct": "de faire rectifier des renseignements inexacts, incomplets ou périmés;",
+        "withdraw": "de retirer votre consentement à une utilisation de vos renseignements, ce qui peut nous empêcher de fournir certains services;",
+        "portability": "de recevoir les renseignements personnels que vous nous avez fournis dans un format technologique structuré et couramment utilisé;",
+        "explain": "de savoir comment vos renseignements sont utilisés et qui y a accès."
+      },
+      "p1": "Pour exercer un droit, écrivez à la personne responsable de la protection des renseignements personnels (section 2). Nous vous répondrons par écrit dans un délai de 30 jours. Nous pourrions d’abord devoir vérifier votre identité.",
+      "p2": "Si notre réponse ne vous satisfait pas, vous pouvez porter plainte auprès de la Commission d’accès à l’information du Québec."
+    },
+    "minors": {
+      "title": "12. Mineurs",
+      "p1": "La Plateforme est destinée aux entreprises et ne s’adresse pas aux mineurs. Nous ne recueillons pas sciemment de renseignements personnels sur des personnes de moins de 18 ans."
+    },
+    "changes": {
+      "title": "13. Modifications de la présente politique",
+      "p1": "Nous pouvons mettre à jour la présente politique. Nous publierons la nouvelle version sur cette page avec une nouvelle date de « Dernière mise à jour » et aviserons les titulaires de compte par courriel de tout changement important."
+    },
+    "contact": {
+      "title": "14. Nous joindre",
+      "p1": "Pour toute question ou demande concernant la présente politique ou vos renseignements personnels :",
+      "entity": "[TO CONFIRM: name and title]",
+      "address": "[TO CONFIRM: legal entity name], [TO CONFIRM: registered address]",
+      "email": "[TO CONFIRM: privacy contact email]"
+    },
     "termsLink": "Consultez aussi nos <link>conditions d’utilisation</link>."
   },
   "termsPage": {

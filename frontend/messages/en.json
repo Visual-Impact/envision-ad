@@ -2034,7 +2034,113 @@
   },
   "privacyPage": {
     "title": "Privacy Policy",
-    "placeholder": "Our privacy policy is being finalized and will be published here soon. In the meantime, if you have any questions about how we handle your data, please contact us.",
+    "lastUpdated": "Last updated: October 17, 2026",
+    "intro": "This policy explains how Envision Ad (the “Platform”), available at envision-ad.ca, collects, uses, shares and protects personal information, and the rights you have over it. It is written to meet Quebec’s Act respecting the protection of personal information in the private sector. It applies alongside our <link>Terms of Service</link>.",
+    "who": {
+      "title": "1. Who we are",
+      "p1": "The Platform is operated by [TO CONFIRM: legal entity name], whose registered office is at [TO CONFIRM: registered address] (“Visual Impact”, “we”, “us” or “our”).",
+      "p2": "The Platform is for businesses. The personal information we handle is mostly about the people who use it on their organization’s behalf: owners, employees and other representatives of advertisers and media owners. This policy also covers visitors to our public pages."
+    },
+    "officer": {
+      "title": "2. Person in charge of protecting personal information",
+      "p1": "The person in charge of protecting personal information at Visual Impact is [TO CONFIRM: name and title]. You can reach them at [TO CONFIRM: privacy contact email] for any question, request or complaint about this policy or your personal information."
+    },
+    "collect": {
+      "title": "3. What we collect",
+      "listIntro": "We collect only what we need to run the Platform:",
+      "items": {
+        "account": "Account information: first and last name, email address, username, profile picture, an optional bio, your preferred language, and your login, which our authentication provider manages.",
+        "organization": "Organization information: your organization’s name, address, size, its role as advertiser or media owner, its members, and the email addresses of people invited to join it.",
+        "billing": "Billing information: the subscriptions your organization holds, the amounts, dates and status of its payments, and the identifiers Stripe gives them. Your card details go directly to Stripe and never reach our servers.",
+        "payouts": "Payout information for media owners: Stripe collects the identity, bank and tax information it needs to verify your account and pay you. We receive only your Stripe account identifier and whether your account is verified and able to receive payouts.",
+        "content": "Content you add: ads (images and videos), screen descriptions, locations and photos, and proof-of-display links. If an ad or photo shows a person, it contains personal information about them.",
+        "technical": "Technical information: the cookies listed in section 9, and the technical data, such as your IP address, that our servers record when you use the Platform."
+      },
+      "p1": "We do not use any technology to identify, locate or profile you, and the Platform has no advertising or analytics trackers."
+    },
+    "how": {
+      "title": "4. How we collect it",
+      "p1": "We collect personal information from you directly, when you or a member of your organization fill in the Platform; from your organization, when an administrator creates your account or a member invites you; from Auth0 and Stripe, as described above; and automatically, through cookies and server logs."
+    },
+    "purposes": {
+      "title": "5. Why we use it",
+      "listIntro": "We use personal information to:",
+      "items": {
+        "accounts": "create and secure accounts, and verify organizations;",
+        "service": "run the Platform: list screens, run subscriptions, send ads to media owners and show proof of display to advertisers;",
+        "payments": "bill advertisers, pay media owners and keep accounting records;",
+        "emails": "send service emails, such as invitations, notices about new campaigns and creative changes, and monthly proof-of-display reminders, in your preferred language;",
+        "support": "answer your questions and requests;",
+        "security": "protect the Platform, detect and prevent fraud and abuse, and fix problems;",
+        "legal": "meet our legal obligations and enforce our Terms of Service."
+      },
+      "p1": "We use personal information only for these purposes, or for another purpose with your consent or where the law allows it. We do not sell personal information, and we do not send marketing emails [TO CONFIRM: whether any marketing emails will be sent]."
+    },
+    "sharing": {
+      "title": "6. Who we share it with",
+      "p1": "Within the Platform: members of your organization can see each other and your organization’s data. Media owners whose screens are in a subscription receive the advertiser’s organization name, campaign and ads. Advertisers see the screens they subscribe to and the proof-of-display links media owners provide. Screen listings are public.",
+      "listIntro": "Service providers that process personal information for us:",
+      "items": {
+        "auth0": "Auth0 (Okta): sign-in and account management;",
+        "stripe": "Stripe: card payments, and verification and payouts for media owners;",
+        "cloudinary": "Cloudinary: storage and delivery of ads;",
+        "aws": "Amazon Web Services: hosting of the Platform and its database;",
+        "email": "[TO CONFIRM: email provider]: delivery of service emails;",
+        "maps": "OpenStreetMap and CARTO: address search and maps. When you search for an address or view a map, your browser sends the search terms and your IP address directly to them."
+      },
+      "p2": "We give each provider only the information it needs, and we require it by contract to protect it [TO CONFIRM: written agreements in place with each provider]. We may also disclose personal information when the law requires it, or to a buyer or successor if our business is sold or reorganized, under the conditions the law sets."
+    },
+    "outsideQuebec": {
+      "title": "7. Storage outside Quebec",
+      "p1": "Our database is hosted by Amazon Web Services in Canada (Montréal region). Some providers, including Auth0, Stripe and Cloudinary, may store or process personal information outside Quebec, including in the United States [TO CONFIRM: each provider’s storage locations]. Before sending personal information outside Quebec, we assess whether it will be adequately protected, as the law requires."
+    },
+    "retention": {
+      "title": "8. How long we keep it",
+      "p1": "We keep personal information only as long as we need it for the purposes above, or longer when the law requires it. Billing and accounting records are kept for [TO CONFIRM: retention period for billing records]. Accounts with billing history are deactivated rather than deleted, so that those records stay linked to them. Other information is kept for [TO CONFIRM: retention period for other account data] after an account is closed. When we no longer need personal information, we destroy it or anonymize it."
+    },
+    "cookies": {
+      "title": "9. Cookies",
+      "listIntro": "The Platform uses only cookies it needs to work:",
+      "items": {
+        "session": "a session cookie from our sign-in system, which keeps you signed in;",
+        "locale": "NEXT_LOCALE and user_preferred_language, which remember your language;",
+        "stripe": "cookies Stripe sets on the payment page to process payments and prevent fraud."
+      },
+      "p1": "We do not use advertising or analytics cookies."
+    },
+    "security": {
+      "title": "10. How we protect it",
+      "p1": "We use reasonable security measures suited to the sensitivity of the information, including encrypted connections (HTTPS), sign-in through a dedicated authentication provider, access permissions based on each user’s role, and restricted access to our systems and secrets. No system is perfectly secure.",
+      "p2": "If a confidentiality incident presents a risk of serious injury, we will notify the Commission d’accès à l’information and the people concerned, and we keep a register of confidentiality incidents, as the law requires."
+    },
+    "rights": {
+      "title": "11. Your rights",
+      "listIntro": "Subject to the law, you have the right to:",
+      "items": {
+        "access": "access the personal information we hold about you;",
+        "correct": "have inaccurate, incomplete or outdated information corrected;",
+        "withdraw": "withdraw your consent to a use of your information, which may stop us from providing some services;",
+        "portability": "receive personal information you provided to us in a structured, commonly used technological format;",
+        "explain": "ask how your information is used and who has access to it."
+      },
+      "p1": "To exercise a right, write to the person in charge of protecting personal information (section 2). We will reply in writing within 30 days. We may need to verify your identity first.",
+      "p2": "If you are not satisfied with our answer, you may file a complaint with the Commission d’accès à l’information du Québec."
+    },
+    "minors": {
+      "title": "12. Minors",
+      "p1": "The Platform is for businesses and is not intended for minors. We do not knowingly collect personal information about anyone under 18."
+    },
+    "changes": {
+      "title": "13. Changes to this policy",
+      "p1": "We may update this policy. We will post the new version on this page with a new “Last updated” date and notify account holders by email of significant changes."
+    },
+    "contact": {
+      "title": "14. Contact",
+      "p1": "Questions or requests about this policy or your personal information:",
+      "entity": "[TO CONFIRM: name and title]",
+      "address": "[TO CONFIRM: legal entity name], [TO CONFIRM: registered address]",
+      "email": "[TO CONFIRM: privacy contact email]"
+    },
     "termsLink": "See also our <link>Terms of Service</link>."
   },
   "termsPage": {
