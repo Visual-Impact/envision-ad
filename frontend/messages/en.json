@@ -311,6 +311,7 @@
     "linkedin": "LinkedIn",
     "instagram": "Instagram",
     "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
     "copyright": "© {year} Envision AD. All rights reserved."
   },
   "mediaPage": {
@@ -2033,7 +2034,151 @@
   },
   "privacyPage": {
     "title": "Privacy Policy",
-    "placeholder": "Our privacy policy is being finalized and will be published here soon. In the meantime, if you have any questions about how we handle your data, please contact us."
+    "placeholder": "Our privacy policy is being finalized and will be published here soon. In the meantime, if you have any questions about how we handle your data, please contact us.",
+    "termsLink": "See also our <link>Terms of Service</link>."
+  },
+  "termsPage": {
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: October 17, 2026",
+    "intro": "These Terms of Service (the “Terms”) govern access to and use of Envision Ad (the “Platform”), available at envision-ad.ca. Please read them carefully. By accessing or using the Platform, you agree to these Terms on behalf of your business.",
+    "parties": {
+      "title": "1. Who we are",
+      "p1": "The Platform is operated by [TO CONFIRM: legal entity name], whose registered office is at [TO CONFIRM: registered address] (“Visual Impact”, “we”, “us” or “our”).",
+      "p2": "Envision Ad is a marketplace that connects two kinds of businesses: advertisers, who subscribe to bundles of advertising screens to show their ads; and media owners, who list screens they operate and earn a share of what advertisers pay. A business can be both. In these Terms, “you” means the business that holds the account, and each person who uses the Platform on its behalf.",
+      "p3": "We operate the Platform and collect advertisers’ payments. We do not own or operate the screens: media owners do, and they are responsible for showing ads on them."
+    },
+    "accounts": {
+      "title": "2. Accounts and eligibility",
+      "p1": "The Platform is for businesses only. You may use it only on behalf of a business or other organization, and not as a consumer for personal, family or household purposes. By using the Platform, you confirm that you are authorized to bind that business to these Terms.",
+      "p2": "There is no public sign-up. Accounts are created by us, or by invitation from an existing member of your organization. Sign-in is handled by our authentication provider, Auth0. We may verify your organization before giving it access to some features.",
+      "p3": "You are responsible for keeping your login credentials confidential, for everything done through your organization’s accounts, and for keeping your organization’s information accurate and up to date. When a person leaves your organization, you are responsible for removing their access. Tell us promptly at [TO CONFIRM: contact email] if you believe an account has been used without authorization."
+    },
+    "subscriptions": {
+      "title": "3. Advertiser subscriptions",
+      "p1": "Advertisers buy advertising through monthly subscriptions to bundles. A bundle is a group of screens defined by city, region, venue type or the full network. To subscribe, you need an ad campaign with at least one ad. That campaign is what media owners show on your subscription’s screens.",
+      "p2": "The monthly price and the list of screens are fixed when you subscribe and stay the same for the life of that subscription. Screens that join the bundle later are not added to your subscription, and later price changes to the bundle do not affect it.",
+      "p3": "Your ads are shown in rotation with other ads, according to each screen’s loop duration and operating schedule as listed on the Platform. Media owners choose which ad from your campaign to show on each screen.",
+      "p4": "If a screen in your subscription becomes unavailable during the subscription: [TO CONFIRM: remedy, for example a credit, a replacement screen, or none]."
+    },
+    "billing": {
+      "title": "4. Billing and renewal",
+      "p1": "Prices are in Canadian dollars (CAD) and are billed monthly in advance. You pay by card through Stripe Checkout, our payment processor. We do not store your full card details. The first month is charged when you subscribe.",
+      "p2": "Subscriptions renew automatically every month, and your payment method is charged at each renewal until you cancel.",
+      "p3": "Prices exclude applicable taxes. [TO CONFIRM: how applicable taxes, such as the GST and QST, are charged and shown on invoices].",
+      "p4": "A discount or promotional code applies only to the subscription it was used for, and only as described when it was offered, including how many months it lasts.",
+      "p5": "If a renewal payment fails, the subscription becomes past due and the charge is retried [TO CONFIRM: retry schedule]. If payment is still not received, [TO CONFIRM: when the subscription is suspended or cancelled]."
+    },
+    "cancellation": {
+      "title": "5. Cancellation and refunds",
+      "p1": "You can cancel a subscription at any time from your Subscriptions page. Cancellation takes effect at the end of the current billing period: your ads stay in rotation, and you keep access to the subscription, until then. You will not be charged again.",
+      "p2": "Payments already made are not refunded, including for the rest of a billing period after you cancel. [TO CONFIRM: refund policy, including any exceptions, for example screens that did not show your ad]."
+    },
+    "mediaOwners": {
+      "title": "6. Media owner obligations",
+      "p1": "When you list a screen, you must describe it accurately and keep its listing up to date, including its location, venue, type of display, size, resolution, loop duration, operating schedule, estimated daily impressions, price and photo. We review new and edited screens before advertisers can buy them, and we may reject a listing.",
+      "p2": "When a subscription that includes your screens starts, and when the advertiser changes their ads, we email you the ads to show. You must put them on the subscribed screens within [TO CONFIRM: number of days] and keep them in rotation, as described in the screen’s listing, for as long as the subscription runs.",
+      "p3": "If you believe an ad breaks these Terms, the law or your venue’s rules, do not show it, and tell us right away at [TO CONFIRM: contact email].",
+      "p4": "Tell us promptly if a screen stops working, is removed, or cannot show ads for more than [TO CONFIRM: duration].",
+      "p5": "For a subscription whose screens all belong to you, you must keep a proof-of-display link up to date on the Platform: a page, such as a view-only Canva design, that shows the advertiser’s ads on your screens. We remind you of this every month. We may also ask you for other reasonable proof that ads were shown.",
+      "p6": "You must hold every right, permit and permission needed to operate your screens and show ads on them, including the venue’s permission where you do not own the venue."
+    },
+    "payouts": {
+      "title": "7. Revenue share and payouts",
+      "p1": "For each subscription invoice that is paid, you receive 70% of the monthly price of your screens in that subscription, as fixed when the advertiser subscribed. We keep the other 30% as our platform fee.",
+      "p2": "Discounts and promotional codes we give advertisers come out of our share, not yours: your 70% is calculated on the full price of your screens, as if no discount applied.",
+      "p3": "Your share is transferred to your Stripe account after the advertiser’s invoice is paid, [TO CONFIRM: payout timing in days]. Stripe then pays it out to your bank account on your Stripe account’s payout schedule. Nothing is paid for an invoice that has not been paid, such as a failed renewal.",
+      "p4": "To receive payouts, you must connect a Stripe account through the Platform and complete Stripe’s onboarding, including identity verification. If your onboarding is not complete when an invoice is paid, your share of that invoice is not transferred automatically. [TO CONFIRM: whether and how such amounts are paid later].",
+      "p5": "Payment processing services for media owners on Envision Ad are provided by Stripe and are subject to the Stripe Connected Account Agreement, which includes the Stripe Terms of Service (collectively, the “Stripe Services Agreement”). By agreeing to these Terms or continuing to operate as a media owner on Envision Ad, you agree to be bound by the Stripe Services Agreement, as it may be modified by Stripe from time to time. As a condition of Envision Ad enabling payment processing services through Stripe, you agree to provide us accurate and complete information about you and your business, and you authorize us to share it and transaction information related to your use of the payment processing services provided by Stripe.",
+      "p6": "We will give you at least [TO CONFIRM: notice period] notice by email before changing the platform fee.",
+      "p7": "If an advertiser’s payment is refunded, reversed or disputed after your share was transferred: [TO CONFIRM: whether we may recover your share, and how].",
+      "p8": "You are responsible for your own taxes on amounts you receive. [TO CONFIRM: tax treatment of payouts, including GST and QST]."
+    },
+    "content": {
+      "title": "8. Ad content rules",
+      "p1": "You are responsible for your ads. Each ad is an image or a video of up to 30 seconds. Ads are uploaded to and hosted by our media hosting provider, Cloudinary.",
+      "listIntro": "Ads must not:",
+      "items": {
+        "law": "break any law that applies where they are shown, including the Competition Act and Quebec’s Consumer Protection Act;",
+        "misleading": "be false, misleading or deceptive, or make claims you cannot support;",
+        "children": "be directed at children under 13 years of age;",
+        "regulated": "promote tobacco, vaping products or cannabis, or promote alcohol, gambling or other regulated products except as the law allows;",
+        "political": "contain political or election advertising [TO CONFIRM: whether political advertising is allowed];",
+        "offensive": "contain sexually explicit, violent, hateful or discriminatory content;",
+        "rights": "infringe anyone’s rights, including copyright, trademarks, privacy or image rights;",
+        "personalInfo": "show personal information about any person without that person’s consent."
+      },
+      "p2": "Ads shown in Quebec must comply with the Charter of the French Language.",
+      "p3": "We may refuse or remove any ad, or ask media owners to stop showing it, if we reasonably believe it breaks these Terms, the law or a venue’s rules. Where reasonable, we will tell you why. [TO CONFIRM: effect on billing when an ad is removed]."
+    },
+    "ip": {
+      "title": "9. Intellectual property",
+      "p1": "You keep ownership of your ads, screen photos and other content you upload. You confirm that you hold all the rights needed to grant the licences below.",
+      "p2": "Advertisers grant us, and the media owners whose screens are in their subscriptions, a non-exclusive, royalty-free licence to store, copy, resize, convert and display their ads on those screens for as long as the subscription runs, and to show them in proof-of-display materials. We may also store and display ads on the Platform to operate it, and keep copies for our records after a subscription ends.",
+      "p3": "Media owners grant us a non-exclusive, royalty-free licence to use the descriptions and photos of their screens to list and promote those screens on the Platform.",
+      "p4": "The Platform, including its software, design and the Envision Ad name and logo, belongs to us or our licensors. These Terms give you no right to them other than to use the Platform as these Terms allow."
+    },
+    "acceptableUse": {
+      "title": "10. Acceptable use",
+      "listIntro": "You must not:",
+      "items": {
+        "unlawful": "use the Platform for any unlawful purpose or in breach of these Terms;",
+        "sharing": "give anyone outside your organization access to your account, or use another person’s account;",
+        "access": "try to access accounts, data or parts of the Platform that you are not authorized to access;",
+        "disrupt": "interfere with or disrupt the Platform, or test its security without our written permission;",
+        "scrape": "copy, scrape or resell the Platform or its data, or reverse-engineer it except where the law allows;",
+        "malware": "upload viruses or other harmful code;",
+        "circumvent": "deal directly with an advertiser or media owner you met through the Platform in order to avoid the platform fee [TO CONFIRM: whether to keep this restriction, and for how long]."
+      }
+    },
+    "termination": {
+      "title": "11. Suspension and termination",
+      "p1": "You may stop using the Platform at any time. To close your organization’s account, contact us at [TO CONFIRM: contact email]. Cancel your subscriptions first: closing an account does not undo payments already made.",
+      "p2": "We may suspend or deactivate an account, cancel subscriptions or remove listings if you breach these Terms, if the law requires it, or to protect the Platform, its users or the public. Where reasonable, we will tell you beforehand and give you a chance to fix the problem.",
+      "p3": "Accounts with billing history are deactivated rather than deleted, and we keep billing records for as long as the law requires.",
+      "p4": "Sections that by their nature should continue after termination remain in effect, including payment obligations, the licences needed to keep records, disclaimers, limitation of liability, indemnity and governing law."
+    },
+    "disclaimers": {
+      "title": "12. Disclaimers",
+      "p1": "The Platform is provided “as is” and “as available”. To the extent permitted by law, we do not guarantee that it will be uninterrupted or error-free.",
+      "p2": "We do not guarantee any result from advertising, including any number of views, impressions, visits or sales. Estimated daily impressions and other screen details are provided by media owners, and we do not verify them.",
+      "p3": "Screens are operated by media owners, not by us. We do not guarantee that a given screen will be working, or will show a given ad, at any particular time."
+    },
+    "liability": {
+      "title": "13. Limitation of liability",
+      "p1": "To the extent permitted by law, we are not liable for indirect, incidental, special or consequential damages, or for loss of profits, revenue, business or data, arising out of the Platform or these Terms.",
+      "p2": "To the extent permitted by law, our total liability for all claims arising out of the Platform or these Terms is limited to [TO CONFIRM: liability cap amount].",
+      "p3": "Nothing in these Terms excludes or limits liability that cannot be excluded or limited by law, including liability for bodily or moral injury, or for damage caused by intentional or gross fault."
+    },
+    "indemnity": {
+      "title": "14. Indemnity",
+      "p1": "You agree to indemnify us, our directors, officers, employees and agents against any claim, damage, loss or cost, including reasonable legal fees, arising out of your ads or other content, your screens and venues and their operation, or your breach of these Terms or of the law."
+    },
+    "privacy": {
+      "title": "15. Privacy",
+      "p1": "Our <link>Privacy Policy</link> explains how we handle personal information, including under Quebec’s Act respecting the protection of personal information in the private sector. Each of you is responsible for complying with privacy law for the personal information it gives the Platform."
+    },
+    "governingLaw": {
+      "title": "16. Governing law and language",
+      "p1": "These Terms are governed by the laws of the Province of Quebec and the federal laws of Canada that apply there.",
+      "p2": "The courts of [TO CONFIRM: governing venue] have exclusive jurisdiction over any dispute arising out of these Terms.",
+      "p3": "These Terms are drawn up in French and in English. The French version was made available first, and you have expressly chosen to also receive them in English. If the two versions differ, the French version governs."
+    },
+    "changes": {
+      "title": "17. Changes to these Terms",
+      "p1": "We may update these Terms. We will post the new version on this page with a new “Last updated” date and, for material changes, notify account holders by email at least [TO CONFIRM: notice period] before they take effect. If you continue to use the Platform after that date, you accept the new Terms. If you do not agree, you may cancel your subscriptions and stop using the Platform before then."
+    },
+    "general": {
+      "title": "18. General",
+      "p1": "These Terms, together with our Privacy Policy, are the entire agreement between you and us about the Platform. If any part of them is found unenforceable, the rest remains in effect. Our not enforcing a provision is not a waiver of it.",
+      "p2": "You may not transfer your rights or obligations under these Terms without our written consent. We may transfer them as part of a reorganization, merger or sale of our business. Neither of us is liable for delays caused by events beyond its reasonable control."
+    },
+    "contact": {
+      "title": "19. Contact",
+      "p1": "Questions about these Terms:",
+      "entity": "[TO CONFIRM: legal entity name]",
+      "address": "[TO CONFIRM: registered address]",
+      "email": "[TO CONFIRM: contact email]"
+    }
   },
   "bundleSubscriptions": {
     "page": {
