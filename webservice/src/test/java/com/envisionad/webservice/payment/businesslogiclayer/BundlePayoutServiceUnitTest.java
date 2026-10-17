@@ -1,10 +1,17 @@
 package com.envisionad.webservice.payment.businesslogiclayer;
 
 import com.envisionad.webservice.payment.dataaccesslayer.*;
+import com.envisionad.webservice.payment.exceptions.PayoutFundingLookupException;
+import com.stripe.exception.ApiConnectionException;
 import com.stripe.exception.InvalidRequestException;
+import com.stripe.model.InvoicePayment;
+import com.stripe.model.InvoicePaymentCollection;
+import com.stripe.model.PaymentIntent;
 import com.stripe.model.Transfer;
 import com.stripe.net.RequestOptions;
+import com.stripe.param.InvoicePaymentListParams;
 import com.stripe.param.TransferCreateParams;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,9 +19,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,6 +42,9 @@ import static org.mockito.Mockito.*;
  * harness cannot stub Stripe (see {@code BaseIntegrationTest}). It is also the only
  * place the multi-owner split is genuinely exercised: the seeded dev data has a
  * single owner who is also the buyer, so a live run proves plumbing, not arithmetic.
+ *
+ * <p>Every test sees the invoice as paid by one charge, {@link #CHARGE_ID}, large enough to
+ * fund any payout here, unless it says otherwise through {@link #givenInvoicePaidBy}.
  */
 @ExtendWith(MockitoExtension.class)
 class BundlePayoutServiceUnitTest {
@@ -42,6 +55,7 @@ class BundlePayoutServiceUnitTest {
     private static final String OWNER_B = "owner-bbb";
     private static final String ACCOUNT_A = "acct_AAA";
     private static final String ACCOUNT_B = "acct_BBB";
+    private static final String CHARGE_ID = "ch_test_123";
 
     private BundlePayoutServiceImpl service;
 
@@ -49,10 +63,21 @@ class BundlePayoutServiceUnitTest {
     @Mock private StripeAccountRepository stripeAccountRepository;
     @Mock private BundlePayoutRepository payoutRepository;
 
+    private MockedStatic<InvoicePayment> invoicePayments;
+
     @BeforeEach
     void setUp() {
         service = new BundlePayoutServiceImpl(itemRepository, stripeAccountRepository, payoutRepository);
         ReflectionTestUtils.setField(service, "platformFeePercent", 30);
+        ReflectionTestUtils.setField(service, "retryMaxAge", Duration.ofDays(30));
+        // Lenient: tests that never reach a transfer never look the charge up.
+        invoicePayments = mockStatic(InvoicePayment.class, withSettings().strictness(Strictness.LENIENT));
+        givenInvoicePaidBy(chargePayment(CHARGE_ID, 1_000_000L));
+    }
+
+    @AfterEach
+    void tearDown() {
+        invoicePayments.close();
     }
 
     @Test
@@ -114,13 +139,14 @@ class BundlePayoutServiceUnitTest {
 
     /**
      * A discount larger than the platform fee pays owners more than the invoice
-     * collected. Accepted rather than capped — and the reason transfers are made from
-     * the platform balance instead of against the invoice's charge, which Stripe caps
-     * at the charge amount.
+     * collected (D30). Accepted rather than capped — and because Stripe caps
+     * source_transaction transfers at the charge amount, this case alone is paid from
+     * the platform balance.
      */
     @Test
     void whenDiscountExceedsPlatformFee_thenPayoutStillExceedsWhatWasCollectedAndIsNotCapped() {
-        givenItems(item(OWNER_A, "60.00")); // charged, say, $30.00 after a 50% discount
+        givenItems(item(OWNER_A, "60.00"));
+        givenInvoicePaidBy(chargePayment(CHARGE_ID, 3000L)); // $30.00 after a 50% discount
         givenOnboarded(OWNER_A, ACCOUNT_A);
         givenNoPriorPayouts();
 
@@ -136,6 +162,154 @@ class BundlePayoutServiceUnitTest {
             assertNull(params.getValue().getSourceTransaction(),
                     "no source_transaction: Stripe caps those at the source charge amount");
         }
+        assertNull(savedPayoutFor(OWNER_A).getStripeSourceChargeId());
+    }
+
+    /**
+     * The live-mode fix. A card payment sits in the pending balance for days, so a transfer
+     * from the available balance on invoice.paid fails. Tied to the charge, it goes through.
+     */
+    @Test
+    void whenPayoutsFitInsideTheCharge_thenEveryTransferIsTiedToThatCharge() {
+        givenItems(item(OWNER_A, "10.00"), item(OWNER_B, "10.00"));
+        givenInvoicePaidBy(chargePayment(CHARGE_ID, 2000L)); // undiscounted: $20.00 collected
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenOnboarded(OWNER_B, ACCOUNT_B);
+        givenNoPriorPayouts();
+
+        try (MockedStatic<Transfer> transfers = mockStatic(Transfer.class)) {
+            ArgumentCaptor<TransferCreateParams> params = ArgumentCaptor.forClass(TransferCreateParams.class);
+            transfers.when(() -> Transfer.create(any(TransferCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(givenTransfer("tr_1"));
+
+            service.payOutInvoice(INVOICE_ID, SUBSCRIPTION_ID);
+
+            transfers.verify(() -> Transfer.create(params.capture(), any(RequestOptions.class)), times(2));
+            assertEquals(CHARGE_ID, params.getAllValues().get(0).getSourceTransaction());
+            assertEquals(CHARGE_ID, params.getAllValues().get(1).getSourceTransaction());
+        }
+        assertEquals(CHARGE_ID, savedPayoutFor(OWNER_A).getStripeSourceChargeId());
+        assertNotNull(savedPayoutFor(OWNER_A).getLastAttemptAt());
+    }
+
+    /** Payouts fill the charge to the cent: still inside Stripe's cap. */
+    @Test
+    void whenPayoutsEqualTheChargeExactly_thenTheyAreStillTiedToIt() {
+        givenItems(item(OWNER_A, "10.00"));
+        givenInvoicePaidBy(chargePayment(CHARGE_ID, 700L)); // a 30% discount: collected exactly the net
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenNoPriorPayouts();
+
+        assertEquals(CHARGE_ID, sentParams().get(0).getSourceTransaction());
+    }
+
+    /**
+     * Stripe caps the SUM of transfers sharing a source_transaction. Each owner's share fits
+     * alone here, but together they don't, so the whole invoice is balance-funded.
+     */
+    @Test
+    void whenOwnersTogetherExceedTheCharge_thenNoTransferIsTiedToItEvenThoughEachFitsAlone() {
+        givenItems(item(OWNER_A, "10.00"), item(OWNER_B, "10.00")); // 7.00 + 7.00 net
+        givenInvoicePaidBy(chargePayment(CHARGE_ID, 1000L)); // $10.00 after a 50% discount
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenOnboarded(OWNER_B, ACCOUNT_B);
+        givenNoPriorPayouts();
+
+        List<TransferCreateParams> sent = sentParams();
+        assertEquals(2, sent.size());
+        assertNull(sent.get(0).getSourceTransaction());
+        assertNull(sent.get(1).getSourceTransaction());
+    }
+
+    /** A 100% coupon: nothing was charged, so there is no charge to tie a transfer to. */
+    @Test
+    void whenInvoiceWasForZero_thenOwnersArePaidFromTheBalance() {
+        givenItems(item(OWNER_A, "10.00"));
+        givenInvoicePaidBy();
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenNoPriorPayouts();
+
+        assertNull(sentParams().get(0).getSourceTransaction());
+    }
+
+    /** Subscription invoices are paid through a PaymentIntent; its latest charge is the source. */
+    @Test
+    void whenInvoiceWasPaidThroughAPaymentIntent_thenItsLatestChargeIsTheSource() {
+        PaymentIntent intent = new PaymentIntent();
+        intent.setId("pi_test");
+        intent.setLatestCharge("ch_from_intent");
+        InvoicePayment.Payment payment = new InvoicePayment.Payment();
+        payment.setType("payment_intent");
+        payment.setPaymentIntentObject(intent);
+        InvoicePayment invoicePayment = new InvoicePayment();
+        invoicePayment.setAmountPaid(1000L);
+        invoicePayment.setPayment(payment);
+
+        givenItems(item(OWNER_A, "10.00"));
+        givenInvoicePaidBy(invoicePayment);
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenNoPriorPayouts();
+
+        assertEquals("ch_from_intent", sentParams().get(0).getSourceTransaction());
+    }
+
+    /** Partial payments: no single charge can fund the transfers, so fall back to the balance. */
+    @Test
+    void whenInvoiceWasPaidInSeveralPayments_thenOwnersArePaidFromTheBalance() {
+        givenItems(item(OWNER_A, "10.00"));
+        givenInvoicePaidBy(chargePayment("ch_1", 500L), chargePayment("ch_2", 500L));
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenNoPriorPayouts();
+
+        assertNull(sentParams().get(0).getSourceTransaction());
+    }
+
+    /** A paid invoice payment we can't resolve to a charge (e.g. paid out of band). */
+    @Test
+    void whenThePaymentHasNoCharge_thenOwnersArePaidFromTheBalance() {
+        InvoicePayment.Payment payment = new InvoicePayment.Payment();
+        payment.setType("payment_record");
+        InvoicePayment outOfBand = new InvoicePayment();
+        outOfBand.setAmountPaid(1000L);
+        outOfBand.setPayment(payment);
+
+        givenItems(item(OWNER_A, "10.00"));
+        givenInvoicePaidBy(outOfBand);
+        givenOnboarded(OWNER_A, ACCOUNT_A);
+        givenNoPriorPayouts();
+
+        assertNull(sentParams().get(0).getSourceTransaction());
+    }
+
+    /**
+     * Guessing the funding source would be worse than failing: the balance path fails in live
+     * mode. Nothing has moved yet, so the webhook can safely 500 and be redelivered.
+     */
+    @Test
+    void whenTheChargeCannotBeLookedUp_thenItThrowsBeforeAnyTransferOrLedgerRow() {
+        givenItems(item(OWNER_A, "10.00"));
+        givenNoPriorPayouts();
+        invoicePayments.when(() -> InvoicePayment.list(any(InvoicePaymentListParams.class)))
+                .thenThrow(new ApiConnectionException("Stripe unreachable"));
+
+        try (MockedStatic<Transfer> transfers = mockStatic(Transfer.class)) {
+            assertThrows(PayoutFundingLookupException.class,
+                    () -> service.payOutInvoice(INVOICE_ID, SUBSCRIPTION_ID));
+            transfers.verifyNoInteractions();
+        }
+        verify(payoutRepository, never()).save(any());
+    }
+
+    /** A fully handled redelivery costs no Stripe call at all. */
+    @Test
+    void whenEveryOwnerWasAlreadyHandled_thenTheChargeIsNotEvenLookedUp() {
+        givenItems(item(OWNER_A, "10.00"));
+        when(payoutRepository.existsByStripeInvoiceIdAndMediaOwnerBusinessId(INVOICE_ID, OWNER_A))
+                .thenReturn(true);
+
+        service.payOutInvoice(INVOICE_ID, SUBSCRIPTION_ID);
+
+        invoicePayments.verifyNoInteractions();
     }
 
     @Test
@@ -244,7 +418,7 @@ class BundlePayoutServiceUnitTest {
         try (MockedStatic<Transfer> transfers = mockStatic(Transfer.class)) {
             transfers.when(() -> Transfer.create(any(TransferCreateParams.class), any(RequestOptions.class)))
                     .thenThrow(new InvalidRequestException(
-                            "Insufficient funds", null, null, null, 400, null))
+                            "Insufficient funds", null, null, "balance_insufficient", 400, null))
                     .thenReturn(givenTransfer("tr_b"));
 
             assertDoesNotThrow(() -> service.payOutInvoice(INVOICE_ID, SUBSCRIPTION_ID));
@@ -252,7 +426,10 @@ class BundlePayoutServiceUnitTest {
 
         BundlePayout failed = savedPayoutFor(OWNER_A);
         assertEquals(BundlePayoutStatus.FAILED, failed.getStatus());
-        assertEquals("Insufficient funds", failed.getFailureReason());
+        assertTrue(failed.getFailureReason().startsWith("Insufficient funds"));
+        assertEquals("balance_insufficient", failed.getFailureCode());
+        assertEquals(CHARGE_ID, failed.getStripeSourceChargeId(), "kept so a retry can repeat it exactly");
+        assertNotNull(failed.getLastAttemptAt());
         assertNull(failed.getStripeTransferId());
         assertEquals(BundlePayoutStatus.PAID, savedPayoutFor(OWNER_B).getStatus());
     }
@@ -311,6 +488,37 @@ class BundlePayoutServiceUnitTest {
     }
 
     // --- helpers -----------------------------------------------------------
+
+    /** Pays the invoice out with every Stripe transfer succeeding, and returns what was sent. */
+    private List<TransferCreateParams> sentParams() {
+        try (MockedStatic<Transfer> transfers = mockStatic(Transfer.class)) {
+            ArgumentCaptor<TransferCreateParams> params = ArgumentCaptor.forClass(TransferCreateParams.class);
+            transfers.when(() -> Transfer.create(any(TransferCreateParams.class), any(RequestOptions.class)))
+                    .thenReturn(givenTransfer("tr_1"));
+
+            service.payOutInvoice(INVOICE_ID, SUBSCRIPTION_ID);
+
+            transfers.verify(() -> Transfer.create(params.capture(), any(RequestOptions.class)), atLeastOnce());
+            return params.getAllValues();
+        }
+    }
+
+    private void givenInvoicePaidBy(InvoicePayment... payments) {
+        InvoicePaymentCollection collection = new InvoicePaymentCollection();
+        collection.setData(new ArrayList<>(List.of(payments)));
+        invoicePayments.when(() -> InvoicePayment.list(any(InvoicePaymentListParams.class)))
+                .thenReturn(collection);
+    }
+
+    private static InvoicePayment chargePayment(String chargeId, long amountPaidInCents) {
+        InvoicePayment.Payment payment = new InvoicePayment.Payment();
+        payment.setType("charge");
+        payment.setCharge(chargeId);
+        InvoicePayment invoicePayment = new InvoicePayment();
+        invoicePayment.setAmountPaid(amountPaidInCents);
+        invoicePayment.setPayment(payment);
+        return invoicePayment;
+    }
 
     private void givenItems(BundleSubscriptionItem... items) {
         when(itemRepository.findAllBySubscriptionId(SUBSCRIPTION_ID)).thenReturn(List.of(items));

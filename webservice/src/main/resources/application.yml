@@ -92,3 +92,14 @@ envision:
       # P12: monthly reminder emails (last day of the month for media owners, the 1st for
       # advertisers). The schedule itself is fixed in ProofOfDisplayScheduledJobs.
       enabled: true
+  payouts:
+    retry:
+      # BundlePayoutRetryJob: retries media-owner payouts Stripe rejected for insufficient
+      # available funds. Each payout is retried at most once a day (Stripe replays a reused
+      # idempotency key's cached error for ~24h), so the interval only bounds how late after
+      # that a retry happens.
+      enabled: true
+      interval: 1h
+      # After this, a payout still short of funds is left FAILED for a human to settle. Card
+      # payments become available within days, so a month covers that several times over.
+      max-age: 30d

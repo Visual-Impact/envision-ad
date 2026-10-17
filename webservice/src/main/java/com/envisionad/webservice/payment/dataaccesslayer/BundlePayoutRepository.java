@@ -10,7 +10,8 @@ public interface BundlePayoutRepository extends JpaRepository<BundlePayout, Long
     /**
      * The idempotency guard. Any row — PAID, SKIPPED or FAILED — means this owner
      * has already been handled for this invoice and must not be transferred to
-     * again.
+     * again by the webhook. Retrying an insufficient-funds FAILED row is the retry
+     * job's business, not the webhook's.
      */
     boolean existsByStripeInvoiceIdAndMediaOwnerBusinessId(
             String stripeInvoiceId, String mediaOwnerBusinessId);
@@ -32,4 +33,13 @@ public interface BundlePayoutRepository extends JpaRepository<BundlePayout, Long
      */
     List<BundlePayout> findAllByMediaOwnerBusinessIdAndCreatedAtBetween(
             String mediaOwnerBusinessId, LocalDateTime start, LocalDateTime end);
+
+    /**
+     * The retry job's work list: rows in {@code status} that failed with {@code failureCode},
+     * were last attempted before {@code lastAttemptBefore}, and are younger than
+     * {@code createdAfter} (older ones are left for a human).
+     */
+    List<BundlePayout> findAllByStatusAndFailureCodeAndLastAttemptAtBeforeAndCreatedAtAfter(
+            BundlePayoutStatus status, String failureCode,
+            LocalDateTime lastAttemptBefore, LocalDateTime createdAfter);
 }
