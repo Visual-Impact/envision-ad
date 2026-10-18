@@ -2093,7 +2093,7 @@
     },
     "outsideQuebec": {
       "title": "7. Conservation à l’extérieur du Québec",
-      "p1": "Notre base de données est hébergée par Amazon Web Services au Canada (région de Montréal). Certains fournisseurs, dont Auth0, Stripe, Cloudinary et Google, peuvent conserver ou traiter des renseignements personnels à l’extérieur du Québec, notamment aux États-Unis [TO CONFIRM: each provider’s storage locations]. Avant de communiquer des renseignements personnels à l’extérieur du Québec, nous évaluons s’ils y bénéficieront d’une protection adéquate, comme l’exige la loi."
+      "p1": "Notre base de données est hébergée par Amazon Web Services au Canada (région de Montréal). Cloudinary conserve les fichiers téléversés, comme les publicités et les photos d’écrans, au Canada. Auth0, Stripe et Google conservent ou traitent des renseignements personnels à l’extérieur du Québec, notamment aux États-Unis. Avant de communiquer des renseignements personnels à l’extérieur du Québec, nous évaluons s’ils y bénéficieront d’une protection adéquate, comme l’exige la loi."
     },
     "retention": {
       "title": "8. Durée de conservation",

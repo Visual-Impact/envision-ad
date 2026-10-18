@@ -2092,7 +2092,7 @@
     },
     "outsideQuebec": {
       "title": "7. Storage outside Quebec",
-      "p1": "Our database is hosted by Amazon Web Services in Canada (Montréal region). Some providers, including Auth0, Stripe, Cloudinary and Google, may store or process personal information outside Quebec, including in the United States [TO CONFIRM: each provider’s storage locations]. Before sending personal information outside Quebec, we assess whether it will be adequately protected, as the law requires."
+      "p1": "Our database is hosted by Amazon Web Services in Canada (Montréal region). Cloudinary stores uploaded files, such as ads and screen photos, in Canada. Auth0, Stripe and Google store or process personal information outside Quebec, including in the United States. Before sending personal information outside Quebec, we assess whether it will be adequately protected, as the law requires."
     },
     "retention": {
       "title": "8. How long we keep it",
