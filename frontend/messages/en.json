@@ -2043,7 +2043,7 @@
     },
     "officer": {
       "title": "2. Person in charge of protecting personal information",
-      "p1": "The person in charge of protecting personal information at Visual Impact is [TO CONFIRM: name and title]. You can reach them at [TO CONFIRM: privacy contact email] for any question, request or complaint about this policy or your personal information."
+      "p1": "The person in charge of protecting personal information at Visual Impact is [TO CONFIRM: name and title]. You can reach them at mlhamidi@visualsimpact.com for any question, request or complaint about this policy or your personal information."
     },
     "collect": {
       "title": "3. What we collect",
@@ -2074,7 +2074,7 @@
         "security": "protect the Platform, detect and prevent fraud and abuse, and fix problems;",
         "legal": "meet our legal obligations and enforce our Terms of Service."
       },
-      "p1": "We use personal information only for these purposes, or for another purpose with your consent or where the law allows it. We do not sell personal information, and we do not send marketing emails [TO CONFIRM: whether any marketing emails will be sent]."
+      "p1": "We use personal information only for these purposes, or for another purpose with your consent or where the law allows it. We do not sell personal information, and we do not send marketing emails."
     },
     "sharing": {
       "title": "6. Who we share it with",
@@ -2085,18 +2085,18 @@
         "stripe": "Stripe: card payments, and verification and payouts for media owners;",
         "cloudinary": "Cloudinary: storage and delivery of ads;",
         "aws": "Amazon Web Services: hosting of the Platform and its database;",
-        "email": "[TO CONFIRM: email provider]: delivery of service emails;",
+        "email": "Google (Gmail): delivery of service emails;",
         "maps": "OpenStreetMap and CARTO: address search and maps. When you search for an address or view a map, your browser sends the search terms and your IP address directly to them."
       },
       "p2": "We give each provider only the information it needs, and we require it by contract to protect it [TO CONFIRM: written agreements in place with each provider]. We may also disclose personal information when the law requires it, or to a buyer or successor if our business is sold or reorganized, under the conditions the law sets."
     },
     "outsideQuebec": {
       "title": "7. Storage outside Quebec",
-      "p1": "Our database is hosted by Amazon Web Services in Canada (Montréal region). Some providers, including Auth0, Stripe and Cloudinary, may store or process personal information outside Quebec, including in the United States [TO CONFIRM: each provider’s storage locations]. Before sending personal information outside Quebec, we assess whether it will be adequately protected, as the law requires."
+      "p1": "Our database is hosted by Amazon Web Services in Canada (Montréal region). Some providers, including Auth0, Stripe, Cloudinary and Google, may store or process personal information outside Quebec, including in the United States [TO CONFIRM: each provider’s storage locations]. Before sending personal information outside Quebec, we assess whether it will be adequately protected, as the law requires."
     },
     "retention": {
       "title": "8. How long we keep it",
-      "p1": "We keep personal information only as long as we need it for the purposes above, or longer when the law requires it. Billing and accounting records are kept for [TO CONFIRM: retention period for billing records]. Accounts with billing history are deactivated rather than deleted, so that those records stay linked to them. Other information is kept for [TO CONFIRM: retention period for other account data] after an account is closed. When we no longer need personal information, we destroy it or anonymize it."
+      "p1": "We keep personal information only as long as we need it for the purposes above, or longer when the law requires it. Billing and accounting records are kept for six years after the end of the tax year they relate to. Accounts with billing history are deactivated rather than deleted, so that those records stay linked to them. Other information is kept for one year after an account is closed. When we no longer need personal information, we destroy it or anonymize it."
     },
     "cookies": {
       "title": "9. Cookies",
@@ -2139,7 +2139,7 @@
       "p1": "Questions or requests about this policy or your personal information:",
       "entity": "[TO CONFIRM: name and title]",
       "address": "Impact Visuel Lhamidi, 2485 Rue McGill, Longueuil, QC J4L 2G9",
-      "email": "[TO CONFIRM: privacy contact email]"
+      "email": "mlhamidi@visualsimpact.com"
     },
     "termsLink": "See also our <link>Terms of Service</link>."
   },
@@ -2164,27 +2164,27 @@
       "p1": "Advertisers buy advertising through monthly subscriptions to bundles. A bundle is a group of screens defined by city, region, venue type or the full network. To subscribe, you need an ad campaign with at least one ad. That campaign is what media owners show on your subscription’s screens.",
       "p2": "The monthly price and the list of screens are fixed when you subscribe and stay the same for the life of that subscription. Screens that join the bundle later are not added to your subscription, and later price changes to the bundle do not affect it.",
       "p3": "Your ads are shown in rotation with other ads, according to each screen’s loop duration and operating schedule as listed on the Platform. Media owners choose which ad from your campaign to show on each screen.",
-      "p4": "If a screen in your subscription becomes unavailable during the subscription: [TO CONFIRM: remedy, for example a credit, a replacement screen, or none]."
+      "p4": "If a screen in your subscription is unavailable for more than 10 days in a row, we will credit your next invoice with that screen’s share of the price for the days it was unavailable, or refund it if your subscription has ended."
     },
     "billing": {
       "title": "4. Billing and renewal",
       "p1": "Prices are in Canadian dollars (CAD) and are billed monthly in advance. You pay by card through Stripe Checkout, our payment processor. We do not store your full card details. The first month is charged when you subscribe.",
       "p2": "Subscriptions renew automatically every month, and your payment method is charged at each renewal until you cancel.",
-      "p3": "Prices exclude applicable taxes. [TO CONFIRM: how applicable taxes, such as the GST and QST, are charged and shown on invoices].",
+      "p3": "Prices exclude applicable taxes. We are not currently registered for the GST and QST, so neither is charged. If we register, we will add them to your invoices from that date and show them separately.",
       "p4": "A discount or promotional code applies only to the subscription it was used for, and only as described when it was offered, including how many months it lasts.",
-      "p5": "If a renewal payment fails, the subscription becomes past due and the charge is retried [TO CONFIRM: retry schedule]. If payment is still not received, [TO CONFIRM: when the subscription is suspended or cancelled]."
+      "p5": "If a renewal payment fails, the subscription becomes past due and the charge is retried automatically for up to two weeks. If payment is still not received, the subscription is cancelled."
     },
     "cancellation": {
       "title": "5. Cancellation and refunds",
       "p1": "You can cancel a subscription at any time from your Subscriptions page. Cancellation takes effect at the end of the current billing period: your ads stay in rotation, and you keep access to the subscription, until then. You will not be charged again.",
-      "p2": "Payments already made are not refunded, including for the rest of a billing period after you cancel. [TO CONFIRM: refund policy, including any exceptions, for example screens that did not show your ad]."
+      "p2": "Payments already made are not refunded, including for the rest of a billing period after you cancel. The only exception is when we confirm that your ad was not shown on a subscribed screen: we will then credit or refund that screen’s share of the price for the period it was not shown."
     },
     "mediaOwners": {
       "title": "6. Media owner obligations",
       "p1": "When you list a screen, you must describe it accurately and keep its listing up to date, including its location, venue, type of display, size, resolution, loop duration, operating schedule, estimated daily impressions, price and photo. We review new and edited screens before advertisers can buy them, and we may reject a listing.",
-      "p2": "When a subscription that includes your screens starts, and when the advertiser changes their ads, we email you the ads to show. You must put them on the subscribed screens within [TO CONFIRM: number of days] and keep them in rotation, as described in the screen’s listing, for as long as the subscription runs.",
+      "p2": "When a subscription that includes your screens starts, and when the advertiser changes their ads, we email you the ads to show. You must put them on the subscribed screens within 3 business days and keep them in rotation, as described in the screen’s listing, for as long as the subscription runs.",
       "p3": "If you believe an ad breaks these Terms, the law or your venue’s rules, do not show it, and tell us right away at mlhamidi@visualsimpact.com.",
-      "p4": "Tell us promptly if a screen stops working, is removed, or cannot show ads for more than [TO CONFIRM: duration].",
+      "p4": "Tell us promptly if a screen stops working, is removed, or cannot show ads for more than 72 hours.",
       "p5": "For a subscription whose screens all belong to you, you must keep a proof-of-display link up to date on the Platform: a page, such as a view-only Canva design, that shows the advertiser’s ads on your screens. We remind you of this every month. We may also ask you for other reasonable proof that ads were shown.",
       "p6": "You must hold every right, permit and permission needed to operate your screens and show ads on them, including the venue’s permission where you do not own the venue."
     },
@@ -2192,12 +2192,12 @@
       "title": "7. Revenue share and payouts",
       "p1": "For each subscription invoice that is paid, you receive 70% of the monthly price of your screens in that subscription, as fixed when the advertiser subscribed. We keep the other 30% as our platform fee.",
       "p2": "Discounts and promotional codes we give advertisers come out of our share, not yours: your 70% is calculated on the full price of your screens, as if no discount applied.",
-      "p3": "Your share is transferred to your Stripe account after the advertiser’s invoice is paid, [TO CONFIRM: payout timing in days]. Stripe then pays it out to your bank account on your Stripe account’s payout schedule. Nothing is paid for an invoice that has not been paid, such as a failed renewal.",
-      "p4": "To receive payouts, you must connect a Stripe account through the Platform and complete Stripe’s onboarding, including identity verification. If your onboarding is not complete when an invoice is paid, your share of that invoice is not transferred automatically. [TO CONFIRM: whether and how such amounts are paid later].",
+      "p3": "Your share is transferred to your Stripe account after the advertiser’s invoice is paid, normally the same day. Stripe then pays it out to your bank account on your Stripe account’s payout schedule. Nothing is paid for an invoice that has not been paid, such as a failed renewal.",
+      "p4": "To receive payouts, you must connect a Stripe account through the Platform and complete Stripe’s onboarding, including identity verification. If your onboarding is not complete when an invoice is paid, your share of that invoice is not transferred automatically. We hold it and transfer it once your onboarding is complete, if you complete it within 90 days after the invoice is paid. After that, the amount is no longer owed to you.",
       "p5": "Payment processing services for media owners on Envision Ad are provided by Stripe and are subject to the Stripe Connected Account Agreement, which includes the Stripe Terms of Service (collectively, the “Stripe Services Agreement”). By agreeing to these Terms or continuing to operate as a media owner on Envision Ad, you agree to be bound by the Stripe Services Agreement, as it may be modified by Stripe from time to time. As a condition of Envision Ad enabling payment processing services through Stripe, you agree to provide us accurate and complete information about you and your business, and you authorize us to share it and transaction information related to your use of the payment processing services provided by Stripe.",
-      "p6": "We will give you at least [TO CONFIRM: notice period] notice by email before changing the platform fee.",
-      "p7": "If an advertiser’s payment is refunded, reversed or disputed after your share was transferred: [TO CONFIRM: whether we may recover your share, and how].",
-      "p8": "You are responsible for your own taxes on amounts you receive. [TO CONFIRM: tax treatment of payouts, including GST and QST]."
+      "p6": "We will give you at least 30 days notice by email before changing the platform fee.",
+      "p7": "If an advertiser’s payment is refunded, reversed or disputed after your share was transferred, we may recover your share of that payment by deducting it from your future payouts or, if none are due, by invoicing you for it.",
+      "p8": "You are responsible for your own taxes on amounts you receive. You are responsible for determining whether you must register for and charge the GST and QST."
     },
     "content": {
       "title": "8. Ad content rules",
@@ -2208,13 +2208,13 @@
         "misleading": "be false, misleading or deceptive, or make claims you cannot support;",
         "children": "be directed at children under 13 years of age;",
         "regulated": "promote tobacco, vaping products or cannabis, or promote alcohol, gambling or other regulated products except as the law allows;",
-        "political": "contain political or election advertising [TO CONFIRM: whether political advertising is allowed];",
+        "political": "contain political or election advertising;",
         "offensive": "contain sexually explicit, violent, hateful or discriminatory content;",
         "rights": "infringe anyone’s rights, including copyright, trademarks, privacy or image rights;",
         "personalInfo": "show personal information about any person without that person’s consent."
       },
       "p2": "Ads shown in Quebec must comply with the Charter of the French Language.",
-      "p3": "We may refuse or remove any ad, or ask media owners to stop showing it, if we reasonably believe it breaks these Terms, the law or a venue’s rules. Where reasonable, we will tell you why. [TO CONFIRM: effect on billing when an ad is removed]."
+      "p3": "We may refuse or remove any ad, or ask media owners to stop showing it, if we reasonably believe it breaks these Terms, the law or a venue’s rules. Where reasonable, we will tell you why. Removing an ad does not stop or reduce billing for the subscription; you may submit a compliant replacement."
     },
     "ip": {
       "title": "9. Intellectual property",
@@ -2233,7 +2233,7 @@
         "disrupt": "interfere with or disrupt the Platform, or test its security without our written permission;",
         "scrape": "copy, scrape or resell the Platform or its data, or reverse-engineer it except where the law allows;",
         "malware": "upload viruses or other harmful code;",
-        "circumvent": "deal directly with an advertiser or media owner you met through the Platform in order to avoid the platform fee [TO CONFIRM: whether to keep this restriction, and for how long]."
+        "circumvent": "deal directly with an advertiser or media owner you met through the Platform in order to avoid the platform fee, while your account is active and for 12 months after your last subscription ends."
       }
     },
     "termination": {
@@ -2252,7 +2252,7 @@
     "liability": {
       "title": "13. Limitation of liability",
       "p1": "To the extent permitted by law, we are not liable for indirect, incidental, special or consequential damages, or for loss of profits, revenue, business or data, arising out of the Platform or these Terms.",
-      "p2": "To the extent permitted by law, our total liability for all claims arising out of the Platform or these Terms is limited to [TO CONFIRM: liability cap amount].",
+      "p2": "To the extent permitted by law, our total liability for all claims arising out of the Platform or these Terms is limited to the total amount you paid us or, for a media owner, the platform fees we kept from your payouts, in the 12 months before the event giving rise to the claim.",
       "p3": "Nothing in these Terms excludes or limits liability that cannot be excluded or limited by law, including liability for bodily or moral injury, or for damage caused by intentional or gross fault."
     },
     "indemnity": {
@@ -2266,12 +2266,12 @@
     "governingLaw": {
       "title": "16. Governing law and language",
       "p1": "These Terms are governed by the laws of the Province of Quebec and the federal laws of Canada that apply there.",
-      "p2": "The courts of [TO CONFIRM: governing venue] have exclusive jurisdiction over any dispute arising out of these Terms.",
+      "p2": "The courts of the judicial district of Longueuil, Quebec, have exclusive jurisdiction over any dispute arising out of these Terms.",
       "p3": "These Terms are drawn up in French and in English. The French version was made available first, and you have expressly chosen to also receive them in English. If the two versions differ, the French version governs."
     },
     "changes": {
       "title": "17. Changes to these Terms",
-      "p1": "We may update these Terms. We will post the new version on this page with a new “Last updated” date and, for material changes, notify account holders by email at least [TO CONFIRM: notice period] before they take effect. If you continue to use the Platform after that date, you accept the new Terms. If you do not agree, you may cancel your subscriptions and stop using the Platform before then."
+      "p1": "We may update these Terms. We will post the new version on this page with a new “Last updated” date and, for material changes, notify account holders by email at least 30 days before they take effect. If you continue to use the Platform after that date, you accept the new Terms. If you do not agree, you may cancel your subscriptions and stop using the Platform before then."
     },
     "general": {
       "title": "18. General",
