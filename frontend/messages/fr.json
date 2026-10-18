@@ -2044,7 +2044,7 @@
     },
     "officer": {
       "title": "2. Responsable de la protection des renseignements personnels",
-      "p1": "La personne responsable de la protection des renseignements personnels chez Visual Impact est [TO CONFIRM: name and title]. Vous pouvez la joindre à mlhamidi@visualsimpact.com pour toute question, demande ou plainte concernant la présente politique ou vos renseignements personnels."
+      "p1": "La personne responsable de la protection des renseignements personnels chez Visual Impact est Mohamed Lhamidi, président. Vous pouvez la joindre à mlhamidi@visualsimpact.com pour toute question, demande ou plainte concernant la présente politique ou vos renseignements personnels."
     },
     "collect": {
       "title": "3. Ce que nous recueillons",
@@ -2089,7 +2089,7 @@
         "email": "Google (Gmail) : envoi des courriels de service;",
         "maps": "OpenStreetMap et CARTO : recherche d’adresses et cartes. Lorsque vous cherchez une adresse ou consultez une carte, votre navigateur leur transmet directement les termes recherchés et votre adresse IP."
       },
-      "p2": "Nous ne donnons à chaque fournisseur que les renseignements dont il a besoin, et nous l’obligeons par contrat à les protéger [TO CONFIRM: written agreements in place with each provider]. Nous pouvons aussi communiquer des renseignements personnels lorsque la loi l’exige, ou à un acheteur ou successeur si notre entreprise est vendue ou réorganisée, aux conditions prévues par la loi."
+      "p2": "Nous ne donnons à chaque fournisseur que les renseignements dont il a besoin, et nous l’obligeons par contrat à les protéger, au moyen de l’entente de traitement des données de chaque fournisseur. Nous pouvons aussi communiquer des renseignements personnels lorsque la loi l’exige, ou à un acheteur ou successeur si notre entreprise est vendue ou réorganisée, aux conditions prévues par la loi."
     },
     "outsideQuebec": {
       "title": "7. Conservation à l’extérieur du Québec",
@@ -2138,7 +2138,7 @@
     "contact": {
       "title": "14. Nous joindre",
       "p1": "Pour toute question ou demande concernant la présente politique ou vos renseignements personnels :",
-      "entity": "[TO CONFIRM: name and title]",
+      "entity": "Mohamed Lhamidi, président",
       "address": "Impact Visuel Lhamidi, 2485 Rue McGill, Longueuil, QC J4L 2G9",
       "email": "mlhamidi@visualsimpact.com"
     },

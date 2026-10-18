@@ -2043,7 +2043,7 @@
     },
     "officer": {
       "title": "2. Person in charge of protecting personal information",
-      "p1": "The person in charge of protecting personal information at Visual Impact is [TO CONFIRM: name and title]. You can reach them at mlhamidi@visualsimpact.com for any question, request or complaint about this policy or your personal information."
+      "p1": "The person in charge of protecting personal information at Visual Impact is Mohamed Lhamidi, President. You can reach them at mlhamidi@visualsimpact.com for any question, request or complaint about this policy or your personal information."
     },
     "collect": {
       "title": "3. What we collect",
@@ -2088,7 +2088,7 @@
         "email": "Google (Gmail): delivery of service emails;",
         "maps": "OpenStreetMap and CARTO: address search and maps. When you search for an address or view a map, your browser sends the search terms and your IP address directly to them."
       },
-      "p2": "We give each provider only the information it needs, and we require it by contract to protect it [TO CONFIRM: written agreements in place with each provider]. We may also disclose personal information when the law requires it, or to a buyer or successor if our business is sold or reorganized, under the conditions the law sets."
+      "p2": "We give each provider only the information it needs, and we require it by contract to protect it, through each provider’s data processing agreement. We may also disclose personal information when the law requires it, or to a buyer or successor if our business is sold or reorganized, under the conditions the law sets."
     },
     "outsideQuebec": {
       "title": "7. Storage outside Quebec",
@@ -2137,7 +2137,7 @@
     "contact": {
       "title": "14. Contact",
       "p1": "Questions or requests about this policy or your personal information:",
-      "entity": "[TO CONFIRM: name and title]",
+      "entity": "Mohamed Lhamidi, President",
       "address": "Impact Visuel Lhamidi, 2485 Rue McGill, Longueuil, QC J4L 2G9",
       "email": "mlhamidi@visualsimpact.com"
     },
