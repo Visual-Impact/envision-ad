@@ -58,6 +58,8 @@ class BundlePayoutRetryIntegrationTest extends BaseIntegrationTest {
         account.setBusinessId(OWNER);
         account.setStripeAccountId(ACCOUNT);
         account.setOnboardingComplete(true);
+        account.setChargesEnabled(true);
+        account.setPayoutsEnabled(true);
         stripeAccountRepository.save(account);
     }
 

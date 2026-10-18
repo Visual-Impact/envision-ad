@@ -124,6 +124,13 @@ public class StripeWebhookService {
         if (!originalOnboardingComplete && localAccount.isOnboardingComplete()) {
             log.info("Account {} is now fully onboarded.", stripeAccountId);
         }
+
+        // Pays out any share held while this owner was onboarding (Terms of Service §7). On every
+        // event that finds the account complete, not just the one that flipped it: releasing is
+        // idempotent, and a missed transition would otherwise leave the money to the hourly sweep.
+        if (StripeOnboardingState.isComplete(localAccount)) {
+            bundlePayoutService.releaseHeldPayouts(localAccount.getBusinessId());
+        }
     }
 
     // ---------------------------------------------------------------------------

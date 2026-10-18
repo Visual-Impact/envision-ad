@@ -29,4 +29,22 @@ public interface BundlePayoutService {
      * Never throws; one row's failure does not stop the others.
      */
     void retryInsufficientFundsPayouts();
+
+    /**
+     * Transfers every share held for this owner (status {@code HELD_NOT_ONBOARDED}) if their
+     * Connect onboarding is now complete; does nothing otherwise. Called when the stored
+     * onboarding flags are refreshed: the {@code account.updated} webhook and the status read.
+     * Idempotent like {@link #retryInsufficientFundsPayouts()}, and never throws, so neither
+     * caller fails over a payout.
+     */
+    void releaseHeldPayouts(String ownerBusinessId);
+
+    /**
+     * The hold sweep (Terms of Service §7). Releases held shares whose owner has completed
+     * onboarding, which catches a missed webhook, and expires shares still unclaimed after
+     * {@code envision.payouts.hold.max-age}. Before expiring, it reads the owner's account
+     * from Stripe, so stale local flags never forfeit money that is owed. Never throws; one
+     * owner's failure does not stop the others.
+     */
+    void releaseOrExpireHeldPayouts();
 }

@@ -70,6 +70,7 @@ class BundlePayoutServiceUnitTest {
         service = new BundlePayoutServiceImpl(itemRepository, stripeAccountRepository, payoutRepository);
         ReflectionTestUtils.setField(service, "platformFeePercent", 30);
         ReflectionTestUtils.setField(service, "retryMaxAge", Duration.ofDays(30));
+        ReflectionTestUtils.setField(service, "holdMaxAge", Duration.ofDays(90));
         // Lenient: tests that never reach a transfer never look the charge up.
         invoicePayments = mockStatic(InvoicePayment.class, withSettings().strictness(Strictness.LENIENT));
         givenInvoicePaidBy(chargePayment(CHARGE_ID, 1_000_000L));
@@ -350,7 +351,7 @@ class BundlePayoutServiceUnitTest {
     }
 
     @Test
-    void whenOwnerHasNoStripeAccount_thenTheyAreSkippedAndOtherOwnersStillGetPaid() {
+    void whenOwnerHasNoStripeAccount_thenTheirShareIsHeldAndOtherOwnersStillGetPaid() {
         givenItems(item(OWNER_A, "4.00"), item(OWNER_B, "10.00"));
         when(stripeAccountRepository.findByBusinessId(OWNER_A)).thenReturn(Optional.empty());
         givenOnboarded(OWNER_B, ACCOUNT_B);
@@ -367,12 +368,17 @@ class BundlePayoutServiceUnitTest {
             assertEquals(ACCOUNT_B, params.getValue().getDestination());
         }
 
-        assertEquals(BundlePayoutStatus.SKIPPED_NOT_ONBOARDED, savedPayoutFor(OWNER_A).getStatus());
+        BundlePayout held = savedPayoutFor(OWNER_A);
+        assertEquals(BundlePayoutStatus.HELD_NOT_ONBOARDED, held.getStatus());
+        assertEquals(0, new BigDecimal("2.80").compareTo(held.getAmount()));
+        assertEquals(CHARGE_ID, held.getStripeSourceChargeId(), "the release must use the same funding");
+        assertNull(held.getLastAttemptAt(), "no transfer was attempted");
+        assertNull(held.getStripeTransferId());
         assertEquals(BundlePayoutStatus.PAID, savedPayoutFor(OWNER_B).getStatus());
     }
 
     @Test
-    void whenOwnerOnboardingIncomplete_thenTheyAreSkipped() {
+    void whenOwnerOnboardingIncomplete_thenTheirShareIsHeld() {
         givenItems(item(OWNER_A, "4.00"));
         StripeAccount notFinished = new StripeAccount();
         notFinished.setBusinessId(OWNER_A);
@@ -386,7 +392,29 @@ class BundlePayoutServiceUnitTest {
             transfers.verifyNoInteractions();
         }
 
-        assertEquals(BundlePayoutStatus.SKIPPED_NOT_ONBOARDED, savedPayoutFor(OWNER_A).getStatus());
+        assertEquals(BundlePayoutStatus.HELD_NOT_ONBOARDED, savedPayoutFor(OWNER_A).getStatus());
+    }
+
+    /**
+     * Details are submitted before Stripe has verified the owner. A transfer then would fail for
+     * good, so the share is held until charges and payouts are enabled too.
+     */
+    @Test
+    void whenOwnerSubmittedDetailsButIsNotYetVerified_thenTheirShareIsHeldNotAttempted() {
+        givenItems(item(OWNER_A, "4.00"));
+        StripeAccount pending = new StripeAccount();
+        pending.setBusinessId(OWNER_A);
+        pending.setStripeAccountId(ACCOUNT_A);
+        pending.setOnboardingComplete(true);
+        when(stripeAccountRepository.findByBusinessId(OWNER_A)).thenReturn(Optional.of(pending));
+        givenNoPriorPayouts();
+
+        try (MockedStatic<Transfer> transfers = mockStatic(Transfer.class)) {
+            service.payOutInvoice(INVOICE_ID, SUBSCRIPTION_ID);
+            transfers.verifyNoInteractions();
+        }
+
+        assertEquals(BundlePayoutStatus.HELD_NOT_ONBOARDED, savedPayoutFor(OWNER_A).getStatus());
     }
 
     /** media.price is nullable and coalesces to zero (D13); Stripe rejects zero transfers. */
@@ -487,6 +515,36 @@ class BundlePayoutServiceUnitTest {
         assertEquals(BundlePayoutStatus.PAID, saved.getStatus());
     }
 
+    /** Called from a webhook and a status read, neither of which may fail over a payout. */
+    @Test
+    void whenReleasingHeldPayoutsFailsUnexpectedly_thenTheCallerIsNotAffected() {
+        when(payoutRepository.findAllByMediaOwnerBusinessIdAndStatusOrderByCreatedAtAsc(
+                OWNER_A, BundlePayoutStatus.HELD_NOT_ONBOARDED)).thenThrow(new IllegalStateException("db down"));
+
+        assertDoesNotThrow(() -> service.releaseHeldPayouts(OWNER_A));
+    }
+
+    @Test
+    void whenNothingIsHeld_thenTheSweepDoesNothing() {
+        when(payoutRepository.findAllByStatusOrderByCreatedAtAsc(BundlePayoutStatus.HELD_NOT_ONBOARDED))
+                .thenReturn(List.of());
+
+        service.releaseOrExpireHeldPayouts();
+
+        verifyNoInteractions(stripeAccountRepository);
+        verify(payoutRepository, never()).save(any());
+    }
+
+    @Test
+    void whenTheOwnerHasNoHeldShares_thenReleasingDoesNotLookUpTheirAccount() {
+        when(payoutRepository.findAllByMediaOwnerBusinessIdAndStatusOrderByCreatedAtAsc(
+                OWNER_A, BundlePayoutStatus.HELD_NOT_ONBOARDED)).thenReturn(List.of());
+
+        service.releaseHeldPayouts(OWNER_A);
+
+        verifyNoInteractions(stripeAccountRepository);
+    }
+
     // --- helpers -----------------------------------------------------------
 
     /** Pays the invoice out with every Stripe transfer succeeding, and returns what was sent. */
@@ -534,6 +592,8 @@ class BundlePayoutServiceUnitTest {
         account.setBusinessId(businessId);
         account.setStripeAccountId(stripeAccountId);
         account.setOnboardingComplete(true);
+        account.setChargesEnabled(true);
+        account.setPayoutsEnabled(true);
         lenient().when(stripeAccountRepository.findByBusinessId(businessId)).thenReturn(Optional.of(account));
     }
 

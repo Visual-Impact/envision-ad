@@ -102,4 +102,14 @@ envision:
       interval: 1h
       # After this, a payout still short of funds is left FAILED for a human to settle. Card
       # payments become available within days, so a month covers that several times over.
+      # For a share that was held for onboarding, the month counts from its release.
       max-age: 30d
+    hold:
+      # BundlePayoutHoldJob: pays shares held for media owners whose Stripe Connect onboarding
+      # was incomplete when the invoice was paid, once it completes, and expires them after
+      # max-age. The webhook releases most of them immediately; this is the backstop.
+      enabled: true
+      interval: 1h
+      # Set by the Terms of Service, §7 (media owners, payouts): "within 90 days after the
+      # invoice is paid". Do not change it without changing the Terms.
+      max-age: 90d

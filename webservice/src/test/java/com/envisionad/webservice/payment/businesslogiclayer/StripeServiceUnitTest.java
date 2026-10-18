@@ -67,13 +67,16 @@ class StripeServiceUnitTest {
         private BundlePayoutRepository bundlePayoutRepository;
 
         @Mock
+        private BundlePayoutService bundlePayoutService;
+
+        @Mock
         private JwtUtils jwtUtils;
 
         @BeforeEach
         void setUp() {
                 stripeService = new StripeServiceImpl(stripeAccountRepository, mediaRepository,
                                 bundleSubscriptionRepository, bundleSubscriptionItemRepository,
-                                bundlePayoutRepository, jwtUtils);
+                                bundlePayoutRepository, bundlePayoutService, jwtUtils);
         }
 
         // ========== Tests for createConnectedAccount ==========
@@ -370,6 +373,8 @@ class StripeServiceUnitTest {
                         assertTrue(account.isOnboardingComplete());
                         assertTrue(account.isChargesEnabled());
                         assertTrue(account.isPayoutsEnabled());
+                        // Shares held while the owner was onboarding go out now (Terms of Service §7)
+                        verify(bundlePayoutService).releaseHeldPayouts("biz-1");
                 }
         }
 
@@ -391,6 +396,8 @@ class StripeServiceUnitTest {
                         assertEquals("PENDING_VERIFICATION", status.get("state"));
                         assertEquals(true, status.get("onboardingComplete"));
                         verify(stripeAccountRepository).save(account);
+                        // Submitted but not yet verified is not complete: held shares stay held
+                        verifyNoInteractions(bundlePayoutService);
                 }
         }
 

@@ -20,9 +20,11 @@ import java.time.LocalDateTime;
  * than once; and Stripe's own idempotency keys expire well before its ~3-day retry
  * schedule ends. This table is the durable record.
  *
- * <p>A row is never inserted twice, but a {@link BundlePayoutStatus#FAILED} row whose
- * {@link #failureCode} is {@code balance_insufficient} is updated in place to
- * {@link BundlePayoutStatus#PAID} when {@code BundlePayoutRetryJob} later succeeds.
+ * <p>A row is never inserted twice, but two kinds are updated in place: a
+ * {@link BundlePayoutStatus#FAILED} row whose {@link #failureCode} is
+ * {@code balance_insufficient} becomes {@link BundlePayoutStatus#PAID} when
+ * {@code BundlePayoutRetryJob} later succeeds, and a {@link BundlePayoutStatus#HELD_NOT_ONBOARDED}
+ * row is released or expired when its owner's onboarding completes or its 90 days run out.
  */
 @Entity
 @Table(name = "bundle_payouts")
@@ -86,6 +88,13 @@ public class BundlePayout {
     /** When a transfer was last attempted; the retry job spaces attempts by this. */
     @Column(name = "last_attempt_at")
     private LocalDateTime lastAttemptAt;
+
+    /**
+     * When a {@link BundlePayoutStatus#HELD_NOT_ONBOARDED} row was released or expired; null if
+     * it was never held. The retry job's age limit counts from here for a released row.
+     */
+    @Column(name = "hold_ended_at")
+    private LocalDateTime holdEndedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
