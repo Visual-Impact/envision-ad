@@ -2038,7 +2038,7 @@
     "intro": "This policy explains how Envision Ad (the “Platform”), available at envision-ad.ca, collects, uses, shares and protects personal information, and the rights you have over it. It is written to meet Quebec’s Act respecting the protection of personal information in the private sector. It applies alongside our <link>Terms of Service</link>.",
     "who": {
       "title": "1. Who we are",
-      "p1": "The Platform is operated by [TO CONFIRM: legal entity name], whose registered office is at [TO CONFIRM: registered address] (“Visual Impact”, “we”, “us” or “our”).",
+      "p1": "The Platform is operated by Impact Visuel Lhamidi, whose registered office is at 2485 Rue McGill, Longueuil, QC J4L 2G9 (“Visual Impact”, “we”, “us” or “our”).",
       "p2": "The Platform is for businesses. The personal information we handle is mostly about the people who use it on their organization’s behalf: owners, employees and other representatives of advertisers and media owners. This policy also covers visitors to our public pages."
     },
     "officer": {
@@ -2138,7 +2138,7 @@
       "title": "14. Contact",
       "p1": "Questions or requests about this policy or your personal information:",
       "entity": "[TO CONFIRM: name and title]",
-      "address": "[TO CONFIRM: legal entity name], [TO CONFIRM: registered address]",
+      "address": "Impact Visuel Lhamidi, 2485 Rue McGill, Longueuil, QC J4L 2G9",
       "email": "[TO CONFIRM: privacy contact email]"
     },
     "termsLink": "See also our <link>Terms of Service</link>."
@@ -2149,7 +2149,7 @@
     "intro": "These Terms of Service (the “Terms”) govern access to and use of Envision Ad (the “Platform”), available at envision-ad.ca. Please read them carefully. By accessing or using the Platform, you agree to these Terms on behalf of your business.",
     "parties": {
       "title": "1. Who we are",
-      "p1": "The Platform is operated by [TO CONFIRM: legal entity name], whose registered office is at [TO CONFIRM: registered address] (“Visual Impact”, “we”, “us” or “our”).",
+      "p1": "The Platform is operated by Impact Visuel Lhamidi, whose registered office is at 2485 Rue McGill, Longueuil, QC J4L 2G9 (“Visual Impact”, “we”, “us” or “our”).",
       "p2": "Envision Ad is a marketplace that connects two kinds of businesses: advertisers, who subscribe to bundles of advertising screens to show their ads; and media owners, who list screens they operate and earn a share of what advertisers pay. A business can be both. In these Terms, “you” means the business that holds the account, and each person who uses the Platform on its behalf.",
       "p3": "We operate the Platform and collect advertisers’ payments. We do not own or operate the screens: media owners do, and they are responsible for showing ads on them."
     },
@@ -2157,7 +2157,7 @@
       "title": "2. Accounts and eligibility",
       "p1": "The Platform is for businesses only. You may use it only on behalf of a business or other organization, and not as a consumer for personal, family or household purposes. By using the Platform, you confirm that you are authorized to bind that business to these Terms.",
       "p2": "There is no public sign-up. Accounts are created by us, or by invitation from an existing member of your organization. Sign-in is handled by our authentication provider, Auth0. We may verify your organization before giving it access to some features.",
-      "p3": "You are responsible for keeping your login credentials confidential, for everything done through your organization’s accounts, and for keeping your organization’s information accurate and up to date. When a person leaves your organization, you are responsible for removing their access. Tell us promptly at [TO CONFIRM: contact email] if you believe an account has been used without authorization."
+      "p3": "You are responsible for keeping your login credentials confidential, for everything done through your organization’s accounts, and for keeping your organization’s information accurate and up to date. When a person leaves your organization, you are responsible for removing their access. Tell us promptly at mlhamidi@visualsimpact.com if you believe an account has been used without authorization."
     },
     "subscriptions": {
       "title": "3. Advertiser subscriptions",
@@ -2183,7 +2183,7 @@
       "title": "6. Media owner obligations",
       "p1": "When you list a screen, you must describe it accurately and keep its listing up to date, including its location, venue, type of display, size, resolution, loop duration, operating schedule, estimated daily impressions, price and photo. We review new and edited screens before advertisers can buy them, and we may reject a listing.",
       "p2": "When a subscription that includes your screens starts, and when the advertiser changes their ads, we email you the ads to show. You must put them on the subscribed screens within [TO CONFIRM: number of days] and keep them in rotation, as described in the screen’s listing, for as long as the subscription runs.",
-      "p3": "If you believe an ad breaks these Terms, the law or your venue’s rules, do not show it, and tell us right away at [TO CONFIRM: contact email].",
+      "p3": "If you believe an ad breaks these Terms, the law or your venue’s rules, do not show it, and tell us right away at mlhamidi@visualsimpact.com.",
       "p4": "Tell us promptly if a screen stops working, is removed, or cannot show ads for more than [TO CONFIRM: duration].",
       "p5": "For a subscription whose screens all belong to you, you must keep a proof-of-display link up to date on the Platform: a page, such as a view-only Canva design, that shows the advertiser’s ads on your screens. We remind you of this every month. We may also ask you for other reasonable proof that ads were shown.",
       "p6": "You must hold every right, permit and permission needed to operate your screens and show ads on them, including the venue’s permission where you do not own the venue."
@@ -2238,7 +2238,7 @@
     },
     "termination": {
       "title": "11. Suspension and termination",
-      "p1": "You may stop using the Platform at any time. To close your organization’s account, contact us at [TO CONFIRM: contact email]. Cancel your subscriptions first: closing an account does not undo payments already made.",
+      "p1": "You may stop using the Platform at any time. To close your organization’s account, contact us at mlhamidi@visualsimpact.com. Cancel your subscriptions first: closing an account does not undo payments already made.",
       "p2": "We may suspend or deactivate an account, cancel subscriptions or remove listings if you breach these Terms, if the law requires it, or to protect the Platform, its users or the public. Where reasonable, we will tell you beforehand and give you a chance to fix the problem.",
       "p3": "Accounts with billing history are deactivated rather than deleted, and we keep billing records for as long as the law requires.",
       "p4": "Sections that by their nature should continue after termination remain in effect, including payment obligations, the licences needed to keep records, disclaimers, limitation of liability, indemnity and governing law."
@@ -2281,9 +2281,9 @@
     "contact": {
       "title": "19. Contact",
       "p1": "Questions about these Terms:",
-      "entity": "[TO CONFIRM: legal entity name]",
-      "address": "[TO CONFIRM: registered address]",
-      "email": "[TO CONFIRM: contact email]"
+      "entity": "Impact Visuel Lhamidi",
+      "address": "2485 Rue McGill, Longueuil, QC J4L 2G9",
+      "email": "mlhamidi@visualsimpact.com"
     }
   },
   "bundleSubscriptions": {

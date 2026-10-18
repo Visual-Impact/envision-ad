@@ -2039,7 +2039,7 @@
     "intro": "La présente politique explique comment Envision Ad (la « Plateforme »), accessible à envision-ad.ca, recueille, utilise, communique et protège les renseignements personnels, ainsi que les droits que vous avez sur ceux-ci. Elle est rédigée pour respecter la Loi sur la protection des renseignements personnels dans le secteur privé du Québec. Elle s’applique avec nos <link>conditions d’utilisation</link>.",
     "who": {
       "title": "1. Qui nous sommes",
-      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p1": "La Plateforme est exploitée par Impact Visuel Lhamidi, dont le siège est situé au 2485 Rue McGill, Longueuil, QC J4L 2G9 (« Visual Impact », « nous » ou « notre »).",
       "p2": "La Plateforme est destinée aux entreprises. Les renseignements personnels que nous traitons concernent surtout les personnes qui l’utilisent pour le compte de leur organisation : propriétaires, employés et autres représentants des annonceurs et des propriétaires de médias. La présente politique vise aussi les visiteurs de nos pages publiques."
     },
     "officer": {
@@ -2139,7 +2139,7 @@
       "title": "14. Nous joindre",
       "p1": "Pour toute question ou demande concernant la présente politique ou vos renseignements personnels :",
       "entity": "[TO CONFIRM: name and title]",
-      "address": "[TO CONFIRM: legal entity name], [TO CONFIRM: registered address]",
+      "address": "Impact Visuel Lhamidi, 2485 Rue McGill, Longueuil, QC J4L 2G9",
       "email": "[TO CONFIRM: privacy contact email]"
     },
     "termsLink": "Consultez aussi nos <link>conditions d’utilisation</link>."
@@ -2150,7 +2150,7 @@
     "intro": "Les présentes conditions d’utilisation (les « Conditions ») régissent l’accès à Envision Ad (la « Plateforme »), accessible à envision-ad.ca, et son utilisation. Veuillez les lire attentivement. En accédant à la Plateforme ou en l’utilisant, vous acceptez les présentes Conditions au nom de votre entreprise.",
     "parties": {
       "title": "1. Qui nous sommes",
-      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p1": "La Plateforme est exploitée par Impact Visuel Lhamidi, dont le siège est situé au 2485 Rue McGill, Longueuil, QC J4L 2G9 (« Visual Impact », « nous » ou « notre »).",
       "p2": "Envision Ad est une place de marché qui met en relation deux types d’entreprises : les annonceurs, qui s’abonnent à des forfaits d’écrans publicitaires pour y diffuser leurs publicités, et les propriétaires de médias, qui inscrivent les écrans qu’ils exploitent et touchent une part de ce que paient les annonceurs. Une même entreprise peut être les deux. Dans les présentes Conditions, « vous » désigne l’entreprise titulaire du compte et chaque personne qui utilise la Plateforme pour son compte.",
       "p3": "Nous exploitons la Plateforme et percevons les paiements des annonceurs. Nous ne possédons ni n’exploitons les écrans : ce sont les propriétaires de médias qui les exploitent et qui sont responsables d’y afficher les publicités."
     },
@@ -2158,7 +2158,7 @@
       "title": "2. Comptes et admissibilité",
       "p1": "La Plateforme est réservée aux entreprises. Vous ne pouvez l’utiliser qu’au nom d’une entreprise ou d’une autre organisation, et non en tant que consommateur à des fins personnelles, familiales ou domestiques. En utilisant la Plateforme, vous confirmez être autorisé à engager cette entreprise envers les présentes Conditions.",
       "p2": "Il n’y a pas d’inscription publique. Les comptes sont créés par nous ou sur invitation d’un membre existant de votre organisation. La connexion est assurée par notre fournisseur d’authentification, Auth0. Nous pouvons vérifier votre organisation avant de lui donner accès à certaines fonctionnalités.",
-      "p3": "Vous êtes responsable de la confidentialité de vos identifiants de connexion, de tout ce qui est fait au moyen des comptes de votre organisation et de l’exactitude des renseignements de votre organisation. Lorsqu’une personne quitte votre organisation, il vous revient de retirer son accès. Avisez-nous sans délai à [TO CONFIRM: contact email] si vous croyez qu’un compte a été utilisé sans autorisation."
+      "p3": "Vous êtes responsable de la confidentialité de vos identifiants de connexion, de tout ce qui est fait au moyen des comptes de votre organisation et de l’exactitude des renseignements de votre organisation. Lorsqu’une personne quitte votre organisation, il vous revient de retirer son accès. Avisez-nous sans délai à mlhamidi@visualsimpact.com si vous croyez qu’un compte a été utilisé sans autorisation."
     },
     "subscriptions": {
       "title": "3. Abonnements des annonceurs",
@@ -2184,7 +2184,7 @@
       "title": "6. Obligations des propriétaires de médias",
       "p1": "Lorsque vous inscrivez un écran, vous devez le décrire avec exactitude et tenir sa fiche à jour, notamment son emplacement, son lieu, son type d’affichage, ses dimensions, sa résolution, sa durée de boucle, son horaire de fonctionnement, ses impressions quotidiennes estimées, son prix et sa photo. Nous examinons les écrans nouveaux ou modifiés avant que les annonceurs puissent les acheter, et nous pouvons refuser une fiche.",
       "p2": "Lorsqu’un abonnement comprenant vos écrans commence, et lorsque l’annonceur modifie ses publicités, nous vous envoyons par courriel les publicités à afficher. Vous devez les mettre en place sur les écrans visés dans un délai de [TO CONFIRM: number of days] et les garder en rotation, conformément à la fiche de l’écran, pendant toute la durée de l’abonnement.",
-      "p3": "Si vous croyez qu’une publicité contrevient aux présentes Conditions, à la loi ou aux règles de votre lieu, ne l’affichez pas et avisez-nous immédiatement à [TO CONFIRM: contact email].",
+      "p3": "Si vous croyez qu’une publicité contrevient aux présentes Conditions, à la loi ou aux règles de votre lieu, ne l’affichez pas et avisez-nous immédiatement à mlhamidi@visualsimpact.com.",
       "p4": "Avisez-nous sans délai si un écran cesse de fonctionner, est retiré ou ne peut pas afficher de publicités pendant plus de [TO CONFIRM: duration].",
       "p5": "Pour un abonnement dont tous les écrans vous appartiennent, vous devez tenir à jour sur la Plateforme un lien de preuve d’affichage : une page, par exemple un design Canva en lecture seule, qui montre les publicités de l’annonceur sur vos écrans. Nous vous le rappelons chaque mois. Nous pouvons aussi vous demander toute autre preuve raisonnable que les publicités ont été affichées.",
       "p6": "Vous devez détenir tous les droits, permis et autorisations nécessaires pour exploiter vos écrans et y afficher des publicités, y compris l’autorisation du lieu lorsque vous n’en êtes pas propriétaire."
@@ -2239,7 +2239,7 @@
     },
     "termination": {
       "title": "11. Suspension et résiliation",
-      "p1": "Vous pouvez cesser d’utiliser la Plateforme en tout temps. Pour fermer le compte de votre organisation, communiquez avec nous à [TO CONFIRM: contact email]. Annulez d’abord vos abonnements : la fermeture d’un compte n’annule pas les paiements déjà effectués.",
+      "p1": "Vous pouvez cesser d’utiliser la Plateforme en tout temps. Pour fermer le compte de votre organisation, communiquez avec nous à mlhamidi@visualsimpact.com. Annulez d’abord vos abonnements : la fermeture d’un compte n’annule pas les paiements déjà effectués.",
       "p2": "Nous pouvons suspendre ou désactiver un compte, annuler des abonnements ou retirer des fiches si vous contrevenez aux présentes Conditions, si la loi l’exige, ou pour protéger la Plateforme, ses utilisateurs ou le public. Lorsque c’est raisonnable, nous vous en aviserons au préalable et vous donnerons l’occasion de corriger la situation.",
       "p3": "Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, et nous conservons les dossiers de facturation aussi longtemps que la loi l’exige.",
       "p4": "Les dispositions qui, de par leur nature, doivent survivre à la résiliation demeurent en vigueur, notamment les obligations de paiement, les licences nécessaires à la conservation des dossiers, les exclusions de garantie, la limitation de responsabilité, l’indemnisation et le droit applicable."
@@ -2282,9 +2282,9 @@
     "contact": {
       "title": "19. Nous joindre",
       "p1": "Pour toute question sur les présentes Conditions :",
-      "entity": "[TO CONFIRM: legal entity name]",
-      "address": "[TO CONFIRM: registered address]",
-      "email": "[TO CONFIRM: contact email]"
+      "entity": "Impact Visuel Lhamidi",
+      "address": "2485 Rue McGill, Longueuil, QC J4L 2G9",
+      "email": "mlhamidi@visualsimpact.com"
     }
   },
   "bundleSubscriptions": {
