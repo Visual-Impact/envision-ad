@@ -19,6 +19,10 @@ import java.time.LocalDateTime;
  * on a lookup miss so Stripe retries, so the same event legitimately arrives more
  * than once; and Stripe's own idempotency keys expire well before its ~3-day retry
  * schedule ends. This table is the durable record.
+ *
+ * <p>A row is never inserted twice, but a {@link BundlePayoutStatus#FAILED} row whose
+ * {@link #failureCode} is {@code balance_insufficient} is updated in place to
+ * {@link BundlePayoutStatus#PAID} when {@code BundlePayoutRetryJob} later succeeds.
  */
 @Entity
 @Table(name = "bundle_payouts")
@@ -63,6 +67,25 @@ public class BundlePayout {
 
     @Column(name = "failure_reason", columnDefinition = "TEXT")
     private String failureReason;
+
+    /**
+     * Stripe's error code when {@link #status} is {@link BundlePayoutStatus#FAILED}, e.g.
+     * {@code balance_insufficient}. The retry job selects on this, never on the message text.
+     */
+    @Column(name = "failure_code", length = 64)
+    private String failureCode;
+
+    /**
+     * The charge passed as {@code source_transaction}, or null when the transfer was funded
+     * from the platform's available balance. Kept so a retry sends exactly what the first
+     * attempt sent: Stripe rejects a reused idempotency key with different parameters.
+     */
+    @Column(name = "stripe_source_charge_id")
+    private String stripeSourceChargeId;
+
+    /** When a transfer was last attempted; the retry job spaces attempts by this. */
+    @Column(name = "last_attempt_at")
+    private LocalDateTime lastAttemptAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

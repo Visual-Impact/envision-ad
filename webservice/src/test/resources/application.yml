@@ -79,3 +79,9 @@ envision:
     reminders:
       # Off in tests for the same reason as the sweep above (P12).
       enabled: false
+  payouts:
+    retry:
+      # Off in tests for the same reason; the retry logic is called directly.
+      enabled: false
+      interval: 1h
+      max-age: 30d
