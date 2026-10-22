@@ -101,7 +101,7 @@ export default function Footer({ bookMeetingUrl }: FooterProps) {
                             </ActionIcon>
                             <ActionIcon
                                 component="a"
-                                href="https://www.instagram.com/impactvisuel_/"
+                                href="https://www.instagram.com/visual_impact.ad/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 aria-label={t("instagram")}

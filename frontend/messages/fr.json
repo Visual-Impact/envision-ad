@@ -2039,12 +2039,12 @@
     "intro": "La présente politique explique comment Envision Ad (la « Plateforme »), accessible à envision-ad.ca, recueille, utilise, communique et protège les renseignements personnels, ainsi que les droits que vous avez sur ceux-ci. Elle est rédigée pour respecter la Loi sur la protection des renseignements personnels dans le secteur privé du Québec. Elle s’applique avec nos <link>conditions d’utilisation</link>.",
     "who": {
       "title": "1. Qui nous sommes",
-      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p1": "La Plateforme est exploitée par Impact Visuel Lhamidi, dont le siège est situé au 2485 Rue McGill, Longueuil, QC J4L 2G9 (« Visual Impact », « nous » ou « notre »).",
       "p2": "La Plateforme est destinée aux entreprises. Les renseignements personnels que nous traitons concernent surtout les personnes qui l’utilisent pour le compte de leur organisation : propriétaires, employés et autres représentants des annonceurs et des propriétaires de médias. La présente politique vise aussi les visiteurs de nos pages publiques."
     },
     "officer": {
       "title": "2. Responsable de la protection des renseignements personnels",
-      "p1": "La personne responsable de la protection des renseignements personnels chez Visual Impact est [TO CONFIRM: name and title]. Vous pouvez la joindre à [TO CONFIRM: privacy contact email] pour toute question, demande ou plainte concernant la présente politique ou vos renseignements personnels."
+      "p1": "La personne responsable de la protection des renseignements personnels chez Visual Impact est Mohamed Lhamidi, président. Vous pouvez la joindre à mlhamidi@visualsimpact.com pour toute question, demande ou plainte concernant la présente politique ou vos renseignements personnels."
     },
     "collect": {
       "title": "3. Ce que nous recueillons",
@@ -2075,7 +2075,7 @@
         "security": "protéger la Plateforme, détecter et prévenir la fraude et les abus, et corriger les problèmes;",
         "legal": "respecter nos obligations légales et faire respecter nos conditions d’utilisation."
       },
-      "p1": "Nous utilisons les renseignements personnels seulement à ces fins, ou à une autre fin avec votre consentement ou lorsque la loi le permet. Nous ne vendons pas de renseignements personnels et nous n’envoyons pas de courriels de marketing [TO CONFIRM: whether any marketing emails will be sent]."
+      "p1": "Nous utilisons les renseignements personnels seulement à ces fins, ou à une autre fin avec votre consentement ou lorsque la loi le permet. Nous ne vendons pas de renseignements personnels et nous n’envoyons pas de courriels de marketing."
     },
     "sharing": {
       "title": "6. À qui nous les communiquons",
@@ -2086,18 +2086,18 @@
         "stripe": "Stripe : paiements par carte, ainsi que vérification et versements des propriétaires de médias;",
         "cloudinary": "Cloudinary : stockage et diffusion des publicités;",
         "aws": "Amazon Web Services : hébergement de la Plateforme et de sa base de données;",
-        "email": "[TO CONFIRM: email provider] : envoi des courriels de service;",
+        "email": "Google (Gmail) : envoi des courriels de service;",
         "maps": "OpenStreetMap et CARTO : recherche d’adresses et cartes. Lorsque vous cherchez une adresse ou consultez une carte, votre navigateur leur transmet directement les termes recherchés et votre adresse IP."
       },
-      "p2": "Nous ne donnons à chaque fournisseur que les renseignements dont il a besoin, et nous l’obligeons par contrat à les protéger [TO CONFIRM: written agreements in place with each provider]. Nous pouvons aussi communiquer des renseignements personnels lorsque la loi l’exige, ou à un acheteur ou successeur si notre entreprise est vendue ou réorganisée, aux conditions prévues par la loi."
+      "p2": "Nous ne donnons à chaque fournisseur que les renseignements dont il a besoin, et nous l’obligeons par contrat à les protéger, au moyen de l’entente de traitement des données de chaque fournisseur. Nous pouvons aussi communiquer des renseignements personnels lorsque la loi l’exige, ou à un acheteur ou successeur si notre entreprise est vendue ou réorganisée, aux conditions prévues par la loi."
     },
     "outsideQuebec": {
       "title": "7. Conservation à l’extérieur du Québec",
-      "p1": "Notre base de données est hébergée par Amazon Web Services au Canada (région de Montréal). Certains fournisseurs, dont Auth0, Stripe et Cloudinary, peuvent conserver ou traiter des renseignements personnels à l’extérieur du Québec, notamment aux États-Unis [TO CONFIRM: each provider’s storage locations]. Avant de communiquer des renseignements personnels à l’extérieur du Québec, nous évaluons s’ils y bénéficieront d’une protection adéquate, comme l’exige la loi."
+      "p1": "Notre base de données est hébergée par Amazon Web Services au Canada (région de Montréal). Cloudinary conserve les fichiers téléversés, comme les publicités et les photos d’écrans, au Canada. Auth0, Stripe et Google conservent ou traitent des renseignements personnels à l’extérieur du Québec, notamment aux États-Unis. Avant de communiquer des renseignements personnels à l’extérieur du Québec, nous évaluons s’ils y bénéficieront d’une protection adéquate, comme l’exige la loi."
     },
     "retention": {
       "title": "8. Durée de conservation",
-      "p1": "Nous conservons les renseignements personnels seulement le temps nécessaire aux fins décrites ci-dessus, ou plus longtemps lorsque la loi l’exige. Les dossiers de facturation et comptables sont conservés pendant [TO CONFIRM: retention period for billing records]. Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, afin que ces dossiers leur restent rattachés. Les autres renseignements sont conservés pendant [TO CONFIRM: retention period for other account data] après la fermeture d’un compte. Lorsque nous n’avons plus besoin de renseignements personnels, nous les détruisons ou les anonymisons."
+      "p1": "Nous conservons les renseignements personnels seulement le temps nécessaire aux fins décrites ci-dessus, ou plus longtemps lorsque la loi l’exige. Les dossiers de facturation et comptables sont conservés pendant six ans après la fin de l’année d’imposition à laquelle ils se rapportent. Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, afin que ces dossiers leur restent rattachés. Les autres renseignements sont conservés pendant un an après la fermeture d’un compte. Lorsque nous n’avons plus besoin de renseignements personnels, nous les détruisons ou les anonymisons."
     },
     "cookies": {
       "title": "9. Témoins (cookies)",
@@ -2138,9 +2138,9 @@
     "contact": {
       "title": "14. Nous joindre",
       "p1": "Pour toute question ou demande concernant la présente politique ou vos renseignements personnels :",
-      "entity": "[TO CONFIRM: name and title]",
-      "address": "[TO CONFIRM: legal entity name], [TO CONFIRM: registered address]",
-      "email": "[TO CONFIRM: privacy contact email]"
+      "entity": "Mohamed Lhamidi, président",
+      "address": "Impact Visuel Lhamidi, 2485 Rue McGill, Longueuil, QC J4L 2G9",
+      "email": "mlhamidi@visualsimpact.com"
     },
     "termsLink": "Consultez aussi nos <link>conditions d’utilisation</link>."
   },
@@ -2150,7 +2150,7 @@
     "intro": "Les présentes conditions d’utilisation (les « Conditions ») régissent l’accès à Envision Ad (la « Plateforme »), accessible à envision-ad.ca, et son utilisation. Veuillez les lire attentivement. En accédant à la Plateforme ou en l’utilisant, vous acceptez les présentes Conditions au nom de votre entreprise.",
     "parties": {
       "title": "1. Qui nous sommes",
-      "p1": "La Plateforme est exploitée par [TO CONFIRM: legal entity name], dont le siège est situé au [TO CONFIRM: registered address] (« Visual Impact », « nous » ou « notre »).",
+      "p1": "La Plateforme est exploitée par Impact Visuel Lhamidi, dont le siège est situé au 2485 Rue McGill, Longueuil, QC J4L 2G9 (« Visual Impact », « nous » ou « notre »).",
       "p2": "Envision Ad est une place de marché qui met en relation deux types d’entreprises : les annonceurs, qui s’abonnent à des forfaits d’écrans publicitaires pour y diffuser leurs publicités, et les propriétaires de médias, qui inscrivent les écrans qu’ils exploitent et touchent une part de ce que paient les annonceurs. Une même entreprise peut être les deux. Dans les présentes Conditions, « vous » désigne l’entreprise titulaire du compte et chaque personne qui utilise la Plateforme pour son compte.",
       "p3": "Nous exploitons la Plateforme et percevons les paiements des annonceurs. Nous ne possédons ni n’exploitons les écrans : ce sont les propriétaires de médias qui les exploitent et qui sont responsables d’y afficher les publicités."
     },
@@ -2158,34 +2158,34 @@
       "title": "2. Comptes et admissibilité",
       "p1": "La Plateforme est réservée aux entreprises. Vous ne pouvez l’utiliser qu’au nom d’une entreprise ou d’une autre organisation, et non en tant que consommateur à des fins personnelles, familiales ou domestiques. En utilisant la Plateforme, vous confirmez être autorisé à engager cette entreprise envers les présentes Conditions.",
       "p2": "Il n’y a pas d’inscription publique. Les comptes sont créés par nous ou sur invitation d’un membre existant de votre organisation. La connexion est assurée par notre fournisseur d’authentification, Auth0. Nous pouvons vérifier votre organisation avant de lui donner accès à certaines fonctionnalités.",
-      "p3": "Vous êtes responsable de la confidentialité de vos identifiants de connexion, de tout ce qui est fait au moyen des comptes de votre organisation et de l’exactitude des renseignements de votre organisation. Lorsqu’une personne quitte votre organisation, il vous revient de retirer son accès. Avisez-nous sans délai à [TO CONFIRM: contact email] si vous croyez qu’un compte a été utilisé sans autorisation."
+      "p3": "Vous êtes responsable de la confidentialité de vos identifiants de connexion, de tout ce qui est fait au moyen des comptes de votre organisation et de l’exactitude des renseignements de votre organisation. Lorsqu’une personne quitte votre organisation, il vous revient de retirer son accès. Avisez-nous sans délai à mlhamidi@visualsimpact.com si vous croyez qu’un compte a été utilisé sans autorisation."
     },
     "subscriptions": {
       "title": "3. Abonnements des annonceurs",
       "p1": "Les annonceurs achètent de la publicité au moyen d’abonnements mensuels à des forfaits. Un forfait est un groupe d’écrans défini par ville, par région, par type de lieu ou pour l’ensemble du réseau. Pour vous abonner, vous devez avoir une campagne publicitaire comportant au moins une publicité. C’est cette campagne que les propriétaires de médias affichent sur les écrans de votre abonnement.",
       "p2": "Le prix mensuel et la liste des écrans sont fixés au moment de l’abonnement et restent les mêmes pendant toute la durée de cet abonnement. Les écrans ajoutés au forfait par la suite ne sont pas ajoutés à votre abonnement, et les changements de prix ultérieurs du forfait ne s’y appliquent pas.",
       "p3": "Vos publicités sont diffusées en rotation avec d’autres publicités, selon la durée de boucle et l’horaire de fonctionnement de chaque écran indiqués sur la Plateforme. Les propriétaires de médias choisissent quelle publicité de votre campagne afficher sur chaque écran.",
-      "p4": "Si un écran de votre abonnement devient indisponible pendant l’abonnement : [TO CONFIRM: remedy, for example a credit, a replacement screen, or none]."
+      "p4": "Si un écran de votre abonnement est indisponible pendant plus de 10 jours consécutifs, nous créditons sur votre prochaine facture la part du prix de cet écran pour les jours où il était indisponible, ou nous vous la remboursons si votre abonnement a pris fin."
     },
     "billing": {
       "title": "4. Facturation et renouvellement",
       "p1": "Les prix sont en dollars canadiens (CAD) et sont facturés mensuellement, à l’avance. Vous payez par carte au moyen de Stripe Checkout, notre processeur de paiement. Nous ne conservons pas les données complètes de votre carte. Le premier mois est facturé au moment de l’abonnement.",
       "p2": "Les abonnements se renouvellent automatiquement chaque mois, et votre moyen de paiement est débité à chaque renouvellement jusqu’à ce que vous annuliez.",
-      "p3": "Les prix excluent les taxes applicables. [TO CONFIRM: how applicable taxes, such as the GST and QST, are charged and shown on invoices].",
+      "p3": "Les prix excluent les taxes applicables. Nous ne sommes pas actuellement inscrits aux fichiers de la TPS et de la TVQ; aucune de ces taxes n’est donc perçue. Si nous nous inscrivons, nous les ajouterons à vos factures à compter de cette date et les y indiquerons séparément.",
       "p4": "Un rabais ou un code promotionnel ne s’applique qu’à l’abonnement pour lequel il a été utilisé, et seulement selon les modalités annoncées au moment de l’offre, y compris le nombre de mois pendant lesquels il s’applique.",
-      "p5": "Si un paiement de renouvellement échoue, l’abonnement passe en souffrance et le paiement est tenté de nouveau [TO CONFIRM: retry schedule]. Si le paiement n’est toujours pas reçu, [TO CONFIRM: when the subscription is suspended or cancelled]."
+      "p5": "Si un paiement de renouvellement échoue, l’abonnement passe en souffrance et le paiement est tenté de nouveau automatiquement pendant au plus deux semaines. Si le paiement n’est toujours pas reçu, l’abonnement est annulé."
     },
     "cancellation": {
       "title": "5. Annulation et remboursements",
       "p1": "Vous pouvez annuler un abonnement en tout temps à partir de votre page Abonnements. L’annulation prend effet à la fin de la période de facturation en cours : vos publicités restent en rotation, et vous conservez l’accès à l’abonnement, jusqu’à cette date. Aucun autre montant ne vous sera facturé.",
-      "p2": "Les paiements déjà effectués ne sont pas remboursés, y compris pour le reste d’une période de facturation après votre annulation. [TO CONFIRM: refund policy, including any exceptions, for example screens that did not show your ad]."
+      "p2": "Les paiements déjà effectués ne sont pas remboursés, y compris pour le reste d’une période de facturation après votre annulation. La seule exception : lorsque nous confirmons que votre publicité n’a pas été affichée sur un écran visé, nous créditons ou remboursons la part du prix de cet écran pour la période où elle n’a pas été affichée."
     },
     "mediaOwners": {
       "title": "6. Obligations des propriétaires de médias",
       "p1": "Lorsque vous inscrivez un écran, vous devez le décrire avec exactitude et tenir sa fiche à jour, notamment son emplacement, son lieu, son type d’affichage, ses dimensions, sa résolution, sa durée de boucle, son horaire de fonctionnement, ses impressions quotidiennes estimées, son prix et sa photo. Nous examinons les écrans nouveaux ou modifiés avant que les annonceurs puissent les acheter, et nous pouvons refuser une fiche.",
-      "p2": "Lorsqu’un abonnement comprenant vos écrans commence, et lorsque l’annonceur modifie ses publicités, nous vous envoyons par courriel les publicités à afficher. Vous devez les mettre en place sur les écrans visés dans un délai de [TO CONFIRM: number of days] et les garder en rotation, conformément à la fiche de l’écran, pendant toute la durée de l’abonnement.",
-      "p3": "Si vous croyez qu’une publicité contrevient aux présentes Conditions, à la loi ou aux règles de votre lieu, ne l’affichez pas et avisez-nous immédiatement à [TO CONFIRM: contact email].",
-      "p4": "Avisez-nous sans délai si un écran cesse de fonctionner, est retiré ou ne peut pas afficher de publicités pendant plus de [TO CONFIRM: duration].",
+      "p2": "Lorsqu’un abonnement comprenant vos écrans commence, et lorsque l’annonceur modifie ses publicités, nous vous envoyons par courriel les publicités à afficher. Vous devez les mettre en place sur les écrans visés dans un délai de 3 jours ouvrables et les garder en rotation, conformément à la fiche de l’écran, pendant toute la durée de l’abonnement.",
+      "p3": "Si vous croyez qu’une publicité contrevient aux présentes Conditions, à la loi ou aux règles de votre lieu, ne l’affichez pas et avisez-nous immédiatement à mlhamidi@visualsimpact.com.",
+      "p4": "Avisez-nous sans délai si un écran cesse de fonctionner, est retiré ou ne peut pas afficher de publicités pendant plus de 72 heures.",
       "p5": "Pour un abonnement dont tous les écrans vous appartiennent, vous devez tenir à jour sur la Plateforme un lien de preuve d’affichage : une page, par exemple un design Canva en lecture seule, qui montre les publicités de l’annonceur sur vos écrans. Nous vous le rappelons chaque mois. Nous pouvons aussi vous demander toute autre preuve raisonnable que les publicités ont été affichées.",
       "p6": "Vous devez détenir tous les droits, permis et autorisations nécessaires pour exploiter vos écrans et y afficher des publicités, y compris l’autorisation du lieu lorsque vous n’en êtes pas propriétaire."
     },
@@ -2193,12 +2193,12 @@
       "title": "7. Partage des revenus et versements",
       "p1": "Pour chaque facture d’abonnement payée, vous recevez 70 % du prix mensuel de vos écrans compris dans cet abonnement, tel que fixé au moment où l’annonceur s’est abonné. Nous conservons les 30 % restants à titre de frais de plateforme.",
       "p2": "Les rabais et codes promotionnels que nous accordons aux annonceurs sont prélevés sur notre part, et non sur la vôtre : vos 70 % sont calculés sur le plein prix de vos écrans, comme si aucun rabais ne s’appliquait.",
-      "p3": "Votre part est transférée à votre compte Stripe après le paiement de la facture de l’annonceur, [TO CONFIRM: payout timing in days]. Stripe la verse ensuite dans votre compte bancaire selon le calendrier de versement de votre compte Stripe. Rien n’est versé pour une facture impayée, par exemple un renouvellement dont le paiement a échoué.",
-      "p4": "Pour recevoir des versements, vous devez connecter un compte Stripe au moyen de la Plateforme et terminer l’intégration de Stripe, y compris la vérification d’identité. Si votre intégration n’est pas terminée au moment où une facture est payée, votre part de cette facture n’est pas transférée automatiquement. [TO CONFIRM: whether and how such amounts are paid later].",
+      "p3": "Votre part est transférée à votre compte Stripe après le paiement de la facture de l’annonceur, normalement le jour même. Stripe la verse ensuite dans votre compte bancaire selon le calendrier de versement de votre compte Stripe. Rien n’est versé pour une facture impayée, par exemple un renouvellement dont le paiement a échoué.",
+      "p4": "Pour recevoir des versements, vous devez connecter un compte Stripe au moyen de la Plateforme et terminer l’intégration de Stripe, y compris la vérification d’identité. Si votre intégration n’est pas terminée au moment où une facture est payée, votre part de cette facture n’est pas transférée automatiquement. Nous la conservons et vous la transférons une fois votre intégration terminée, si vous la terminez dans les 90 jours suivant le paiement de la facture. Passé ce délai, ce montant ne vous est plus dû.",
       "p5": "Les services de traitement des paiements offerts aux propriétaires de médias sur Envision Ad sont fournis par Stripe et sont assujettis à l’Entente sur les comptes connectés Stripe (Stripe Connected Account Agreement), qui comprend les Conditions d’utilisation de Stripe (collectivement, l’« Entente sur les services Stripe »). En acceptant les présentes Conditions ou en continuant d’exercer vos activités de propriétaire de médias sur Envision Ad, vous acceptez d’être lié par l’Entente sur les services Stripe, telle que Stripe peut la modifier de temps à autre. Comme condition à ce qu’Envision Ad vous donne accès aux services de traitement des paiements de Stripe, vous acceptez de nous fournir des renseignements exacts et complets sur vous et votre entreprise, et vous nous autorisez à communiquer ces renseignements ainsi que les renseignements sur les opérations liées à votre utilisation des services de traitement des paiements fournis par Stripe.",
-      "p6": "Nous vous donnerons un préavis d’au moins [TO CONFIRM: notice period] par courriel avant de modifier les frais de plateforme.",
-      "p7": "Si le paiement d’un annonceur est remboursé, annulé ou contesté après le transfert de votre part : [TO CONFIRM: whether we may recover your share, and how].",
-      "p8": "Vous êtes responsable de vos propres taxes et impôts sur les montants que vous recevez. [TO CONFIRM: tax treatment of payouts, including GST and QST]."
+      "p6": "Nous vous donnerons un préavis d’au moins 30 jours par courriel avant de modifier les frais de plateforme.",
+      "p7": "Si le paiement d’un annonceur est remboursé, annulé ou contesté après le transfert de votre part, nous pouvons récupérer votre part de ce paiement en la déduisant de vos versements futurs ou, si aucun versement n’est prévu, en vous la facturant.",
+      "p8": "Vous êtes responsable de vos propres taxes et impôts sur les montants que vous recevez. Il vous revient de déterminer si vous devez vous inscrire aux fichiers de la TPS et de la TVQ et percevoir ces taxes."
     },
     "content": {
       "title": "8. Règles sur le contenu publicitaire",
@@ -2209,13 +2209,13 @@
         "misleading": "être fausses, trompeuses ou mensongères, ni contenir d’affirmations que vous ne pouvez pas étayer;",
         "children": "être destinées à des enfants de moins de 13 ans;",
         "regulated": "promouvoir le tabac, les produits de vapotage ou le cannabis, ni promouvoir l’alcool, les jeux de hasard ou d’autres produits réglementés, sauf dans la mesure permise par la loi;",
-        "political": "contenir de la publicité politique ou électorale [TO CONFIRM: whether political advertising is allowed];",
+        "political": "contenir de la publicité politique ou électorale;",
         "offensive": "contenir de contenu sexuellement explicite, violent, haineux ou discriminatoire;",
         "rights": "porter atteinte aux droits de quiconque, notamment le droit d’auteur, les marques de commerce, la vie privée ou le droit à l’image;",
         "personalInfo": "montrer des renseignements personnels sur une personne sans son consentement."
       },
       "p2": "Les publicités affichées au Québec doivent respecter la Charte de la langue française.",
-      "p3": "Nous pouvons refuser ou retirer toute publicité, ou demander aux propriétaires de médias de cesser de l’afficher, si nous croyons raisonnablement qu’elle contrevient aux présentes Conditions, à la loi ou aux règles d’un lieu. Lorsque c’est raisonnable, nous vous en indiquerons la raison. [TO CONFIRM: effect on billing when an ad is removed]."
+      "p3": "Nous pouvons refuser ou retirer toute publicité, ou demander aux propriétaires de médias de cesser de l’afficher, si nous croyons raisonnablement qu’elle contrevient aux présentes Conditions, à la loi ou aux règles d’un lieu. Lorsque c’est raisonnable, nous vous en indiquerons la raison. Le retrait d’une publicité n’interrompt ni ne réduit la facturation de l’abonnement; vous pouvez soumettre une publicité de remplacement conforme."
     },
     "ip": {
       "title": "9. Propriété intellectuelle",
@@ -2234,12 +2234,12 @@
         "disrupt": "nuire au fonctionnement de la Plateforme ou la perturber, ni tester sa sécurité sans notre autorisation écrite;",
         "scrape": "copier, extraire ou revendre la Plateforme ou ses données, ni en faire l’ingénierie inverse, sauf dans la mesure permise par la loi;",
         "malware": "téléverser des virus ou tout autre code nuisible;",
-        "circumvent": "traiter directement avec un annonceur ou un propriétaire de médias rencontré au moyen de la Plateforme afin d’éviter les frais de plateforme [TO CONFIRM: whether to keep this restriction, and for how long]."
+        "circumvent": "traiter directement avec un annonceur ou un propriétaire de médias rencontré au moyen de la Plateforme afin d’éviter les frais de plateforme, tant que votre compte est actif et pendant 12 mois après la fin de votre dernier abonnement."
       }
     },
     "termination": {
       "title": "11. Suspension et résiliation",
-      "p1": "Vous pouvez cesser d’utiliser la Plateforme en tout temps. Pour fermer le compte de votre organisation, communiquez avec nous à [TO CONFIRM: contact email]. Annulez d’abord vos abonnements : la fermeture d’un compte n’annule pas les paiements déjà effectués.",
+      "p1": "Vous pouvez cesser d’utiliser la Plateforme en tout temps. Pour fermer le compte de votre organisation, communiquez avec nous à mlhamidi@visualsimpact.com. Annulez d’abord vos abonnements : la fermeture d’un compte n’annule pas les paiements déjà effectués.",
       "p2": "Nous pouvons suspendre ou désactiver un compte, annuler des abonnements ou retirer des fiches si vous contrevenez aux présentes Conditions, si la loi l’exige, ou pour protéger la Plateforme, ses utilisateurs ou le public. Lorsque c’est raisonnable, nous vous en aviserons au préalable et vous donnerons l’occasion de corriger la situation.",
       "p3": "Les comptes ayant un historique de facturation sont désactivés plutôt que supprimés, et nous conservons les dossiers de facturation aussi longtemps que la loi l’exige.",
       "p4": "Les dispositions qui, de par leur nature, doivent survivre à la résiliation demeurent en vigueur, notamment les obligations de paiement, les licences nécessaires à la conservation des dossiers, les exclusions de garantie, la limitation de responsabilité, l’indemnisation et le droit applicable."
@@ -2253,7 +2253,7 @@
     "liability": {
       "title": "13. Limitation de responsabilité",
       "p1": "Dans la mesure permise par la loi, nous ne sommes pas responsables des dommages indirects, accessoires, spéciaux ou consécutifs, ni de la perte de profits, de revenus, de clientèle ou de données, découlant de la Plateforme ou des présentes Conditions.",
-      "p2": "Dans la mesure permise par la loi, notre responsabilité totale pour l’ensemble des réclamations découlant de la Plateforme ou des présentes Conditions est limitée à [TO CONFIRM: liability cap amount].",
+      "p2": "Dans la mesure permise par la loi, notre responsabilité totale pour l’ensemble des réclamations découlant de la Plateforme ou des présentes Conditions est limitée à au montant total que vous nous avez payé ou, pour un propriétaire de médias, aux frais de plateforme que nous avons retenus sur vos versements, au cours des 12 mois précédant l’événement à l’origine de la réclamation.",
       "p3": "Rien dans les présentes Conditions n’exclut ni ne limite une responsabilité qui ne peut être exclue ou limitée par la loi, notamment la responsabilité pour le préjudice corporel ou moral, ou pour le préjudice causé par une faute intentionnelle ou une faute lourde."
     },
     "indemnity": {
@@ -2267,12 +2267,12 @@
     "governingLaw": {
       "title": "16. Droit applicable et langue",
       "p1": "Les présentes Conditions sont régies par les lois de la province de Québec et les lois fédérales du Canada qui s’y appliquent.",
-      "p2": "Les tribunaux de [TO CONFIRM: governing venue] ont compétence exclusive sur tout litige découlant des présentes Conditions.",
+      "p2": "Les tribunaux du district judiciaire de Longueuil (Québec) ont compétence exclusive sur tout litige découlant des présentes Conditions.",
       "p3": "Les présentes Conditions sont rédigées en français et en anglais. La version française a été mise à votre disposition en premier, et vous avez expressément choisi de les recevoir aussi en anglais. En cas de divergence entre les deux versions, la version française prévaut."
     },
     "changes": {
       "title": "17. Modifications des présentes Conditions",
-      "p1": "Nous pouvons mettre à jour les présentes Conditions. Nous publierons la nouvelle version sur cette page avec une nouvelle date de « Dernière mise à jour » et, pour les modifications importantes, nous aviserons les titulaires de compte par courriel au moins [TO CONFIRM: notice period] avant leur entrée en vigueur. Si vous continuez d’utiliser la Plateforme après cette date, vous acceptez les nouvelles Conditions. Si vous ne les acceptez pas, vous pouvez annuler vos abonnements et cesser d’utiliser la Plateforme avant cette date."
+      "p1": "Nous pouvons mettre à jour les présentes Conditions. Nous publierons la nouvelle version sur cette page avec une nouvelle date de « Dernière mise à jour » et, pour les modifications importantes, nous aviserons les titulaires de compte par courriel au moins 30 jours avant leur entrée en vigueur. Si vous continuez d’utiliser la Plateforme après cette date, vous acceptez les nouvelles Conditions. Si vous ne les acceptez pas, vous pouvez annuler vos abonnements et cesser d’utiliser la Plateforme avant cette date."
     },
     "general": {
       "title": "18. Dispositions générales",
@@ -2282,9 +2282,9 @@
     "contact": {
       "title": "19. Nous joindre",
       "p1": "Pour toute question sur les présentes Conditions :",
-      "entity": "[TO CONFIRM: legal entity name]",
-      "address": "[TO CONFIRM: registered address]",
-      "email": "[TO CONFIRM: contact email]"
+      "entity": "Impact Visuel Lhamidi",
+      "address": "2485 Rue McGill, Longueuil, QC J4L 2G9",
+      "email": "mlhamidi@visualsimpact.com"
     }
   },
   "bundleSubscriptions": {
