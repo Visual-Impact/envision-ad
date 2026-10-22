@@ -4,6 +4,18 @@ on:
   push:
     branches:
       - main
+
+# One deploy at a time. Two merges a few seconds apart used to run `docker compose up`
+# on the EC2 host at the same moment; each recreated containers the other was still
+# swapping, and both runs failed (2026-10-13 and 2026-10-22). The group covers the
+# whole workflow, not just the deploy job, so an older commit's slower build can't
+# reach the host after a newer one. A queued run waits, and a newer push replaces it.
+# A running deploy is never cancelled: killing `up` halfway leaves
+# `<hash>_<service>` containers behind.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -84,23 +96,55 @@ jobs:
             cd envision-ad
             git pull origin main
 
+            # main moved on while this run was building: the run for the newer commit
+            # is queued behind this one and deploys its images. Deploying ours now
+            # would pair them with the newer commit's compose and nginx files. Any
+            # other mismatch (a force-push, an odd host clone) fails rather than
+            # passing green without deploying.
+            latest=$(git rev-parse FETCH_HEAD)
+            if [ "$latest" != "$IMAGE_TAG" ]; then
+              if git merge-base --is-ancestor "$IMAGE_TAG" "$latest"; then
+                echo "main is at $latest, a descendant of $IMAGE_TAG; skipping, the run for $latest deploys it."
+                exit 0
+              fi
+              echo "ERROR: main is at $latest, which does not contain $IMAGE_TAG"
+              exit 1
+            fi
+
             # GHCR requires lowercase image paths
             export IMAGE_OWNER=$(echo "$IMAGE_OWNER" | tr '[:upper:]' '[:lower:]')
 
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+            # A recreate that was cut off (dropped SSH session, command_timeout) leaves the
+            # new container under a temporary `<12-hex-id>_<service>` name, and every later
+            # `up` then fails on a name conflict. The live containers always carry the
+            # plain names, so these leftovers are safe to remove.
+            stale=$(docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_(frontend|backend|reverse-proxy)$' || true)
+            if [ -n "$stale" ]; then
+              echo "Removing leftover containers from an interrupted deploy: $stale"
+              docker rm -f $stale
+            fi
 
             # --- Pull the images built and pushed by CI, then swap containers in ---
             doppler run --project envision-ad-frontend --config prd --token ${{ secrets.DOPPLER_FRONTEND_TOKEN }} -- \
             doppler run --project envision-ad-backend --config prd --token ${{ secrets.DOPPLER_BACKEND_TOKEN }} -- \
             bash -c 'docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d'
 
-            # Prove the swap happened: both app containers must run this commit's image.
+            # Prove the swap happened: both app containers must run this commit's image,
+            # and be running, not just created.
             for container in frontend backend; do
               running=$(docker inspect --format '{{.Config.Image}}' "$container")
               case "$running" in
                 *":$IMAGE_TAG") echo "$container is running $running" ;;
                 *) echo "ERROR: $container is running $running, expected tag $IMAGE_TAG"; exit 1 ;;
               esac
+            done
+            for container in frontend backend reverse-proxy; do
+              if [ "$(docker inspect --format '{{.State.Running}}' "$container")" != "true" ]; then
+                echo "ERROR: $container is not running: $(docker inspect --format '{{.State.Status}}' "$container")"
+                exit 1
+              fi
             done
 
             docker image prune -f
