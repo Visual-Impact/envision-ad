@@ -1,6 +1,8 @@
 package com.envisionad.webservice.payment.dataaccesslayer;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -8,10 +10,10 @@ import java.util.List;
 public interface BundlePayoutRepository extends JpaRepository<BundlePayout, Long> {
 
     /**
-     * The idempotency guard. Any row — PAID, SKIPPED or FAILED — means this owner
+     * The idempotency guard. Any row — PAID, HELD, SKIPPED or FAILED — means this owner
      * has already been handled for this invoice and must not be transferred to
      * again by the webhook. Retrying an insufficient-funds FAILED row is the retry
-     * job's business, not the webhook's.
+     * job's business, and releasing a HELD row the onboarding hold's, not the webhook's.
      */
     boolean existsByStripeInvoiceIdAndMediaOwnerBusinessId(
             String stripeInvoiceId, String mediaOwnerBusinessId);
@@ -36,10 +38,26 @@ public interface BundlePayoutRepository extends JpaRepository<BundlePayout, Long
 
     /**
      * The retry job's work list: rows in {@code status} that failed with {@code failureCode},
-     * were last attempted before {@code lastAttemptBefore}, and are younger than
-     * {@code createdAfter} (older ones are left for a human).
+     * were last attempted before {@code lastAttemptBefore}, and whose first attempt came after
+     * {@code firstAttemptAfter} (older ones are left for a human). The first attempt is the
+     * release for a row that was held for onboarding, and the row's creation otherwise.
      */
-    List<BundlePayout> findAllByStatusAndFailureCodeAndLastAttemptAtBeforeAndCreatedAtAfter(
-            BundlePayoutStatus status, String failureCode,
-            LocalDateTime lastAttemptBefore, LocalDateTime createdAfter);
+    @Query("""
+            SELECT p FROM BundlePayout p
+            WHERE p.status = :status
+              AND p.failureCode = :failureCode
+              AND p.lastAttemptAt < :lastAttemptBefore
+              AND COALESCE(p.holdEndedAt, p.createdAt) > :firstAttemptAfter
+            """)
+    List<BundlePayout> findRetryable(
+            @Param("status") BundlePayoutStatus status, @Param("failureCode") String failureCode,
+            @Param("lastAttemptBefore") LocalDateTime lastAttemptBefore,
+            @Param("firstAttemptAfter") LocalDateTime firstAttemptAfter);
+
+    /** One owner's shares waiting on onboarding (status {@code HELD_NOT_ONBOARDED}), oldest first. */
+    List<BundlePayout> findAllByMediaOwnerBusinessIdAndStatusOrderByCreatedAtAsc(
+            String mediaOwnerBusinessId, BundlePayoutStatus status);
+
+    /** Every row in {@code status}, oldest first: the hold sweep's work list. */
+    List<BundlePayout> findAllByStatusOrderByCreatedAtAsc(BundlePayoutStatus status);
 }

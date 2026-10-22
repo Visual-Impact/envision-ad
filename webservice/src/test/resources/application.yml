@@ -85,3 +85,8 @@ envision:
       enabled: false
       interval: 1h
       max-age: 30d
+    hold:
+      # Off in tests for the same reason; the hold logic is called directly.
+      enabled: false
+      interval: 1h
+      max-age: 90d

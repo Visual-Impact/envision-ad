@@ -103,6 +103,7 @@ class StripeWebhookServiceTest {
         when(deserializer.getObject()).thenReturn(Optional.of(stripeAccount));
 
         StripeAccount localStripeAccount = new StripeAccount();
+        localStripeAccount.setBusinessId("owner-biz");
         localStripeAccount.setStripeAccountId(stripeAccountId);
         localStripeAccount.setOnboardingComplete(false); // Initial state
         localStripeAccount.setChargesEnabled(false);
@@ -121,6 +122,57 @@ class StripeWebhookServiceTest {
         assertTrue(savedAccount.isOnboardingComplete());
         assertTrue(savedAccount.isChargesEnabled());
         assertTrue(savedAccount.isPayoutsEnabled());
+        // Shares held while the owner was onboarding go out now (Terms of Service §7)
+        verify(bundlePayoutService).releaseHeldPayouts("owner-biz");
+    }
+
+    /** Details submitted but not yet verified: not complete, so held shares stay held. */
+    @Test
+    void whenHandleAccountUpdated_withDetailsSubmittedButNotYetEnabled_thenHeldPayoutsAreNotReleased() {
+        Account stripeAccount = mock(Account.class);
+        when(stripeAccount.getId()).thenReturn("acct_pending");
+        when(stripeAccount.getDetailsSubmitted()).thenReturn(true);
+        when(stripeAccount.getChargesEnabled()).thenReturn(false);
+        when(stripeAccount.getPayoutsEnabled()).thenReturn(false);
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+        when(deserializer.getObject()).thenReturn(Optional.of(stripeAccount));
+
+        StripeAccount local = new StripeAccount();
+        local.setBusinessId("owner-biz");
+        local.setStripeAccountId("acct_pending");
+        when(stripeAccountRepository.findByStripeAccountId("acct_pending")).thenReturn(Optional.of(local));
+
+        stripeWebhookService.handleAccountUpdated(event);
+
+        verify(stripeAccountRepository).save(local);
+        verifyNoInteractions(bundlePayoutService);
+    }
+
+    /**
+     * Released on every event that finds the account complete, not only the one that flipped it:
+     * a missed transition must not strand held shares until the sweep.
+     */
+    @Test
+    void whenHandleAccountUpdated_forAnAccountThatWasAlreadyComplete_thenHeldPayoutsAreStillReleased() {
+        Account stripeAccount = mock(Account.class);
+        when(stripeAccount.getId()).thenReturn("acct_done");
+        when(stripeAccount.getDetailsSubmitted()).thenReturn(true);
+        when(stripeAccount.getChargesEnabled()).thenReturn(true);
+        when(stripeAccount.getPayoutsEnabled()).thenReturn(true);
+        when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+        when(deserializer.getObject()).thenReturn(Optional.of(stripeAccount));
+
+        StripeAccount local = new StripeAccount();
+        local.setBusinessId("owner-biz");
+        local.setStripeAccountId("acct_done");
+        local.setOnboardingComplete(true);
+        local.setChargesEnabled(true);
+        local.setPayoutsEnabled(true);
+        when(stripeAccountRepository.findByStripeAccountId("acct_done")).thenReturn(Optional.of(local));
+
+        stripeWebhookService.handleAccountUpdated(event);
+
+        verify(bundlePayoutService).releaseHeldPayouts("owner-biz");
     }
 
     @Test

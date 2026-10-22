@@ -31,6 +31,7 @@ public class StripeServiceImpl implements StripeService {
     private final BundleSubscriptionRepository bundleSubscriptionRepository;
     private final BundleSubscriptionItemRepository bundleSubscriptionItemRepository;
     private final BundlePayoutRepository bundlePayoutRepository;
+    private final BundlePayoutService bundlePayoutService;
     private final JwtUtils jwtUtils;
 
     public StripeServiceImpl(StripeAccountRepository stripeAccountRepository,
@@ -38,12 +39,14 @@ public class StripeServiceImpl implements StripeService {
             BundleSubscriptionRepository bundleSubscriptionRepository,
             BundleSubscriptionItemRepository bundleSubscriptionItemRepository,
             BundlePayoutRepository bundlePayoutRepository,
+            BundlePayoutService bundlePayoutService,
             JwtUtils jwtUtils) {
         this.stripeAccountRepository = stripeAccountRepository;
         this.mediaRepository = mediaRepository;
         this.bundleSubscriptionRepository = bundleSubscriptionRepository;
         this.bundleSubscriptionItemRepository = bundleSubscriptionItemRepository;
         this.bundlePayoutRepository = bundlePayoutRepository;
+        this.bundlePayoutService = bundlePayoutService;
         this.jwtUtils = jwtUtils;
     }
 
@@ -163,6 +166,11 @@ public class StripeServiceImpl implements StripeService {
                 log.info("Synced Stripe account {} on status read: onboardingComplete={}, chargesEnabled={}, payoutsEnabled={}",
                         account.getStripeAccountId(), account.isOnboardingComplete(),
                         account.isChargesEnabled(), account.isPayoutsEnabled());
+                // An owner just back from Stripe's onboarding gets any share held for them now,
+                // not at the next hourly sweep (Terms of Service §7). Never throws.
+                if (StripeOnboardingState.isComplete(account)) {
+                    bundlePayoutService.releaseHeldPayouts(account.getBusinessId());
+                }
             }
             return StripeOnboardingState.from(remote);
         } catch (StripeException e) {
