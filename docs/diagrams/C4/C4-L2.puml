@@ -4,33 +4,28 @@ scale 0.4
 !$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
 !include $ICONURL/common.puml
 !include $ICONURL/devicons2/spring_original.puml
-!include $ICONURL/devicons/mysql.puml
-!include $ICONURL/devicons/react.puml
-!include $ICONURL/devicons/html5.puml
+!include $ICONURL/devicons2/postgresql.puml
+!include $ICONURL/devicons2/nextjs.puml
 !include $ICONURL/font-awesome-5/database.puml
 !include $ICONURL/font-awesome-5/user.puml
 
 !define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
 !include SPRITESURL/auth0-icon.puml
-!include SPRITESURL/twilio-icon.puml
 !include SPRITESURL/cloudinary-icon.puml
 !include SPRITESURL/stripe.puml
 !include SPRITESURL/google-gmail.puml
 
 AddElementTag("ext_service", $shape=EightSidedShape(), $bgColor="Gray", $fontColor="white" ,$legendText="External Services\neight sided")
 AddElementTag("microService-java", $shape=EightSidedShape(), $bgColor="#6DB33F", $fontColor="black", $legendText="API Java \neight sided")
-AddElementTag("storage-mysql", $shape=RoundedBoxShape(), $bgColor="#00758f",$borderColor="Black", $fontColor="white", $legendText="MySQL Database")
-AddElementTag("framework-react", $shape=RoundedBoxShape(), $bgColor="#61DBFB", $fontColor="white", $legendText="React Single-Page Application")
-AddElementTag("webApp", $bgColor="#e34f26", $fontColor="white", $legendText="Web Application")
+AddElementTag("storage-postgres", $shape=RoundedBoxShape(), $bgColor="#336791",$borderColor="Black", $fontColor="white", $legendText="PostgreSQL Database")
+AddElementTag("framework-nextjs", $shape=RoundedBoxShape(), $bgColor="#000000", $fontColor="white", $legendText="Next.js Application")
 
 LAYOUT_TOP_DOWN()
-'LAYOUT_WITH_LEGEND()
-SHOW_PERSON_OUTLINE()
-'HIDE_STEREOTYPE()
-
 
 title Container Diagram for Envision Ad System
 
+Person(guest, "Guest User", "Unauthenticated visitor who browses available media spaces and views general platform information.")
+Person(organizationOwner, "Organization Owner", "Owns and operates the Envision Ad platform, monitors revenue, manages subscriptions, and oversees business operations.")
 Person(mediaOwner, "Medias Owner", "Owns advertising spaces such as TV screens, posters, digital displays.")
 Person(advertiser, "Advertiser", "Local business or marketing agency who browses available medias and posts advertisements with content and duration.")
 Person(admin, "System Administrator", "Platform administrator who manages users, moderates content, and monitors system analytics.")
@@ -38,32 +33,28 @@ Person(admin, "System Administrator", "Platform administrator who manages users,
 Container_Ext(auth, "Auth0", "Auth SaaS", "Auth0 is an easy to implement, adaptable authentication and authorization platform.", $sprite="auth0-icon", $tags="ext_service")
 Container_Ext(email, "Gmail SMTP", "SMTP Service", "The google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
 Container_Ext(cloud, "Cloudinary", "Cloud Service", "Cloud storage service that stores media and pdf reports.", $sprite="cloudinary-icon", $tags="ext_service")
-Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisers and medias owners.", $sprite="stripe-icon", $tags="ext_service")
-Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provide proof of displaying ads on their media.", $sprite="twilio-icon", $tags="ext_service")
+Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisers and medias owners.", $sprite="stripe", $tags="ext_service")
 
 System_Boundary(c1, "Envision Ad System"){
 
-    together {
-        Container(react_spa, "React Single-Page Application", "TypeScript, React", "Provides all the Envision Ad functionality to clients via their web browser.", $sprite="react", $tags = "framework-react")
-        Container(web_app, "Web Application", "HTML, CSS", "Delivers the static content and the react single page application.", $sprite="html5", $tags = "webApp")
-    }
+    Container(nextjs_app, "Next.js Application", "TypeScript, Next.js, React", "Provides all the Envision Ad functionality to clients via their web browser. Handles server-side rendering and static generation.", $sprite="nextjs", $tags = "framework-nextjs")
 
     Container(envision_ad, "Envision Ad API", "Java, Spring Boot", "Connects medias owners with advertisers. Manages medias listings, advertisement postings, and facilitates communication between parties via email notifications.", $sprite="spring_original", $tags = "microService-java")
-    ContainerDb(envision_ad_db, "Envision Ad DB", "MySQL 5.7.x", "Stores information", $sprite="mysql" , $tags = "storage-mysql")
+    ContainerDb(envision_ad_db, "Envision Ad DB", "PostgreSQL", "Stores information", $sprite="postgresql" , $tags = "storage-postgres")
 
-    Rel_R(web_app, react_spa, "Delivers to the user's web browser")
-    Rel(react_spa, envision_ad, "Makes API calls to", "JSON/REST/HTTPS")
-    Rel_L(envision_ad, envision_ad_db, "Reads from and writes to", "JDCB/SQL/TCP", $tags="blue-line")
+    Rel(nextjs_app, envision_ad, "Makes API calls to", "JSON/REST/HTTPS")
+    Rel(nextjs_app, auth, "Authenticates users via", "OAuth2/HTTPS")
+    Rel_L(envision_ad, envision_ad_db, "Reads from and writes to", "JDBC/SQL/TCP", $tags="blue-line")
 
-    Rel(mediaOwner, web_app, "Visits Envision Ad using", "HTTPS")
-    Rel(advertiser, web_app, "Visits Envision Ad using", "HTTPS")
-    Rel(admin, web_app, "Visits Envision Ad using", "HTTPS")
+    Rel(guest, nextjs_app, "Visits Envision Ad using", "HTTPS")
+    Rel(organizationOwner, nextjs_app, "Visits Envision Ad using", "HTTPS")
+    Rel(mediaOwner, nextjs_app, "Visits Envision Ad using", "HTTPS")
+    Rel(advertiser, nextjs_app, "Visits Envision Ad using", "HTTPS")
+    Rel(admin, nextjs_app, "Visits Envision Ad using", "HTTPS")
 
     Rel(envision_ad, email, "Makes API calls to", "JSON/REST/HTTPS")
     Rel(envision_ad, cloud, "Makes API calls to", "JSON/REST/HTTPS")
     Rel(envision_ad, stripe, "Makes API calls to", "JSON/REST/HTTPS")
-    Rel(envision_ad, auth, "Makes API calls to", "JSON/REST/HTTPS")
-    Rel(envision_ad, twilio, "Makes API calls to", "JSON/REST/HTTPS")
 }
 
 SHOW_LEGEND()

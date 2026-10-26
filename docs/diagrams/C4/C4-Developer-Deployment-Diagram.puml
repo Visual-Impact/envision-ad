@@ -3,33 +3,27 @@
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 !define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
 !include DEVICONS/java.puml
-!include DEVICONS/mysql.puml
-!include DEVICONS/react.puml
-!include DEVICONS/html5.puml
+!include DEVICONS/postgresql.puml
+
+!$ICONURL = "https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v3.0.0/icons"
+!include $ICONURL/devicons2/nextjs.puml
 
 !define SPRITESURL https://raw.githubusercontent.com/plantuml-stdlib/gilbarbara-plantuml-sprites/v1.1/sprites
 !include SPRITESURL/auth0-icon.puml
-!include SPRITESURL/twilio-icon.puml
 !include SPRITESURL/cloudinary-icon.puml
 !include SPRITESURL/stripe.puml
 !include SPRITESURL/google-gmail.puml
 
 AddElementTag("service", $shape=EightSidedShape(), $bgColor="Green", $fontColor="white", $legendText="API \neight sided")
 AddElementTag("ext_service", $shape=EightSidedShape(), $bgColor="Gray", $fontColor="white" ,$legendText="External Services\neight sided")
-AddElementTag("My SQL Database", $shape=RoundedBoxShape(), $bgColor="DarkCyan",$borderColor="Black", $fontColor="white", $legendText="Database")
-AddElementTag("webSite", $shape=RoundedBoxShape(), $bgColor="DodgerBlue", $fontColor="white", $legendText="Single-Page Application")
-AddElementTag("webApp", $shape=RoundedBoxShape(), $bgColor="OrangeRed", $fontColor="white", $legendText="Web Application")
+AddElementTag("PostgreSQL Database", $shape=RoundedBoxShape(), $bgColor="#336791",$borderColor="Black", $fontColor="white", $legendText="Database")
+AddElementTag("nextjs-app", $shape=RoundedBoxShape(), $bgColor="#000000", $fontColor="white", $legendText="Next.js Application")
 
 SetDefaultLegendEntries("")
-
 
 allowmixing
 
 rectangle "Developer's Laptop \n[Deployment Node: Windows 11 and Linux Fedora 39]" as laptop {
-
-    node "Webpack Development Server \n[Deployment Node : webpack-dev-server/^4.6.0]" as react {
-        Container(web, "Web Application", "Container: Html and React JS","Delivers the static content for the Single Page Application.",  $tags="webApp")
-    }
 
     node "Docker Container - API \n[Deployment Node : Docker]" as backend {
         node "Apache Tomcat\n[Deployment Node : Apache Tomcat/10.1.13]" as tom {
@@ -38,13 +32,15 @@ rectangle "Developer's Laptop \n[Deployment Node: Windows 11 and Linux Fedora 39
     }
 
     node "Docker Container - Database \n[Deployment Node : Docker]" as db {
-        node "MySQL Server \n[Deployment Node : MySQL Server/5.7.44]" as sql{
-            Container(mysql, "MySQL Database", "Container: MySQL Schema.","Stores all the data of the organization related to media, advertising, moderation, reporting, and transaction", $sprite="mysql", $tags="My SQL Database")
+        node "PostgreSQL Server \n[Deployment Node : PostgreSQL/16.x]" as sql{
+            Container(postgres, "PostgreSQL Database", "Container: PostgreSQL Schema.","Stores all the data of the organization related to media, advertising, reservations, and payments", $sprite="postgresql", $tags="PostgreSQL Database")
         }
     }
 
     node "Web Browser \n[Deployment Node : Chrome and Firefox]" as browser {
-        Container(browser_cont, "Single-Page Application", "Container : JavaScript and React JS","Provides a GUI interface that contains all the functionalities of the Spring boot application. Uses REACT Router to handle the multiple pages." ,$sprite="react",$tags="webSite")
+        node "Next.js Development Server \n[Deployment Node : Next.js Dev Server]" as nextjs_node {
+            Container(nextjs, "Next.js Application", "Container: TypeScript, Next.js, React","Provides all the Envision Ad functionality to clients via their web browser. Handles server-side rendering and static generation.", $sprite="nextjs", $tags="nextjs-app")
+        }
     }
 
 }
@@ -52,17 +48,14 @@ rectangle "Developer's Laptop \n[Deployment Node: Windows 11 and Linux Fedora 39
 Container_Ext(cloudinary, "Cloudinary Service", "REST API", "Cloudinary's image hosting service and API.", $sprite="cloudinary-icon", $tags="ext_service")
 Container_Ext(auth, "Auth0", "SaaS", "Auth0 is an easy to implement, adaptable authentication and authorization platform.", $sprite="auth0-icon", $tags="ext_service")
 Container_Ext(email, "Gmail SMTP System", "Email Service", "The google SMTP emailing system.", $sprite="google-gmail", $tags="ext_service")
-Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling transactions between advertisings and medias owners.", $sprite="stripe-icon", $tags="ext_service")
-Container_Ext(twilio, "Twilio", "SMS Service", "Reminding Media Owners to provide proof of displaying ads on their media.", $sprite="twilio-icon", $tags="ext_service")
+Container_Ext(stripe, "Stripe", "Payment Service", "Payment processing service for handling reservations between advertisers and media owners.", $sprite="stripe", $tags="ext_service")
 
-web -[dashed]right-> browser_cont : Delivers to the web browser
-browser_cont -[dashed]-> java : Makes API calls to \n[JSON/HTTP]
-java -[dashed]> mysql : SQL/TCP\n[JBDC]
+nextjs -[dashed]-> auth : Authenticates users via\n[OAuth2/HTTPS]
+nextjs -[dashed]-> java : Makes API calls to \n[JSON/HTTPS]
+java -[dashed]> postgres : SQL/TCP\n[JDBC]
 
 java -[dashed]-> cloudinary : Makes API calls to \n[JSON/HTTPS]
 java -[dashed]-> stripe : Makes API calls to \n[JSON/HTTPS]
-java -[dashed]-> twilio : Makes API calls to \n[JSON/HTTPS]
-java -[dashed]-> auth : Makes API calls to \n[OAuth2/OpenID]
 java -[dashed]-> email : Sends email to \n[SMTP/TCP/IP]
 SHOW_LEGEND()
 @endpuml
