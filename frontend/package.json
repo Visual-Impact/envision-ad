@@ -35,7 +35,7 @@
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.2",
-    "next": "^16.1.4",
+    "next": "^16.4.0",
     "next-cloudinary": "^6.17.5",
     "next-intl": "^4.5.7",
     "react": "^19.2.3",
